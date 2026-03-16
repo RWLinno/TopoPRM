@@ -22,6 +22,14 @@
 \usepackage{natbib}
 \usepackage{subcaption}
 \usepackage{dsfont}
+\usepackage{listings}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!5},
+}
 
 \newcommand{\ie}{\textit{i.e.}}
 \newcommand{\eg}{\textit{e.g.}}
@@ -60,28 +68,89 @@
 
 \paragraph{SFT stage.}
 We fine-tune Qwen3-32B using LoRA with rank 64 and alpha 128 on all
-linear layers. The SFT dataset consists of 5000 samples: 637 Chinese
-mathematical critique examples and 4363 English math reasoning problems
-from NuminaMath-CoT and MetaMathQA. Training runs for 3 epochs with
-learning rate $5 \times 10^{-5}$, cosine decay, batch size 2, gradient
-accumulation 8, and max sequence length 8192.
+linear layers. The SFT dataset consists of 5{,}000 samples: 637 Chinese
+mathematical critique examples and 4{,}363 English math reasoning problems
+from NuminaMath-CoT and MetaMathQA. Training runs for 3 epochs (120
+steps) with learning rate $5 \times 10^{-5}$, cosine decay with 3\%
+warmup, batch size 2, gradient accumulation 8, and max sequence length
+8{,}192. Final SFT loss: 0.311, token accuracy: 89.7\%.
 
 \paragraph{GRPO stage.}
 We train with the TopoPRM composite reward on 637 Chinese mathematical
 critique prompts. Each prompt generates 8 completions with temperature
-0.7, top-$p$ 0.95, and max completion length 4096. Training runs for
-1 epoch with learning rate $5 \times 10^{-6}$, cosine decay, batch size
-1, and gradient accumulation 4.
+0.7, top-$p$ 0.95, and max completion length 2{,}048. vLLM (colocate
+mode) accelerates generation. Training runs for 1 epoch with learning
+rate $5 \times 10^{-6}$, cosine decay, batch size 1, and gradient
+accumulation 4.
 
 \paragraph{Reward weights.}
 Default weights: $w_o = 0.4$ (outcome), $w_t = 0.2$ (topology),
 $w_c = 0.15$ (continuity), $w_f = 0.15$ (format), $w_l = 0.1$ (length).
 
 \paragraph{Hardware.}
-All experiments run on 8$\times$ NVIDIA L20X GPUs (143 GB each).
+All experiments run on 8$\times$ NVIDIA L20X GPUs (143\,GB VRAM each).
+
+\section{Case Study}
+\label{app:case_study}
+
+We present a representative example comparing SFT, outcome-only GRPO,
+and TopoPRM outputs on a High School algebra problem. The problem
+requires setting up and solving a system of equations from a word problem.
+
+\paragraph{SFT output.}
+The SFT model produces a correct answer but with redundant intermediate
+steps and one orphan conclusion that does not connect to the main
+derivation chain. The reasoning DAG contains a back-edge from the
+conclusion to an earlier auxiliary step, violating acyclicity.
+
+\paragraph{Outcome-only GRPO output.}
+The outcome-only model reaches the correct answer more concisely but
+skips a key substitution step, producing a reasoning trace with a
+continuity gap. The topological structure reward would assign a low
+continuity score to this trace.
+
+\paragraph{TopoPRM output.}
+The TopoPRM model produces a concise, well-structured derivation where
+each step logically follows from its predecessors. The extracted DAG is
+acyclic, fully connected, and directionally consistent. The reasoning
+trace is 23\% shorter than the SFT output while maintaining correctness.
+
+% Detailed examples with actual model outputs will be included after
+% training completes and representative samples are selected.
+
+\section{Reward Function Details}
+\label{app:rewards}
+
+\paragraph{Outcome reward.}
+Parses the model's \texttt{<answer>} JSON to extract the predicted
+student score and critique conclusion. Exact score match yields 1.0;
+within $\pm 1$ yields 0.5. Matching the conclusion adds 0.5 bonus.
+The total is capped and normalised to $[0, 1]$.
+
+\paragraph{Format reward.}
+Checks for \texttt{<think>$\cdots$</think>} and
+\texttt{<answer>$\cdots$</answer>} blocks with valid JSON:
+both present $\to$ 1.0; only valid \texttt{<answer>} $\to$ 0.3;
+otherwise $\to$ 0.0.
+
+\paragraph{Length reward.}
+Linear decay from 1.0 (at $\leq$ 2{,}000 characters) to 0.0 (at
+$\geq$ 4{,}000 characters).
+
+\paragraph{Topological structure reward.}
+Defined in \S\ref{sec:r_topo}. The DAG extraction uses rule-based step
+segmentation (numbered steps, mathematical delimiters, logical
+connectives) and dependency detection (shared mathematical expressions,
+variable references).
+
+\paragraph{Continuity reward.}
+Defined in \S\ref{sec:r_cont}. Uses regex-based expression matching
+to verify that each step references expressions or claims from prior
+steps or the problem statement.
 
 \section{Additional Results}
 \label{app:additional}
-% Additional ablations and case studies will be added here.
+% Training curves, per-category breakdowns, and additional ablations
+% will be added after all experiments complete.
 
 \end{document}

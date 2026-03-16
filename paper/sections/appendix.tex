@@ -1,0 +1,126 @@
+\section{Training Details}
+\label{app:details}
+
+\paragraph{SFT stage.}
+We fine-tune Qwen3-32B using LoRA with rank 64 and alpha 128 on all
+linear layers. The SFT dataset consists of 5,000 samples: 637 Chinese
+mathematical critique examples and 4,363 English math reasoning problems
+from NuminaMath-CoT and MetaMathQA. Training runs for 3 epochs with
+learning rate $5 \times 10^{-5}$, cosine decay, batch size 2, gradient
+accumulation 8, and max sequence length 8,192. Total training: 120 steps,
+36 minutes on 8$\times$ NVIDIA L20X. Final loss: 0.311, token accuracy:
+89.7\%.
+
+\paragraph{GRPO stage.}
+We train with the TopoPRM composite reward on 637 Chinese mathematical
+critique prompts. Each prompt generates $G = 8$ completions with
+temperature 0.7, top-$p$ 0.95, and max completion length 2,048. Training
+runs for 1 epoch with learning rate $5 \times 10^{-6}$, cosine decay,
+batch size 1, and gradient accumulation 4. vLLM (colocate mode) is used
+for efficient generation with $\mathit{gpu\_memory\_utilization} = 0.5$
+and $\mathit{max\_model\_len} = 4{,}096$.
+
+\paragraph{Reward weights.}
+Default composite weights:
+$w_o = 0.4$ (outcome),
+$w_t = 0.2$ (topology),
+$w_c = 0.15$ (continuity),
+$w_f = 0.15$ (format),
+$w_l = 0.1$ (length).
+
+\paragraph{Hardware.}
+All experiments run on 8$\times$ NVIDIA L20X GPUs (143\,GB VRAM each),
+700\,GB host RAM, using the \texttt{ms-swift} 4.0.1 framework with
+PyTorch 2.10.0, vLLM 0.17.1, and Transformers 4.57.6.
+
+\section{SCAE Algorithm}
+\label{app:scae}
+
+Algorithm~\ref{alg:scae} presents the full procedure of Stratified
+Clipping Advantage Estimation.
+
+\begin{algorithm}[H]
+\caption{Stratified Clipping Advantage Estimation (SCAE)}
+\label{alg:scae}
+\begin{algorithmic}[1]
+\REQUIRE Group of completions $\{c^{(1)}, \ldots, c^{(G)}\}$ for prompt $q$
+\REQUIRE Outcome rewards $\{R_\mathrm{out}^{(i)}\}_{i=1}^G$, auxiliary rewards $\{r_\mathrm{aux}^{(i)}\}_{i=1}^G$
+\STATE $\bar{r}_\mathrm{acc} \leftarrow \frac{1}{G}\sum_{i=1}^G R_\mathrm{out}^{(i)}$
+\STATE $\mathcal{C} \leftarrow \{i : R_\mathrm{out}^{(i)} = 1\}$ \hfill \COMMENT{correct set}
+\STATE $\mathcal{W} \leftarrow \{j : R_\mathrm{out}^{(j)} = 0\}$ \hfill \COMMENT{incorrect set}
+\STATE $\bar{r}_\mathrm{aux}^+ \leftarrow \mathrm{mean}(\{r_\mathrm{aux}^{(i)} : i \in \mathcal{C}\})$ if $\mathcal{C} \neq \emptyset$ else $0$
+\STATE $\bar{r}_\mathrm{aux}^- \leftarrow \mathrm{mean}(\{r_\mathrm{aux}^{(j)} : j \in \mathcal{W}\})$ if $\mathcal{W} \neq \emptyset$ else $0$
+\FOR{$i \in \mathcal{C}$}
+    \STATE $A^{(i)} \leftarrow (1 - \bar{r}_\mathrm{acc}) + \max(0,\; r_\mathrm{aux}^{(i)} - \bar{r}_\mathrm{aux}^+)$
+\ENDFOR
+\FOR{$j \in \mathcal{W}$}
+    \STATE $A^{(j)} \leftarrow -\bar{r}_\mathrm{acc} + \min(0,\; r_\mathrm{aux}^{(j)} - \bar{r}_\mathrm{aux}^-)$
+\ENDFOR
+\RETURN Advantages $\{A^{(i)}\}_{i=1}^G$
+\end{algorithmic}
+\end{algorithm}
+
+\section{DAG Extraction Details}
+\label{app:dag}
+
+\paragraph{Step segmentation.}
+We identify reasoning step boundaries using the following markers:
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+    \item Numbered steps: patterns like ``Step 1:'', ``(1)'', ``第一步''
+    \item Mathematical delimiters: ``$\because$'', ``$\therefore$'',
+          ``$\Rightarrow$''
+    \item Logical connectives: ``因为'', ``所以'', ``由此可得'', ``therefore'',
+          ``hence''
+    \item Line breaks with significant indentation changes
+\end{itemize}
+
+\paragraph{Dependency detection.}
+For each pair of steps $(r_i, r_j)$ with $i < j$, we check:
+\begin{enumerate}[leftmargin=*,itemsep=1pt]
+    \item \textbf{Expression overlap}: Whether $r_j$ contains mathematical
+    expressions (extracted via regex) that first appeared in $r_i$.
+    \item \textbf{Variable reference}: Whether $r_j$ uses variables or
+    intermediate results defined in $r_i$.
+    \item \textbf{Sequential proximity}: Consecutive steps $(r_i, r_{i+1})$
+    receive weak sequential edges (weight 0.3).
+\end{enumerate}
+
+\paragraph{Step classification.}
+Each node is classified by keyword matching into one of seven types:
+\textsc{definition} (``设'', ``let'', ``定义''),
+\textsc{derivation} (``由'', ``根据'', ``since''),
+\textsc{computation} (``计算'', ``代入'', ``=$\cdots$=''),
+\textsc{conclusion} (``因此'', ``所以'', ``therefore''),
+\textsc{auxiliary} (``注意'', ``note''),
+\textsc{substitution} (``代入'', ``substituting''),
+\textsc{case\_analysis} (``分类讨论'', ``case'').
+
+\section{Case Study}
+\label{app:case_study}
+
+We present a representative example comparing the reasoning structure
+of completions from the SFT baseline, outcome-only GRPO, and TopoPRM
+(full) on a middle-school algebra problem. The case study will be
+populated with actual model outputs after training completes.
+
+\paragraph{Problem.}
+A middle-school algebra problem requiring multi-step equation solving
+with verification of intermediate steps.
+
+\paragraph{Analysis.}
+The TopoPRM-trained model is expected to produce reasoning traces with:
+(i) clearly delineated steps forming a valid DAG,
+(ii) each conclusion explicitly referencing its supporting premises,
+(iii) more concise overall length compared to outcome-only GRPO.
+In contrast, the outcome-only model may produce correct answers but with
+less structured, potentially redundant reasoning chains.
+
+\section{Distillation Details}
+\label{app:distill}
+
+For reasoning compression, we use the TopoPRM-trained Qwen3-32B as the
+teacher model to generate high-quality reasoning traces. We filter
+teacher outputs to retain only those with composite reward
+$R_\mathrm{total} > 0.7$. The student models (Qwen3-14B, Qwen3-7B) are
+then trained using reverse-KL distillation with LoRA (rank 32, alpha 64)
+for 3 epochs.

@@ -1,18 +1,18 @@
-% Ablation study on reward components
 \begin{table}[t]
 \centering
-\caption{Ablation study on reward components. Each row removes one component from the full TopoPRM reward.}
+\caption{Ablation study on reward components. Each row removes one component from the full TopoPRM reward. All models are trained from the same Qwen3-32B + SFT checkpoint.}
 \label{tab:ablation_reward}
 \begin{tabular}{l cccc}
 \toprule
-\textbf{Reward Configuration} & \textbf{MATH500} & \textbf{CMATH} & \textbf{Critique-Acc} & \textbf{Avg-Len} \\
+\textbf{Reward Configuration} & \textbf{Middle-Acc} & \textbf{High-Acc} & \textbf{Format\%} & \textbf{Avg-Len} \\
 \midrule
 \rowcolor{blue!5}
 TopoPRM (full)       & -- & -- & -- & -- \\
 \quad w/o Topo       & -- & -- & -- & -- \\
 \quad w/o Continuity & -- & -- & -- & -- \\
-\quad w/o Format     & -- & -- & -- & -- \\
 Outcome Only         & -- & -- & -- & -- \\
+\midrule
+SFT Baseline         & -- & -- & -- & -- \\
 \bottomrule
 \end{tabular}
 \end{table}

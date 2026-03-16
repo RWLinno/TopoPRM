@@ -1,27 +1,25 @@
-% Main results table
 \begin{table}[t]
 \centering
-\caption{Main results on mathematical reasoning benchmarks. Critique-Acc measures the accuracy of structured critique generation. Avg-Len reports the average response length in tokens.}
+\caption{Main results on mathematical reasoning benchmarks. Critique-Acc measures the accuracy of structured critique generation on our Chinese math test sets. Avg-Len reports the average response length in characters.}
 \label{tab:main_results}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{l cccccc}
 \toprule
-\textbf{Model} & \textbf{MATH500} & \textbf{GSM8K} & \textbf{CMATH} & \textbf{GaoKao} & \textbf{Critique-Acc} & \textbf{Avg-Len} \\
+\textbf{Model} & \textbf{Middle-Acc} & \textbf{High-Acc} & \textbf{Overall-Acc} & \textbf{Format\%} & \textbf{Continuity} & \textbf{Avg-Len} \\
 \midrule
 \rowcolor{gray!10}
-\multicolumn{7}{l}{\textit{Proprietary / Strong Baselines}} \\
-GPT-4o                        & -- & -- & -- & -- & -- & -- \\
-DeepSeek-R1-Distill-7B        & -- & -- & -- & -- & -- & -- \\
+\multicolumn{7}{l}{\textit{Baselines}} \\
+Qwen3-32B (base)                 & -- & -- & -- & -- & -- & -- \\
+Qwen3-32B-Instruct               & -- & -- & -- & -- & -- & -- \\
 \midrule
 \rowcolor{gray!10}
-\multicolumn{7}{l}{\textit{Qwen3-14B Variants}} \\
-Qwen3-14B-Instruct            & -- & -- & -- & -- & -- & -- \\
-Qwen3-14B (base)              & -- & -- & -- & -- & -- & -- \\
-\quad + SFT (CoT)             & -- & -- & -- & -- & -- & -- \\
-\quad + SFT (TopoPRM)         & -- & -- & -- & -- & -- & -- \\
-\quad + GRPO (outcome)        & -- & -- & -- & -- & -- & -- \\
+\multicolumn{7}{l}{\textit{Our Models}} \\
+\quad + SFT                       & -- & -- & -- & -- & -- & -- \\
+\quad + GRPO (outcome only)       & -- & -- & -- & -- & -- & -- \\
+\quad + GRPO (w/o topo)           & -- & -- & -- & -- & -- & -- \\
+\quad + GRPO (w/o continuity)     & -- & -- & -- & -- & -- & -- \\
 \rowcolor{blue!5}
-\quad + GRPO (TopoPRM full)   & -- & -- & -- & -- & -- & -- \\
+\quad + GRPO (TopoPRM full)       & -- & -- & -- & -- & -- & -- \\
 \bottomrule
 \end{tabular}%
 }

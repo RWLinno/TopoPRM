@@ -1,28 +1,46 @@
 \section{Experiments}
 \label{sec:experiments}
 
-\paragraph{Setup.}
-We use Qwen3-32B~\citep{qwen3} as the base model. Training is conducted
-using MS-Swift~\citep{msswift} with LoRA (rank 64, alpha 128). SFT uses
-5000 samples mixing Chinese mathematical critique data (637 samples) with
-public English datasets (NuminaMath-CoT, MetaMathQA). GRPO uses 637
-Chinese mathematical critique prompts with TopoPRM composite rewards. All
-experiments run on 8$\times$ NVIDIA L20X GPUs (143 GB each). We evaluate
-on MATH500, GSM8K~\citep{cobbe2021gsm8k}, CMATH (Chinese math), and
-GaoKao (Chinese college entrance exam). Additional training details and
-hyperparameters are provided in Appendix~\ref{app:details}.
+\subsection{Experimental Setup}
+\label{sec:setup}
+
+\paragraph{Base model and training.}
+We use Qwen3-32B~\citep{qwen3} as the base model. All training is
+conducted using MS-Swift~\citep{msswift} with LoRA (rank 64, alpha 128)
+applied to all linear layers. SFT uses 5{,}000 samples mixing 637
+Chinese mathematical critique samples with 3{,}000 NuminaMath-CoT and
+2{,}000 MetaMathQA English samples. GRPO uses 637 Chinese mathematical
+critique prompts with TopoPRM composite rewards. Training runs on
+8$\times$ NVIDIA L20X GPUs (143\,GB each) with bfloat16 precision.
+Detailed hyperparameters are in Appendix~\ref{app:details}.
+
+\paragraph{Benchmarks.}
+We evaluate on two Chinese math critique test sets: a \emph{Middle School}
+set (2{,}181 samples) and a \emph{High School} set (5{,}414 samples),
+totalling 7{,}595 evaluation samples. These test sets require the model
+to critique student solutions, identify errors, and produce structured
+scores---a task that demands both mathematical reasoning and precise
+output formatting. We report \emph{Critique Accuracy} (exact score
+match), \emph{Format Compliance} (\texttt{<think>} +
+\texttt{<answer>} with valid JSON), and \emph{Average Length}
+(in characters).
+
+\paragraph{Baselines.}
+We compare against the base Qwen3-32B, Qwen3-32B-Instruct, our SFT
+checkpoint, and GRPO with outcome-only reward. We additionally evaluate
+ablation variants that remove individual reward components.
 
 \subsection{Main Results}
 \label{sec:main_results}
 
 \input{tables/main_results}
 
-Table~\ref{tab:main_results} presents the main results across four
-benchmarks. TopoPRM (GRPO with full composite reward) consistently
-outperforms the SFT baseline and outcome-only GRPO across all benchmarks.
-The improvements are particularly pronounced on more challenging
-benchmarks (GaoKao), suggesting that topology-aware process rewards
-provide stronger guidance for complex multi-step reasoning.
+Table~\ref{tab:main_results} presents the main results. TopoPRM
+(GRPO with full composite reward) consistently outperforms the SFT
+baseline and outcome-only GRPO across both test sets. The improvements
+are particularly pronounced on the harder High School set, suggesting
+that topology-aware process rewards provide stronger guidance for complex
+multi-step reasoning.
 
 \subsection{Ablation Study}
 \label{sec:ablation}
@@ -33,30 +51,30 @@ Table~\ref{tab:ablation_reward} shows the contribution of each reward
 component. Removing the topological structure reward leads to the largest
 accuracy drop, confirming that DAG-level structural verification is the
 most impactful process signal. Removing the continuity reward also
-degrades performance, though to a lesser extent. The format reward
-contributes primarily to output consistency rather than reasoning quality.
+degrades performance, though to a lesser extent.
+
+\subsection{Structural Quality Analysis}
+\label{sec:structural_quality}
+
+\input{tables/structural_metrics}
+
+Table~\ref{tab:structural_metrics} reports structural metrics of the
+generated reasoning traces. GRPO with TopoPRM significantly improves
+DAG acyclicity, reduces orphan conclusions, and increases step-to-step
+continuity compared to SFT and outcome-only baselines. These results
+confirm that the topological rewards effectively guide the model toward
+producing more logically coherent reasoning structures.
 
 \subsection{Length Analysis}
 \label{sec:length_analysis}
 
 \input{tables/ablation_length}
 
-Table~\ref{tab:ablation_length} analyses the accuracy-length trade-off.
+Table~\ref{tab:ablation_length} analyses the accuracy--length trade-off.
 TopoPRM produces shorter reasoning traces than outcome-only GRPO while
 maintaining higher accuracy, demonstrating that topology-aware rewards
 naturally encourage more concise reasoning by penalising redundant
 branches and orphan conclusions.
-
-\subsection{Structural Quality}
-\label{sec:structural_quality}
-
-\input{tables/structural_metrics}
-
-Table~\ref{tab:structural_metrics} reports structural metrics of the
-generated reasoning traces across training stages. GRPO with TopoPRM
-significantly improves DAG acyclicity, reduces orphan conclusions, and
-increases directional consistency compared to SFT and outcome-only
-baselines.
 
 \subsection{Reasoning Compression}
 \label{sec:compression_results}

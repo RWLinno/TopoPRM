@@ -1,0 +1,44 @@
+\section{Related Work}
+\label{sec:related_work}
+
+\paragraph{Reinforcement learning from human/verifiable feedback.}
+RLHF~\citep{ouyang2022training} established the paradigm of aligning
+language models via reward signals derived from human preferences.
+DeepSeek-R1~\citep{deepseekr1} and DeepSeekMath~\citep{shao2024deepseekmath}
+extended this to \emph{verifiable} rewards (RLVR), using programmatic
+correctness checks for mathematical reasoning tasks. These approaches rely
+exclusively on outcome-level signals and do not supervise the intermediate
+reasoning process. TopoPRM complements RLVR by adding process-level
+topology rewards that remain fully verifiable.
+
+\paragraph{Process reward models.}
+\citet{lightman2023lets} introduced process reward models (PRMs) that
+assign scalar rewards to each reasoning step, trained via human annotations
+of step-level correctness. Math-Shepherd~\citep{wang2024math} automates
+PRM data collection using Monte Carlo estimation. While PRMs provide
+step-level supervision, they require either expensive human labels or
+learned verifiers that may themselves be unreliable. In contrast, TopoPRM
+derives process rewards from structural properties of the reasoning graph,
+requiring no learned components.
+
+\paragraph{Graph-structured reasoning.}
+Graph-of-Thought~\citep{besta2024graph} and GRP~\citep{grp2025} model
+reasoning as graph construction, enabling non-linear exploration of
+solution paths. GRP is most closely related to our work in that it also
+considers graph structure during training. However, GRP focuses on
+\emph{generating} graph-structured solutions, whereas TopoPRM uses graph
+topology as a \emph{reward signal} for reinforcement fine-tuning of
+standard autoregressive critique generation. This distinction means
+TopoPRM does not require architectural modifications and can be applied
+to any pretrained language model.
+
+\paragraph{Reasoning compression and distillation.}
+Recent work has explored compressing verbose chain-of-thought reasoning
+into shorter but equally accurate outputs~\citep{reasoning_compression_2025}.
+Knowledge distillation from large teacher models to smaller
+students~\citep{hinton2015distilling} is a well-established technique.
+Our reverse-KL distillation stage combines both goals: we transfer the
+\emph{style} of concise, topologically coherent reasoning from a
+TopoPRM-trained 14B teacher to 7B and 1.5B students, achieving
+compression ratios of \textbf{TODO}$\times$ with minimal accuracy
+degradation.

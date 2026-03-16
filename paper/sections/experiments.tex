@@ -1,0 +1,68 @@
+\section{Experiments}
+\label{sec:experiments}
+
+\paragraph{Setup.}
+We use Qwen3-14B~\citep{qwen3} as the base model for all experiments.
+SFT and GRPO training are conducted using MS-Swift~\citep{msswift} on
+a curated dataset of mathematical critique examples. We evaluate on four
+benchmarks: MATH500, GSM8K~\citep{cobbe2021gsm8k}, CMATH, and GaoKao.
+Critique accuracy measures whether the model correctly identifies the
+first error step (or correctly confirms a valid solution). Average
+response length (Avg-Len) is measured in tokens. Additional training
+details and hyperparameters are provided in Appendix~\ref{app:details}.
+
+% TODO: Add details on dataset construction, hardware, training hyperparameters.
+
+\subsection{Main Results}
+\label{sec:main_results}
+
+\input{tables/main_results}
+
+% TODO: Analyse main results. Discuss improvements of TopoPRM over baselines.
+% Highlight comparison with GPT-4o and DeepSeek-R1-Distill-7B.
+% Discuss the progression from base -> SFT -> GRPO and the effect of reward design.
+
+\subsection{Ablation Study}
+\label{sec:ablation}
+
+\input{tables/ablation_reward}
+
+% TODO: Analyse the contribution of each reward component.
+% Discuss which component has the largest individual effect.
+% Explain why removing topology hurts more than removing continuity (or vice versa).
+
+\subsection{Length Analysis}
+\label{sec:length_analysis}
+
+\input{tables/ablation_length}
+
+% TODO: Analyse the accuracy-length trade-off.
+% Discuss how TopoPRM reduces length without sacrificing accuracy.
+% Compare with outcome-only which tends to produce verbose outputs.
+
+\subsection{Structural Quality}
+\label{sec:structural_quality}
+
+\input{tables/structural_metrics}
+
+% TODO: Analyse structural metrics across training stages.
+% Discuss how GRPO with TopoPRM improves DAG quality compared to SFT and outcome-only.
+% Interpret the relationship between structural metrics and downstream accuracy.
+
+\subsection{Reasoning Compression}
+\label{sec:compression_results}
+
+\input{tables/compression}
+
+% TODO: Analyse compression results.
+% Discuss accuracy retention at different model sizes.
+% Compare compression ratios and discuss practical deployment implications.
+
+\subsection{Case Study}
+\label{sec:case_study}
+
+% TODO: Include 1-2 qualitative examples showing:
+% (a) A critique where TopoPRM produces a well-structured DAG vs. outcome-only producing
+%     a flat, verbose chain.
+% (b) A case where the continuity reward prevents an abrupt topic shift.
+% Consider including a figure (figures/case_study.pdf) with side-by-side comparisons.

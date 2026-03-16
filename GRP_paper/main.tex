@@ -1,0 +1,228 @@
+\documentclass[11pt]{article}
+
+% Change "review" to "final" to generate the final (sometimes called camera-ready) version.
+% Change to "preprint" to generate a non-anonymous version with page numbers.
+\usepackage[preprint]{acl}
+
+% Standard package includes
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage{algorithm}          % 提供算法浮动环境
+\usepackage{algpseudocode}      % 提供 \State, \For, \If 等指令
+\usepackage{amsmath}            % 提供基础数学公式支持
+\usepackage{amssymb}            % 提供 \mathbb{1} 等特殊符号支持
+\usepackage{amsfonts}           % 提供数学字体支持
+\usepackage{dsfont}             % 重要：提供完美的指示函数符号 \mathds{1}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage[table]{xcolor} % 用于行底色
+\usepackage{booktabs}      % 用于高质量表格线
+\usepackage{multirow}      % 用于多行合并
+\usepackage{tabularx}
+
+\AtBeginDocument{
+  \setlength{\abovedisplayskip}{5pt}
+  \setlength{\belowdisplayskip}{5pt}
+}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+\DeclareTextCommand{\vs}{T1}{\v s}
+\DeclareTextCommand{\vc}{T1}{\v c}
+
+
+
+% For proper rendering and hyphenation of words containing Latin characters (including in bib files)
+\usepackage[T1]{fontenc}
+% For Vietnamese characters
+% \usepackage[T5]{fontenc}
+% See https://www.latex-project.org/help/documentation/encguide.pdf for other character sets
+
+% This assumes your files are encoded as UTF8
+\usepackage[utf8]{inputenc}
+
+% This is not strictly necessary, and may be commented out,
+% but it will improve the layout of the manuscript,
+% and will typically save some space.
+\usepackage{microtype}
+
+% This is also not strictly necessary, and may be commented out.
+% However, it will improve the aesthetics of text in
+% the typewriter font.
+\usepackage{inconsolata}
+
+%Including images in your LaTeX document requires adding
+%additional package(s)
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+
+% If the title and author information does not fit in the area allocated, uncomment the following
+%
+%\setlength\titlebox{<dim>}
+%
+% and set <dim> to something 5cm or larger.
+
+\usepackage{amsmath}
+
+\title{Graph Reasoning Paradigm: Structured and Symbolic Reasoning with Topology-Aware Reinforcement Learning for Large Language Models}
+
+% Author information can be set in various styles:
+% For several authors from the same institution:
+% \author{Author 1 \and ... \and Author n \\
+%         Address line \\ ... \\ Address line}
+% if the names do not fit well on one line use
+%         Author 1 \\ {\bf Author 2} \\ ... \\ {\bf Author n} \\
+% For authors from different institutions:
+% \author{Author 1 \\ Address line \\  ... \\ Address line
+%         \And  ... \And
+%         Author n \\ Address line \\ ... \\ Address line}
+% To start a separate ``row'' of authors use \AND, as in
+% \author{Author 1 \\ Address line \\  ... \\ Address line
+%         \AND
+%         Author 2 \\ Address line \\ ... \\ Address line \And
+%         Author 3 \\ Address line \\ ... \\ Address line}
+
+% \author{
+%   \textbf{Runxuan Liu\textsuperscript{1}},
+%   \textbf{Xianhao Ou\textsuperscript{1}},
+%   \textbf{Xinyan Ma\textsuperscript{1}},
+%   \textbf{Jiyuan Wang\textsuperscript{1}},
+%   \textbf{Jiafeng Liang\textsuperscript{1}\thanks{Corresponding author.}},
+%   \textbf{Jiaqi Li\textsuperscript{2,3}\thanks{Corresponding author.}},\\
+%   \textbf{Tao He\textsuperscript{1}},
+%   \textbf{Zheng Chu\textsuperscript{1}},
+%   \textbf{Rongchuan Mu\textsuperscript{1}},
+%   \textbf{Zekun Wang\textsuperscript{1}},
+%   \textbf{Baoxin Wang\textsuperscript{2}},\\
+%   \textbf{Dayong Wu\textsuperscript{2}},
+%   \textbf{Ming Liu\textsuperscript{1,4}\thanks{Corresponding author.}},
+%   \textbf{Shijin Wang\textsuperscript{2}},
+%   \textbf{Guoping Hu\textsuperscript{2}},
+%   \textbf{Bing Qin\textsuperscript{1,4}}\\
+%   \textsuperscript{1}Harbin Institute of Technology, Harbin, China\\
+%   \textsuperscript{2}State Key Laboratory of Cognitive Intelligence, iFLYTEK Research, China\\
+%   \textsuperscript{3}Tianjin Normal University, Tianjin, China
+%   \textsuperscript{4}Pengcheng Laboratory, Shenzhen, China\\
+%   \quad\texttt{\{rxliu, xhou, xyma, jywang, jfliang, mliu, qinb\}@ir.hit.edu.cn},
+% }
+
+\author{
+  \textbf{Runxuan Liu\textsuperscript{1}},
+  \textbf{Xianhao Ou\textsuperscript{1}},
+  \textbf{Xinyan Ma\textsuperscript{1}},
+  \textbf{Jiyuan Wang\textsuperscript{1}},
+  \textbf{Jiafeng Liang\textsuperscript{1,\textdagger}},
+  \textbf{Jiaqi Li\textsuperscript{2,3,\textdagger}},\\
+  \textbf{Tao He\textsuperscript{1}},
+  \textbf{Zheng Chu\textsuperscript{1}},
+  \textbf{Rongchuan Mu\textsuperscript{1}},
+  \textbf{Zekun Wang\textsuperscript{1}},
+  \textbf{Baoxin Wang\textsuperscript{2}},\\
+  \textbf{Dayong Wu\textsuperscript{2}},
+  \textbf{Ming Liu\textsuperscript{1,4,\textdagger}},
+  \textbf{Shijin Wang\textsuperscript{2}},
+  \textbf{Guoping Hu\textsuperscript{2}},
+  \textbf{Bing Qin\textsuperscript{1,4}}\\
+  \textsuperscript{1}Harbin Institute of Technology, Harbin, China\\
+  \textsuperscript{2}State Key Laboratory of Cognitive Intelligence, iFLYTEK Research, China\\
+  \textsuperscript{3}Tianjin Normal University, Tianjin, China
+  \textsuperscript{4}Pengcheng Laboratory, Shenzhen, China\\[-0.3em]
+  \small\quad\texttt{\{rxliu, xhou, xyma, jywang, jfliang, mliu, qinb\}@ir.hit.edu.cn}\\[-0.3em]
+  \small\textdagger\ Corresponding authors.\\
+}
+
+
+% \author{First Author \\
+%   Affiliation / Address line 1 \\
+%   Affiliation / Address line 2 \\
+%   Affiliation / Address line 3 \\
+%   \texttt{email@domain} \\\And
+%   Second Author \\
+%   Affiliation / Address line 1 \\
+%   Affiliation / Address line 2 \\
+%   Affiliation / Address line 3 \\
+%   \texttt{email@domain} \\}
+
+%\author{
+%  \textbf{First Author\textsuperscript{1}},
+%  \textbf{Second Author\textsuperscript{1,2}},
+%  \textbf{Third T. Author\textsuperscript{1}},
+%  \textbf{Fourth Author\textsuperscript{1}},
+%\\
+%  \textbf{Fifth Author\textsuperscript{1,2}},
+%  \textbf{Sixth Author\textsuperscript{1}},
+%  \textbf{Seventh Author\textsuperscript{1}},
+%  \textbf{Eighth Author \textsuperscript{1,2,3,4}},
+%\\
+%  \textbf{Ninth Author\textsuperscript{1}},
+%  \textbf{Tenth Author\textsuperscript{1}},
+%  \textbf{Eleventh E. Author\textsuperscript{1,2,3,4,5}},
+%  \textbf{Twelfth Author\textsuperscript{1}},
+%\\
+%  \textbf{Thirteenth Author\textsuperscript{3}},
+%  \textbf{Fourteenth F. Author\textsuperscript{2,4}},
+%  \textbf{Fifteenth Author\textsuperscript{1}},
+%  \textbf{Sixteenth Author\textsuperscript{1}},
+%\\
+%  \textbf{Seventeenth S. Author\textsuperscript{4,5}},
+%  \textbf{Eighteenth Author\textsuperscript{3,4}},
+%  \textbf{Nineteenth N. Author\textsuperscript{2,5}},
+%  \textbf{Twentieth Author\textsuperscript{1}}
+%\\
+%\\
+%  \textsuperscript{1}Affiliation 1,
+%  \textsuperscript{2}Affiliation 2,
+%  \textsuperscript{3}Affiliation 3,
+%  \textsuperscript{4}Affiliation 4,
+%  \textsuperscript{5}Affiliation 5
+%\\
+%  \small{
+%    \textbf{Correspondence:} \href{mailto:email@domain}{email@domain}
+%  }
+%}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+% This document is a supplement to the general instructions for *ACL authors. It contains instructions for using the \LaTeX{} style files for ACL conferences.
+% The document itself conforms to its own specifications, and is therefore an example of what your manuscript should look like.
+% These instructions should be used both for papers submitted for review and for final versions of accepted papers.
+\input{Sections/abstrct}
+\end{abstract}
+
+\section{Introduction}
+\input{Sections/introduction}
+
+\section{Related Work}
+\input{Sections/related_work}
+
+\section{Methodology}
+\input{Sections/methodology}
+
+\section{Experiments}
+\input{Sections/experiment}
+
+\section{Conclusion}
+
+% We propose a graph-based reasoning framework for large language models that models reasoning as a structured graph. By combining the Graph Reasoning Paradigm with process-aware reinforcement learning (PASC-GRPO), our approach improves reasoning accuracy, interpretability, verifiability, and logical consistency. Experiments on math and code benchmarks show consistent gains over baseline models, demonstrating the effectiveness of structured cognitive modeling.
+% In this paper, we introduced the Graph Reasoning Paradigm (GRP), a novel framework that shifts Large Language Model reasoning from unstructured plain text to structured, symbolic graph representations. By decomposing the reasoning process into discrete nodes annotated with step-level cognitive labels—such as known, generate, and reflect—GRP provides a transparent and interpretable map of the model's underlying logic. To optimize this paradigm, we developed Process-Aware Stratified Clipping GRPO (PASC-GRPO), which incorporates a suite of topology-aware rewards and a Stratified Clipping Advantage Estimation (SCAE) mechanism. These innovations enable fine-grained control over the reasoning process, effectively mitigating the common issue of reward hacking while significantly reducing training costs.
+
+% Experimental results across rigorous mathematical reasoning and code generation benchmarks demonstrate that GRP and PASC-GRPO consistently outperform state-of-the-art open-source models. Our best-performing 8B model not only matches but in several cases surpasses much larger models on competition-level tasks like AIME24 and LiveCodeBench. Beyond performance gains, our ablation studies confirm that structural signals and process-aware rewards are essential for maintaining reasoning efficiency and accuracy. Ultimately, this work suggests that explicit symbolic structure is a powerful catalyst for LLM reasoning, providing a scalable path toward more reliable and verifiable artificial intelligence.
+In this paper, we propose the Graph Reasoning Paradigm (GRP), which shifts LLM reasoning from plain text into structured, symbolic graph representations. We further introduce PASC-GRPO, a reinforcement learning framework that leverages topology-aware rewards and Stratified Clipping Advantage Estimation to enhance reasoning quality while mitigating reward hacking. Our experiments across math and coding demonstrate that GRP significantly improves performance. This work underscores the potential of structured symbolic reasoning and topology-aware rewards in developing more reliable and efficient reasoning models.
+
+
+\section*{Limitations}
+
+While the Graph Reasoning Paradigm and PASC-GRPO demonstrate substantial improvements in mathematical reasoning and code generation, several promising directions remain for future exploration. Currently, our evaluation primarily focuses on these logic-intensive domains; extending the graph-structured thinking framework to broader tasks, such as commonsense reasoning or agentic planning, presents a valuable opportunity to further assess its generalization capabilities. Additionally, while we have verified the effectiveness of our approach on 4B and 8B parameter models, investigating the scaling laws of graph reasoning on larger-scale foundation models could reveal further performance gains. Finally, future work may also explore more dynamic and adaptive graph topology generation methods to support increasingly complex and flexible cognitive processes without relying on predefined cognitive label sets.
+ 
+\bibliography{references}
+
+\newpage
+\appendix
+
+\input{Sections/appendix}
+
+\end{document}

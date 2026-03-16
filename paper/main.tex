@@ -1,0 +1,74 @@
+\documentclass{article}
+
+% NeurIPS 2025 style
+\usepackage[preprint]{neurips_2025}
+
+% Standard packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage[table]{xcolor}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{mathtools}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{float}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{natbib}
+\usepackage{subcaption}
+
+% Custom commands
+\newcommand{\ie}{\textit{i.e.}}
+\newcommand{\eg}{\textit{e.g.}}
+\newcommand{\etc}{\textit{etc.}}
+\newcommand{\cf}{\textit{cf.}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\title{TopoPRM: Topology-Aware Process Reward for Verifiable Mathematical Reasoning via Reinforcement Fine-Tuning}
+
+\author{
+  Author One\thanks{Equal contribution.} \\
+  Affiliation \\
+  \texttt{author1@example.com} \\
+  \And
+  Author Two\footnotemark[1] \\
+  Affiliation \\
+  \texttt{author2@example.com} \\
+  \And
+  Author Three \\
+  Affiliation \\
+  \texttt{author3@example.com} \\
+}
+
+\begin{document}
+
+\maketitle
+
+\input{sections/abstract}
+\input{sections/introduction}
+\input{sections/related_work}
+\input{sections/method}
+\input{sections/experiments}
+\input{sections/conclusion}
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\appendix
+\section{Training Details}
+\label{app:details}
+% TODO: Add detailed hyperparameters, dataset statistics, compute budget.
+
+\section{Additional Results}
+\label{app:additional}
+% TODO: Add per-category breakdowns, additional ablations, full case studies.
+
+\end{document}

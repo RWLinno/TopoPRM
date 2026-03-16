@@ -1,0 +1,80 @@
+\section{Introduction}
+\label{sec:introduction}
+
+Grading mathematical problem solutions is a cognitively demanding task that
+requires not merely checking the final answer but tracing the logical
+dependencies between intermediate steps, identifying where errors originate,
+and producing a coherent written critique. In educational settings, expert
+graders naturally construct an implicit \emph{reasoning graph}---a directed
+acyclic structure linking premises to conclusions---when evaluating student
+work. Recent advances in reinforcement learning with verifiable rewards
+(RLVR)~\citep{deepseekr1,shao2024deepseekmath} have shown that language
+models can be fine-tuned to solve and evaluate mathematical problems by
+receiving binary correctness signals. However, these outcome-only rewards
+leave the \emph{process} of reasoning entirely unsupervised, leading to
+several well-documented failure modes.
+
+\paragraph{Limitations of outcome-only RLVR.}
+We identify three systematic shortcomings of current RLVR approaches when
+applied to mathematical critique:
+
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+    \item \textbf{Outcome hacking.} Models learn to predict the correct
+    verdict (e.g., ``the solution is wrong at step~3'') without
+    constructing a logically sound justification. The reward signal
+    provides no gradient for improving the quality of the reasoning
+    trace itself.
+
+    \item \textbf{Format dependence.} Because the verifier checks only
+    the final structured output, models become brittle to minor
+    formatting variations in the input solution, mistaking stylistic
+    differences for logical errors.
+
+    \item \textbf{Long-chain redundancy.} Without any length or
+    coherence penalty, RLVR-trained models tend to produce verbose,
+    repetitive reasoning chains. This wastes inference budget and often
+    \emph{degrades} accuracy by introducing self-contradictions in
+    longer outputs.
+\end{enumerate}
+
+\paragraph{TopoPRM: topology-aware process rewards.}
+To address these limitations, we propose \textbf{TopoPRM}, a composite
+reward framework that supplements the outcome reward with two
+topology-aware process signals. Given a model-generated critique, we first
+extract the implicit reasoning DAG by parsing step-level dependency
+annotations. A \emph{topological structure reward} $R_{\mathrm{topo}}$
+then evaluates whether this DAG satisfies basic structural properties
+(acyclicity, connectivity, absence of orphan nodes). Concurrently, a
+\emph{continuity reward} $R_{\mathrm{cont}}$ measures the semantic
+coherence between consecutive reasoning steps using embedding similarity,
+penalising abrupt logical jumps. Together with a lightweight format reward,
+these signals compose a fully verifiable, code-computed reward that
+requires no learned reward model.
+
+We integrate TopoPRM into the Group Relative Policy Optimisation
+(GRPO)~\citep{shao2024deepseekmath} framework and additionally propose a
+\emph{reasoning compression} stage: after GRPO training, we distil the
+improved reasoning behaviour from the 14B teacher into smaller 7B and 1.5B
+student models via reverse-KL divergence minimisation, transferring both
+accuracy and conciseness.
+
+\paragraph{Contributions.}
+Our main contributions are as follows:
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+    \item We propose TopoPRM, the first topology-aware verifiable process
+    reward for RLVR that evaluates the structural quality of reasoning
+    graphs without requiring a learned reward model.
+
+    \item We design a composite GRPO reward combining outcome, topological
+    structure, continuity, and format signals, all computed
+    programmatically from model outputs.
+
+    \item We introduce a reverse-KL distillation pipeline that compresses
+    the reasoning improvements from a 14B teacher into 7B and 1.5B
+    students with minimal accuracy loss.
+
+    \item We conduct extensive experiments on MATH500, GSM8K, CMATH, and
+    GaoKao, demonstrating that TopoPRM improves critique accuracy by
+    \textbf{TODO}\% while reducing average reasoning length by
+    \textbf{TODO}\% compared to outcome-only GRPO.
+\end{enumerate}

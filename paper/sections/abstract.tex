@@ -1,0 +1,29 @@
+\begin{abstract}
+We study reinforcement fine-tuning for complex mathematical critique tasks,
+where a language model must produce structured, multi-step evaluations of
+student solutions. Existing reinforcement learning with verifiable rewards
+(RLVR) approaches rely on outcome-only signals---checking only whether the
+final judgement is correct---and ignore the \emph{topological quality} of the
+intermediate reasoning process. This leads to three persistent problems:
+(i)~models learn to guess correct verdicts without sound justification,
+(ii)~they become overly dependent on surface-level formatting cues, and
+(iii)~they generate unnecessarily long reasoning chains that waste inference
+budget.
+
+We propose \textbf{TopoPRM} (\textbf{Topo}logy-aware \textbf{P}rocess
+\textbf{R}eward \textbf{M}odel), a composite verifiable reward that
+augments the standard outcome reward with two topology-aware process
+signals. First, a \emph{topological structure reward} extracts the directed
+acyclic graph (DAG) of reasoning steps and penalises cycles, orphan nodes,
+and structural incoherence. Second, a \emph{continuity reward} measures
+step-to-step logical coherence via embedding similarity, discouraging
+abrupt topic shifts within the reasoning chain. We integrate TopoPRM into a
+Group Relative Policy Optimisation (GRPO) framework and further introduce a
+\emph{reverse-KL distillation} stage that compresses the improved reasoning
+behaviour from a 14B teacher into 7B and 1.5B student models.
+
+Experiments on MATH500, GSM8K, CMATH, and GaoKao benchmarks show that
+TopoPRM significantly improves both critique accuracy and reasoning
+efficiency compared to outcome-only RLVR baselines, while the distilled
+students retain the majority of gains at a fraction of the inference cost.
+\end{abstract}

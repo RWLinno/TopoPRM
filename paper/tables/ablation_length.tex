@@ -1,0 +1,21 @@
+% Length ablation table with multirow
+\begin{table}[t]
+\centering
+\caption{Accuracy and average response length across reward configurations. TopoPRM achieves competitive accuracy with significantly shorter reasoning chains.}
+\label{tab:ablation_length}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{l cc cc cc}
+\toprule
+& \multicolumn{2}{c}{\textbf{MATH500}} & \multicolumn{2}{c}{\textbf{CMATH}} & \multicolumn{2}{c}{\textbf{GaoKao}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+\textbf{Reward Configuration} & Acc & Len & Acc & Len & Acc & Len \\
+\midrule
+\rowcolor{blue!5}
+TopoPRM (full)        & -- & -- & -- & -- & -- & -- \\
+\quad w/o Continuity  & -- & -- & -- & -- & -- & -- \\
+\quad w/o Cont\&Topo  & -- & -- & -- & -- & -- & -- \\
+Outcome Only          & -- & -- & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

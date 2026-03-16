@@ -1,0 +1,17 @@
+% Structural quality metrics
+\begin{table}[t]
+\centering
+\caption{Structural quality of generated reasoning graphs. Acyclic\% and No-Orphan\% measure DAG validity; Continuity measures step-to-step logical coherence; DAG Depth reflects reasoning chain complexity.}
+\label{tab:structural_metrics}
+\begin{tabular}{l cccc}
+\toprule
+\textbf{Model} & \textbf{Acyclic\%} & \textbf{No-Orphan\%} & \textbf{Continuity} & \textbf{DAG Depth} \\
+\midrule
+Qwen3-14B (base)       & -- & -- & -- & -- \\
+\quad + SFT             & -- & -- & -- & -- \\
+\quad + GRPO (outcome)  & -- & -- & -- & -- \\
+\rowcolor{blue!5}
+\quad + GRPO (TopoPRM)  & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+\end{table}

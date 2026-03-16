@@ -1,0 +1,55 @@
+# Evaluation configuration for TopoPRM models
+models:
+  base:
+    path: Qwen/Qwen3-14B
+    label: "Qwen3-14B (base)"
+  sft:
+    path: output/sft_qwen3_14b/best_model
+    label: "Qwen3-14B + SFT"
+  grpo:
+    path: output/grpo_qwen3_14b/best_model
+    label: "Qwen3-14B + SFT + GRPO"
+
+benchmarks:
+  MATH:
+    path: data/benchmarks/MATH
+    split: test
+    n_samples: null
+    metric: accuracy
+  GSM8K:
+    path: data/benchmarks/GSM8K
+    split: test
+    n_samples: null
+    metric: accuracy
+  CMATH:
+    path: data/benchmarks/CMATH
+    split: test
+    n_samples: null
+    metric: accuracy
+  GaoKao:
+    path: data/benchmarks/GaoKao
+    split: test
+    n_samples: null
+    metric: accuracy
+  C-Eval-Math:
+    path: data/benchmarks/C-Eval-Math
+    split: test
+    n_samples: null
+    metric: accuracy
+
+generation:
+  max_new_tokens: 4096
+  temperature: 0.0
+  top_p: 1.0
+  do_sample: false
+  num_beams: 1
+  repetition_penalty: 1.0
+
+metrics:
+  primary: accuracy
+  extract_answer_regex: "\\\\boxed\\{(.+?)\\}"
+  normalize: true
+  timeout_per_sample: 120
+
+output_dir: output/eval_results
+report_format: markdown

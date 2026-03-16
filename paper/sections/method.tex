@@ -1,0 +1,108 @@
+\section{Method}
+\label{sec:method}
+
+We present TopoPRM, a topology-aware process reward framework for
+reinforcement fine-tuning of mathematical critique models. We first
+formalise the problem setup (\S\ref{sec:problem_setup}), then describe
+the two topology-aware reward components (\S\ref{sec:topo_rewards}),
+the composite RLVR training objective (\S\ref{sec:composite_rlvr}),
+and finally the reasoning compression stage (\S\ref{sec:compression}).
+
+\subsection{Problem Setup}
+\label{sec:problem_setup}
+
+Given a mathematical problem $q$ and a candidate student solution $s$,
+a critique model $\pi_\theta$ generates a structured evaluation
+$c = \pi_\theta(q, s)$ consisting of: (i)~a sequence of reasoning
+steps $\{r_1, r_2, \ldots, r_T\}$ analysing the solution, (ii)~an
+identification of the first error step (if any), and (iii)~a final
+correctness verdict. Each reasoning step $r_i$ may reference earlier
+steps, inducing an implicit dependency structure that we model as a
+directed acyclic graph (DAG) $\mathcal{G} = (\mathcal{V}, \mathcal{E})$,
+where $\mathcal{V} = \{r_1, \ldots, r_T\}$ and $(r_i, r_j) \in
+\mathcal{E}$ if step $r_j$ logically depends on step $r_i$.
+
+The goal is to fine-tune $\pi_\theta$ via reinforcement learning such
+that generated critiques are not only \emph{correct} in their final
+verdict but also \emph{structurally sound} in their reasoning process.
+
+\subsection{Topology-Aware Verifiable Rewards}
+\label{sec:topo_rewards}
+
+\paragraph{DAG extraction.}
+We extract the reasoning DAG $\mathcal{G}$ from a generated critique $c$
+using a rule-based parser that identifies step boundaries (marked by
+structured tags) and inter-step references (explicit citations of earlier
+steps). When a step $r_j$ mentions the conclusion of step $r_i$ (with
+$i < j$), we add edge $(r_i, r_j)$ to $\mathcal{E}$. This extraction is
+fully deterministic and requires no learned components.
+
+\paragraph{Topological structure reward.}
+The topological structure reward $R_{\mathrm{topo}}$ evaluates the
+extracted DAG against three structural properties:
+\begin{equation}
+\label{eq:r_topo}
+R_{\mathrm{topo}}(\mathcal{G}) = \underbrace{\mathbb{1}[\mathcal{G} \text{ is acyclic}]}_{\text{acyclicity}} \cdot \left( \alpha \cdot \underbrace{\frac{|\mathcal{V}| - |\mathcal{V}_{\mathrm{orphan}}|}{|\mathcal{V}|}}_{\text{connectivity}} + (1 - \alpha) \cdot \underbrace{\frac{d(\mathcal{G})}{|\mathcal{V}|}}_{\text{depth ratio}} \right),
+\end{equation}
+where $\mathcal{V}_{\mathrm{orphan}}$ denotes nodes with no incoming or
+outgoing edges, $d(\mathcal{G})$ is the length of the longest path in the
+DAG, and $\alpha \in [0, 1]$ is a balancing coefficient. The acyclicity
+indicator acts as a hard gate: any cycle in the reasoning graph zeroes
+out the reward entirely, strongly discouraging circular reasoning.
+
+\paragraph{Continuity reward.}
+The continuity reward $R_{\mathrm{cont}}$ measures the semantic coherence
+of consecutive reasoning steps:
+\begin{equation}
+\label{eq:r_cont}
+R_{\mathrm{cont}}(c) = \frac{1}{T - 1} \sum_{i=1}^{T-1} \mathrm{sim}(\mathbf{e}_{r_i}, \mathbf{e}_{r_{i+1}}),
+\end{equation}
+where $\mathbf{e}_{r_i} \in \mathbb{R}^d$ is a frozen sentence embedding
+of step $r_i$ and $\mathrm{sim}(\cdot, \cdot)$ denotes cosine similarity.
+This reward penalises abrupt topic shifts between adjacent steps, encouraging
+smooth logical flow. Since the embedding model is frozen, $R_{\mathrm{cont}}$
+is fully verifiable and introduces no trainable parameters into the reward
+computation.
+
+\subsection{Composite RLVR Framework}
+\label{sec:composite_rlvr}
+
+We combine the topology-aware rewards with a standard outcome reward
+$R_{\mathrm{outcome}} \in \{0, 1\}$ (correct verdict) and a format reward
+$R_{\mathrm{format}} \in [0, 1]$ (adherence to required output structure)
+into a composite reward:
+\begin{equation}
+\label{eq:r_total}
+R_{\mathrm{total}} = w_o \cdot R_{\mathrm{outcome}} + w_t \cdot R_{\mathrm{topo}} + w_c \cdot R_{\mathrm{cont}} + w_f \cdot R_{\mathrm{format}},
+\end{equation}
+where $w_o, w_t, w_c, w_f \geq 0$ are weighting coefficients satisfying
+$w_o + w_t + w_c + w_f = 1$. All four components are computed
+programmatically from the model output without any learned reward model.
+
+We optimise $\pi_\theta$ using Group Relative Policy Optimisation
+(GRPO)~\citep{shao2024deepseekmath}. For each prompt $(q, s)$, GRPO
+samples a group of $G$ completions $\{c^{(1)}, \ldots, c^{(G)}\}$,
+computes their rewards, and updates the policy using advantages computed
+relative to the group mean:
+\begin{equation}
+\label{eq:grpo}
+\hat{A}^{(i)} = \frac{R_{\mathrm{total}}(c^{(i)}) - \mathrm{mean}(\{R_{\mathrm{total}}(c^{(j)})\}_{j=1}^G)}{\mathrm{std}(\{R_{\mathrm{total}}(c^{(j)})\}_{j=1}^G) + \epsilon}.
+\end{equation}
+
+\subsection{Reasoning Compression via Reverse-KL Distillation}
+\label{sec:compression}
+
+After GRPO training, the 14B teacher $\pi_{\theta^*}$ produces accurate
+but sometimes verbose critiques. To deploy efficient inference, we distil
+the teacher's reasoning behaviour into smaller student models
+$\pi_\phi$ (7B and 1.5B) by minimising the reverse KL divergence:
+\begin{equation}
+\label{eq:distill}
+\mathcal{L}_{\mathrm{distill}} = \mathbb{E}_{(q,s) \sim \mathcal{D}} \left[ D_{\mathrm{KL}}\!\left( \pi_\phi(\cdot \mid q, s) \;\|\; \pi_{\theta^*}(\cdot \mid q, s) \right) \right].
+\end{equation}
+Reverse KL (mode-seeking) encourages the student to concentrate probability
+mass on the teacher's high-quality outputs rather than spreading over all
+plausible completions, which we find empirically important for preserving
+reasoning conciseness. The distillation data consists of teacher-generated
+critiques filtered to retain only those with $R_{\mathrm{total}}$ above
+a quality threshold $\tau$.

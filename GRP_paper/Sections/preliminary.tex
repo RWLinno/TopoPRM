@@ -1,0 +1,80 @@
+\subsection{Group Relative Policy Optimization (GRPO)}
+
+GRPO \cite{Shao2024DeepSeekMathPT} is a reinforcement learning algorithm designed for training language models with group-based advantage estimation. For each question $q$, a group of outputs $\{o_1, o_2, \cdots, o_G\}$ are sampled from the old policy model $\pi_{\theta_{old}}$. and optimizes the current policy $\pi_{\theta}$ using:
+
+\begin{equation}
+\begin{aligned}
+\mathcal{J}_{\mathrm{GRPO}}(\theta)
+=
+\mathbb{E}_{q \sim P(Q),\, \{o_i\}_{i=1}^{G} \sim \pi_{\theta_{\mathrm{old}}}(\cdot \mid q)}
+\\
+\frac{1}{G}
+\sum_{i=1}^{G}
+\frac{1}{|o_i|}
+\sum_{t=1}^{|o_i|}
+\Big(
+\min \Big[
+r_{i,t}(\theta)\,\hat{A}_{i,t},\,
+\\
+\mathrm{clip}\!\left(
+r_{i,t}(\theta),\, 1-\epsilon,\, 1+\epsilon
+\right)\hat{A}_{i,t}
+\Big]
+\\
+-
+\beta\, \mathrm{D}_{\mathrm{KL}}
+\big(
+\pi_\theta \,\|\, \pi_{\mathrm{ref}}
+\big)
+\Big).
+\end{aligned}
+\end{equation}
+
+
+\begin{equation}
+r_{i,t}(\theta)
+=
+\frac{
+\pi_\theta(o_{i,t} \mid q, o_{i,<t})
+}{
+\pi_{\theta_{\mathrm{old}}}(o_{i,t} \mid q, o_{i,<t})
+}.
+\end{equation}
+
+\begin{equation}
+\hat{A}_{i,t}
+=
+\tilde{r}_i
+=
+\frac{
+r_i - \mathrm{mean}(r)
+}{
+\mathrm{std}(r)
+}.
+\end{equation}
+
+\subsection{Outcome Rewards and Process Rewards}
+
+In reinforcement learning for LLMs, rewards can be categorized into two types based on when they are assigned during the generation process.
+
+\textbf{Outcome Rewards} evaluate the final result of a complete generation sequence. Given a state-action trajectory $(s_1, a_1, \ldots, s_T, a_T)$, the outcome reward is defined as $R = r(s_T)$, where only the terminal state $s_T$ receives a reward signal. This approach is commonly used in tasks where quality can only be judged after seeing the complete output, such as code correctness or final answer accuracy.
+
+\textbf{Process Rewards}, on the contrary, provide feedback at each intermediate step of the reasoning process. The cumulative reward is computed as $R = \sum_{t=1}^{T} r(s_t, a_t)$, where $r(s, a)$ assigns credit to each reasoning step. Process rewards enable more fine-grained supervision and can guide the model toward correct reasoning paths even when the final answer is incorrect.
+
+\subsection{Monte Carlo Tree Search (MCTS)}
+
+Monte Carlo Tree Search \cite{Xie2024MonteCT} is a heuristic search algorithm that builds a search tree by iteratively selecting, expanding, simulating, and backpropagating rewards. In the context of LLM reasoning, each node represents a partial generation state $s$, and edges represent token or sequence actions $a$.
+
+The algorithm balances exploration and exploitation using the Upper Confidence Bound (UCB) formula:
+
+\begin{equation}
+\mathrm{UCB}(s, a)
+=
+Q(s, a)
++
+c \sqrt{
+\frac{\ln N(s)}{N(s, a)}
+}.
+\end{equation}
+
+where $Q(s, a)$ is the estimated value of taking action $a$ in state $s$, $N(s)$ is the visit count of state $s$, $N(s, a)$ is the visit count of the state-action pair, and $c$ is the exploration constant.

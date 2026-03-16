@@ -1,0 +1,13 @@
+ms-swift>=3.0
+torch>=2.1
+transformers>=4.40
+networkx>=3.0
+matplotlib>=3.7
+sympy>=1.12
+datasets>=2.19
+modelscope>=1.14
+tqdm
+jsonlines
+regex
+pytest
+wandb

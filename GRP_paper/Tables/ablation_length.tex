@@ -1,0 +1,35 @@
+\begin{table*}[htbp]
+    \centering
+    \normalsize % 保持标准字号
+    \caption{Ablation Study Results of Length-Reducing Rewards.}
+    \label{tab:ablation_length}
+    \renewcommand{\arraystretch}{1} % 保持行间距设置
+    \begin{tabular}{lcccccc}
+        \toprule
+        \multirow{2}{*}{\textbf{Method}} & \multicolumn{2}{c}{\textbf{MATH500}} & \multicolumn{2}{c}{\textbf{AMC23}} & \multicolumn{2}{c}{\textbf{AIME24}} \\
+        \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+        & \textbf{Acc.} & \textbf{Length} & \textbf{Acc.} & \textbf{Length} & \textbf{Acc.} & \textbf{Length} \\
+        \midrule
+        PASC-GRPO                & 91.20 & 1260 & 82.50 & 1960 & 46.67 & 7040 \\
+        w/o Connectivity         & 91.35 & 1850 & 81.55 & 2140 & 45.10 & 11200 \\
+        w/o Conn. \& ERS Ratio & 90.52 & 1920 & 79.12 & 2483 & 43.25 & 22500 \\
+        \bottomrule
+    \end{tabular}
+\end{table*}
+
+% \begin{table}[htbp]
+%     \centering
+%     \small
+%     \caption{Ablation Study of Length-Reducing Rewards. Only reasoning length (number of nodes) is reported.}
+%     \label{tab:ablation_length_single}
+%     \renewcommand{\arraystretch}{1} % 行间距
+%     \begin{tabular}{lccc}
+%         \toprule
+%         \textbf{Method} & \textbf{MATH500} & \textbf{AMC23} & \textbf{AIME24} \\
+%         \midrule
+%         PASC-GRPO                & 1260  & 1960  & 7040  \\
+%         w/o Connectivity         & 1850  & 2840  & 11200 \\
+%         w/o Conn. \& ERS Entropy & 3120  & 5400  & 22500 \\
+%         \bottomrule
+%     \end{tabular}
+% \end{table}

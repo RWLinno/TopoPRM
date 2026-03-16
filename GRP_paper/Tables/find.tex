@@ -1,0 +1,17 @@
+\begin{table}[htbp]
+\centering
+\small
+\caption{Performance Comparison on Code Generation}
+\label{tab:find}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Model} & \textbf{MBPP} & \textbf{MBPP+} & \textbf{LiveCodeBech}\\
+\midrule
+qwen3-8B & 76.70 & 65.10 & 57.29 \\
+\midrule
+qwen3-8B-Base & 73.27 & 61.73 & 29.76 \\
+~+ GRP-SFT  & 75.45 & 64.71 & 53.93 \\
+~+ PASC-GRPO  & 77.49 & 65.24 & 56.12 \\
+\bottomrule
+\end{tabular}
+\end{table}

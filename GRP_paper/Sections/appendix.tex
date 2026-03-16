@@ -1,0 +1,195 @@
+\section{Technical Background}
+\label{app:technical_background}
+\input{Sections/preliminary}
+
+\section{Step-level Cognitive Labels}
+\label{app:labels_description}
+
+Figure~\ref{fig:labels} illustrates the step-level cognitive labels used in our Graph Reasoning Paradigm. 
+Each reasoning step in the structured graph is annotated with one of these labels, which represent distinct cognitive operations such as \emph{known}, \emph{generate}, \emph{aggregate}, \emph{reflect}, \emph{refine}, \emph{reverse}, and \emph{associate}. 
+These labels enable fine-grained symbolic abstraction of the reasoning process, facilitating both interpretability and structured evaluation of model behavior.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.86\linewidth]{Figures/labels.pdf}
+    \caption{
+    Step-level Cognitive Labels.
+    }
+    \label{fig:labels}
+\end{figure}
+
+\section{Graph-Structured Translation Prompt and Examples}
+\label{app:translation}
+\subsection{Graph-Structured Translation Prompt}
+We design a unified prompt for graph-structured reasoning translation,
+which specifies the node schema, thinking-mode tags, and dependency relations.
+The prompt is shown in Figure~\ref{fig:prompt_grpah}.
+The illustrative examples mentioned in the prompt are presented in the following subsections. The original Chain-of-Thought traces are generated using \texttt{Qwen3-Max-Preview}, which provides explicit thinking processes, and are subsequently translated into graph-structured representations using the \texttt{Qwen3-Max} model.
+
+\subsection{Mathematical Examples}
+We first present two mathematical examples that are originally included
+in the graph-structured translation prompt.
+The first example is designed to explicitly illustrate the use of
+\emph{reverse thinking} and \emph{associative thinking}
+(Figure~\ref{fig:math_example_reverse}).
+The second example demonstrates another mathematical reasoning process
+and is accompanied by a schematic visualization of its corresponding
+reasoning graph, where nodes represent intermediate reasoning steps and
+edges encode their dependency relations
+(Figures~\ref{fig:math_example} and~\ref{fig:math_example_graph}).
+
+\subsection{Code Generation Examples}
+We include three code generation examples.
+Each example corresponds to a representative question type of code generation task.
+
+\input{Tables/ablation_length}
+
+\begin{itemize}
+    \item \textbf{Code Completion (Complete).}
+    This type simulates the automatic code completion scenario in
+    integrated development environments (IDEs).
+    The model is provided with a function signature and a docstring as context
+    and is required to generate the remaining function body.
+    This task reflects the core capabilities of base code models such as
+    Codex and StarCoder, primarily evaluating syntactic correctness and
+    context-aware continuation, as exemplified by benchmarks like HumanEval
+    (see Figure~\ref{fig:code_complete}).
+
+    \item \textbf{Instruction Following (Instruct).}
+    Also referred to as instruction-based or conversational code generation,
+    this paradigm evaluates a model's alignment with human intent.
+    The input consists of a natural language description of a programming task,
+    and the model must generate a corresponding functional implementation.
+    This setting is the dominant evaluation protocol for instruction-tuned
+    models such as GPT-4 and DeepSeek-Coder-Instruct, emphasizing the
+    translation of natural language semantics into executable logic
+    (see Figure~\ref{fig:code_instruct}).
+
+    \item \textbf{Competitive Programming (Online Judge).}
+    This type emulates algorithmic contest environments such as ACM-style
+    competitions or online judges (e.g., LeetCode).
+    Unlike instruction-following tasks that generate a single function,
+    competitive programming requires the model to produce a complete script
+    that handles standard input and output streams.
+    As a result, this paradigm is widely regarded as the most challenging
+    form of code generation, demanding advanced algorithmic reasoning as well
+    as robust handling of input parsing, output formatting, and edge cases
+    (see Figure~\ref{fig:code_cp}).
+\end{itemize}
+
+
+\section{Graphical CoT Verification and Refinement Prompt}
+\label{app:verify}
+
+This appendix presents the prompt for graphical Chain-of-Thought (CoT)
+verification and refinement, which is shown in Figure~\ref{fig:prompt_verify}. All verification and refinement results are generated using the \texttt{Qwen3-Max} model.
+
+\section{Training Data}
+\label{app:training_data}
+
+\subsection{Supervised Fine-Tuning (SFT) Data}
+\begin{itemize}
+    \item \textbf{Math Reasoning}.
+    We use the full 40.3k samples from the DeepScaleR dataset.
+    
+    \item \textbf{Code Generation}.
+    We curate 12k samples from the KodCode-V1-SFT-R1 subset,
+    balancing task difficulty
+    ($Easy:Middle:Hard = 4:3:3$)
+    and task types
+    ($Complete:Instruct:Online\_Judge = 4.5:4.5:1$).
+\end{itemize}
+
+\subsection{Reinforcement Learning (RL) Data}
+\begin{itemize}
+    \item \textbf{Math Reasoning}.
+    We sample 5,000 problems from the DeepScaleR dataset.
+    Problems are attempted four times by Qwen3-8B and stratified by difficulty
+    based on success count.
+    Problems failed in all attempts are discarded, followed by stratified
+    sampling with a ratio of $1:1:1.5:1.5$.
+    
+    \item \textbf{Code Generation}.
+    We directly employ the KodCode-Light-RL-10K subset.
+\end{itemize}
+
+\subsection{Data Leakage Check}
+\label{app:data_leakage}
+
+To prevent potential data leakage, we first collected all evaluation test sets relevant to our tasks.  
+After selecting the training data for both supervised fine-tuning and reinforcement learning, we cross-checked each training sample against these test sets.  
+Any overlapping instances would have been removed.  
+Our inspection confirmed that the training sets contain no examples from the test sets, ensuring a clean separation between training and evaluation data.
+
+
+\section{Ablation Study Details}
+\label{app:ablation}
+
+Table~\ref{tab:ablation_length} reports the detailed ablation results of
+the proposed length-reducing rewards across multiple math reasoning benchmarks.
+We progressively remove the connectivity reward and ERS information ratio,
+to examine their individual contributions.
+The results show that removing these components leads to a substantial
+increase in reasoning length and a consistent degradation in accuracy,
+especially on more challenging benchmarks such as AIME24,
+highlighting their importance in controlling reasoning efficiency
+without sacrificing correctness.
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\linewidth]{Figures/The_Prompt_for_Graph-Structured_Translation.pdf}
+    \caption{
+    The prompt template for ``Graph-Structured Translation''. Criteria 8 and 9 are specifically added to accommodate code generation task.
+    }
+    \label{fig:prompt_grpah}
+\end{figure*}
+
+\begin{figure*}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/math_example_1.pdf}
+    \caption{A mathematical example illustrating reverse and associative thinking.}
+    \label{fig:math_example_reverse}
+\end{figure*}
+
+\begin{figure*}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/math_example_2.pdf}
+    \caption{A mathematical example in graph-structured format.}
+    \label{fig:math_example}
+\end{figure*}
+
+\begin{figure*}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{Figures/example.pdf}
+    \caption{Graph visualization of the mathematical example.}
+    \label{fig:math_example_graph}
+\end{figure*}
+
+\begin{figure*}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/code_example_1.pdf}
+    \caption{A code completion example.}
+    \label{fig:code_complete}
+\end{figure*}
+
+\begin{figure*}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/code_example_3.pdf}
+    \caption{An instruction-following code generation example.}
+    \label{fig:code_instruct}
+\end{figure*}
+
+\begin{figure*}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/code_example_2.pdf}
+    \caption{A competitive programming code generation example.}
+    \label{fig:code_cp}
+\end{figure*}
+
+\begin{figure*}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{Figures/The_Prompt_for_Graphical_CoT_Verification_and_Refinement.pdf}
+    \caption{Prompt for ``Graphical CoT Verification and Refinement''.}
+    \label{fig:prompt_verify}
+\end{figure*}
+

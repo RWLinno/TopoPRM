@@ -1,0 +1,41 @@
+# GRPO: No topology reward (ablation) - Qwen3-32B
+model: Qwen/Qwen3-32B
+adapters:
+  - PLACEHOLDER_SFT_CHECKPOINT
+
+dataset:
+  - /mnt/users/rwl/topoprm/data/grpo_ready/train.jsonl
+
+external_plugins:
+  - /mnt/users/rwl/topoprm/src/reward/ablation_rewards.py
+reward_funcs:
+  - ablation_no_topo
+
+num_generations: 8
+temperature: 0.7
+max_completion_length: 4096
+top_p: 0.95
+
+train_type: lora
+lora_rank: 64
+lora_alpha: 128
+target_modules: all-linear
+
+deepspeed: zero2
+
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 4
+learning_rate: 5e-6
+num_train_epochs: 1
+lr_scheduler_type: cosine
+warmup_ratio: 0.05
+max_length: 8192
+bf16: true
+gradient_checkpointing: true
+
+save_steps: 100
+save_total_limit: 3
+report_to:
+  - tensorboard
+logging_steps: 5
+output_dir: /mnt/users/rwl/topoprm/output/grpo_no_topo

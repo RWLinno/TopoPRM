@@ -1,0 +1,25 @@
+\begin{table}[htbp]
+\centering
+\small
+\setlength{\tabcolsep}{4pt} % 缩小列间距
+\caption{Ablation Experiment Results. Accuracy (\%).}
+\label{tab:ablation_combined}
+\begin{tabular}{lccc} % 第一列固定宽度，自动换行
+\toprule
+\textbf{Method} & \textbf{MATH500} & \textbf{AMC23} & \textbf{AIME24} \\
+\midrule
+Qwen3-8B-Base & 60.08 & 38.12 & 10.00 \\
+\midrule
+GRP-SFT & 81.60 & 75.00 & 40.00 \\
+SFT & 76.45 & 67.80 & 31.50 \\
+\midrule
+PASC-GRPO & 91.20 & 82.50 & 46.67 \\
+GRPO & 88.75 & 79.85 & 43.80 \\
+\midrule
+w/o Reachability & 87.45 & 79.30 & 40.15 \\
+w/o Reach. \& RSR & 83.12 & 76.55 & 35.80 \\
+\midrule
+w/o SCAE & 84.15 & 76.20 & 32.50 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,54 @@
+\begin{table*}[htbp]
+    \centering
+    \caption{Experimental results on Mathematical Reasoning and Code Generation benchmarks.}
+    \label{tab:main_results}
+    \small
+    \renewcommand{\arraystretch}{1.2} % 增加行间距，提升阅读舒适度
+    \begin{tabular}{lccccc}
+        \toprule
+        % --- 数学推理分类标题 (灰色底色) ---
+        \rowcolor{gray!15}
+        \multicolumn{6}{c}{\textbf{Mathematical Reasoning}} \\
+        \midrule
+        \textbf{Model} & \textbf{GSM8K} & \textbf{MATH500} & \textbf{AMC23} & \textbf{AIME24} & \textbf{AIME25} \\
+        \midrule
+        LLaMA-3.1-8B-Instruct & 85.00 & 54.80 & 41.20 & 6.30 & 2.70  \\
+        Gemma-3-12B-IT         & 94.40 & 85.60 & 77.30 & 22.40 & 18.80  \\
+        Gemma-3-27B-IT         & \textbf{95.90} & 90.00 & 80.50 & 32.60 & 24.00  \\
+        \midrule
+        Qwen3-4B-Base               & 70.20 & 55.43 & 19.17 & 10.00 & 6.33  \\
+        \rowcolor{cyan!5} % 方法行 (浅青色)
+        ~+ GRP-SFT             & 82.30 & 72.12 & 63.33 & 26.67 & 18.70  \\
+        \rowcolor{cyan!5} % 方法行 (浅青色)
+        ~+ PASC-GRPO           & 90.45 & 85.32 & 71.43 & 33.90 & 24.13  \\
+        \midrule
+        Qwen3-8B-Base               & 73.01 & 60.08 & 38.12 & 10.00 & 7.60  \\
+        \rowcolor{cyan!5} % 方法行 (浅青色)
+        ~+ GRP-SFT             & 87.72 & 81.60 & 75.00 & 40.00 & 33.33  \\
+        \rowcolor{cyan!5} % 方法行 (浅青色)
+        ~+ PASC-GRPO           & 95.37 & \textbf{91.20} & \textbf{82.50} & \textbf{46.67} & \textbf{38.79}  \\
+        \midrule % 两个板块间的横线
+        % --- 代码生成分类标题 (灰色底色) ---
+        \rowcolor{gray!15}
+        \multicolumn{6}{c}{\textbf{Code Generation}} \\
+        \midrule
+        \textbf{Model} & \textbf{MBPP} & \textbf{MBPP+} & \textbf{HumanEval} & \textbf{HumanEval+} & \textbf{LiveCodeBench} \\
+        \midrule
+        LLaMA-3.1-8B-Instruct & 61.20 & 52.30 & 69.70 & 62.80 & 10.80  \\
+        Gemma-3-12B-IT         & 73.00 & 62.10 & 85.40 & 78.20 & 25.70  \\
+        Gemma-3-27B-IT         & 74.40 & 63.00 & 87.80 & 80.00 & 26.90  \\
+        \midrule
+        Qwen3-4B-Base               & 62.40 & 51.30 & 75.60 & 70.70 & 21.14  \\
+        \rowcolor{cyan!5} % 方法行 (浅青色)
+        ~+ GRP-SFT             & 65.43 & 54.2 & 81.67 & 76.90 & 42.93  \\
+        \rowcolor{cyan!5} % 方法行 (浅青色)
+        ~+ PASC-GRPO           & 67.33 & 55.43 & 82.45 & 77.83 & 46.79  \\
+        \midrule
+        Qwen3-8B-Base               & 73.27 & 61.73 & 80.47 & 74.27 & 29.76  \\
+        \rowcolor{cyan!5} % 方法行 (浅青色)
+        ~+ GRP-SFT             & 75.45 & 64.71 & 86.79 & 82.09 & 53.93  \\
+        \rowcolor{cyan!5} % 方法行 (浅青色)
+        ~+ PASC-GRPO           & \textbf{77.49} & \textbf{65.24} & \textbf{88.43} & \textbf{83.98} & \textbf{56.12}  \\
+        \bottomrule
+    \end{tabular}
+\end{table*}

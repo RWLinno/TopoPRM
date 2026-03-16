@@ -1,4 +1,4 @@
-# GRPO: Full TopoPRM - Qwen3-32B with vLLM colocate on 6x L20X
+# GRPO: Full TopoPRM - Qwen3-32B with vLLM colocate
 model: /mnt/users/rwl/models/Qwen/Qwen3-32B
 adapters:
   - /mnt/users/rwl/topoprm/output/sft_qwen3_32b/v1-20260316-154443/checkpoint-120
@@ -20,6 +20,7 @@ use_vllm: true
 vllm_mode: colocate
 vllm_gpu_memory_utilization: 0.5
 vllm_max_model_len: 4096
+vllm_enable_prefix_caching: false
 sleep_level: 1
 offload_model: true
 offload_optimizer: true
@@ -42,7 +43,7 @@ bf16: true
 gradient_checkpointing: true
 
 save_steps: 50
-save_total_limit: 3
+save_total_limit: 5
 report_to:
   - tensorboard
 logging_steps: 5

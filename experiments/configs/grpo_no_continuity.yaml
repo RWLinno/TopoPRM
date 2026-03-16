@@ -20,6 +20,7 @@ use_vllm: true
 vllm_mode: colocate
 vllm_gpu_memory_utilization: 0.5
 vllm_max_model_len: 4096
+vllm_enable_prefix_caching: false
 sleep_level: 1
 offload_model: true
 offload_optimizer: true

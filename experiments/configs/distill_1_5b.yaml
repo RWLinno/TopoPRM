@@ -1,4 +1,4 @@
-# Distillation: Reverse-KL compression to Qwen3-1.5B
+# Distillation: SFT student on teacher-generated data - Qwen3-1.5B
 model: Qwen/Qwen3-1.5B
 
 dataset:
@@ -8,19 +8,22 @@ train_type: lora
 lora_rank: 32
 lora_alpha: 64
 target_modules: all-linear
+lora_dropout: 0.05
 
 per_device_train_batch_size: 8
-gradient_accumulation_steps: 2
+gradient_accumulation_steps: 4
 learning_rate: 3e-5
 num_train_epochs: 5
 lr_scheduler_type: cosine
 warmup_ratio: 0.05
+weight_decay: 0.01
 max_length: 4096
 bf16: true
 gradient_checkpointing: true
-deepspeed: zero2
 
-save_steps: 200
+eval_strategy: steps
+eval_steps: 100
+save_steps: 100
 save_total_limit: 3
 report_to:
   - tensorboard

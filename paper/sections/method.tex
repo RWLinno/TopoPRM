@@ -213,3 +213,30 @@ probability mass on the teacher's highest-quality outputs rather than
 covering all plausible completions. The distillation dataset consists of
 teacher-generated traces filtered to retain only those with
 $R_{\mathrm{total}} > \tau$ for a quality threshold $\tau$.
+
+\begin{algorithm}[t]
+\caption{TopoPRM Training Pipeline}
+\label{alg:topoprm}
+\begin{algorithmic}[1]
+\REQUIRE Base model $\pi_0$, SFT data $\mathcal{D}_{\mathrm{sft}}$, GRPO prompts $\mathcal{D}_{\mathrm{grpo}}$, reward weights $\{w_o, w_t, w_c, w_f, w_l\}$
+\ENSURE Trained policy $\pi_{\theta^*}$
+
+\STATE \textbf{Stage 1: SFT} \\
+Train $\pi_\theta \leftarrow \mathrm{LoRA\text{-}SFT}(\pi_0, \mathcal{D}_{\mathrm{sft}})$
+
+\STATE \textbf{Stage 2: GRPO with TopoPRM}
+\FOR{each prompt batch $\{q_i\}$ from $\mathcal{D}_{\mathrm{grpo}}$}
+    \STATE Sample $G$ completions: $\{c^{(g)}\}_{g=1}^G \sim \pi_\theta(\cdot | q_i)$
+    \STATE Compute $R_{\mathrm{outcome}}^{(g)}, R_{\mathrm{topo}}^{(g)}, R_{\mathrm{cont}}^{(g)}, R_{\mathrm{format}}^{(g)}, R_{\mathrm{len}}^{(g)}$ for each $g$
+    \STATE $R_{\mathrm{total}}^{(g)} = w_o R_o^{(g)} + w_t R_t^{(g)} + w_c R_c^{(g)} + w_f R_f^{(g)} + w_l R_l^{(g)}$
+    \STATE Compute SCAE advantages $\hat{A}^{(g)}$ via Eqs.~\ref{eq:a_acc}--\ref{eq:a_wrong}
+    \STATE Update $\pi_\theta$ via clipped GRPO objective (Eq.~\ref{eq:grpo_loss})
+\ENDFOR
+
+\STATE \textbf{Stage 3: Distillation} (optional) \\
+Generate filtered traces $\{(q, c^*) : R_{\mathrm{total}}(c^*) > \tau\}$ \\
+Train student $\pi_\phi$ via reverse-KL distillation (Eq.~\ref{eq:distill})
+
+\RETURN $\pi_{\theta^*}$ (or $\pi_\phi$ for compressed model)
+\end{algorithmic}
+\end{algorithm}

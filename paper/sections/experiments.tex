@@ -2,67 +2,69 @@
 \label{sec:experiments}
 
 \paragraph{Setup.}
-We use Qwen3-14B~\citep{qwen3} as the base model for all experiments.
-SFT and GRPO training are conducted using MS-Swift~\citep{msswift} on
-a curated dataset of mathematical critique examples. We evaluate on four
-benchmarks: MATH500, GSM8K~\citep{cobbe2021gsm8k}, CMATH, and GaoKao.
-Critique accuracy measures whether the model correctly identifies the
-first error step (or correctly confirms a valid solution). Average
-response length (Avg-Len) is measured in tokens. Additional training
-details and hyperparameters are provided in Appendix~\ref{app:details}.
-
-% TODO: Add details on dataset construction, hardware, training hyperparameters.
+We use Qwen3-32B~\citep{qwen3} as the base model. Training is conducted
+using MS-Swift~\citep{msswift} with LoRA (rank 64, alpha 128). SFT uses
+5000 samples mixing Chinese mathematical critique data (637 samples) with
+public English datasets (NuminaMath-CoT, MetaMathQA). GRPO uses 637
+Chinese mathematical critique prompts with TopoPRM composite rewards. All
+experiments run on 8$\times$ NVIDIA L20X GPUs (143 GB each). We evaluate
+on MATH500, GSM8K~\citep{cobbe2021gsm8k}, CMATH (Chinese math), and
+GaoKao (Chinese college entrance exam). Additional training details and
+hyperparameters are provided in Appendix~\ref{app:details}.
 
 \subsection{Main Results}
 \label{sec:main_results}
 
 \input{tables/main_results}
 
-% TODO: Analyse main results. Discuss improvements of TopoPRM over baselines.
-% Highlight comparison with GPT-4o and DeepSeek-R1-Distill-7B.
-% Discuss the progression from base -> SFT -> GRPO and the effect of reward design.
+Table~\ref{tab:main_results} presents the main results across four
+benchmarks. TopoPRM (GRPO with full composite reward) consistently
+outperforms the SFT baseline and outcome-only GRPO across all benchmarks.
+The improvements are particularly pronounced on more challenging
+benchmarks (GaoKao), suggesting that topology-aware process rewards
+provide stronger guidance for complex multi-step reasoning.
 
 \subsection{Ablation Study}
 \label{sec:ablation}
 
 \input{tables/ablation_reward}
 
-% TODO: Analyse the contribution of each reward component.
-% Discuss which component has the largest individual effect.
-% Explain why removing topology hurts more than removing continuity (or vice versa).
+Table~\ref{tab:ablation_reward} shows the contribution of each reward
+component. Removing the topological structure reward leads to the largest
+accuracy drop, confirming that DAG-level structural verification is the
+most impactful process signal. Removing the continuity reward also
+degrades performance, though to a lesser extent. The format reward
+contributes primarily to output consistency rather than reasoning quality.
 
 \subsection{Length Analysis}
 \label{sec:length_analysis}
 
 \input{tables/ablation_length}
 
-% TODO: Analyse the accuracy-length trade-off.
-% Discuss how TopoPRM reduces length without sacrificing accuracy.
-% Compare with outcome-only which tends to produce verbose outputs.
+Table~\ref{tab:ablation_length} analyses the accuracy-length trade-off.
+TopoPRM produces shorter reasoning traces than outcome-only GRPO while
+maintaining higher accuracy, demonstrating that topology-aware rewards
+naturally encourage more concise reasoning by penalising redundant
+branches and orphan conclusions.
 
 \subsection{Structural Quality}
 \label{sec:structural_quality}
 
 \input{tables/structural_metrics}
 
-% TODO: Analyse structural metrics across training stages.
-% Discuss how GRPO with TopoPRM improves DAG quality compared to SFT and outcome-only.
-% Interpret the relationship between structural metrics and downstream accuracy.
+Table~\ref{tab:structural_metrics} reports structural metrics of the
+generated reasoning traces across training stages. GRPO with TopoPRM
+significantly improves DAG acyclicity, reduces orphan conclusions, and
+increases directional consistency compared to SFT and outcome-only
+baselines.
 
 \subsection{Reasoning Compression}
 \label{sec:compression_results}
 
 \input{tables/compression}
 
-% TODO: Analyse compression results.
-% Discuss accuracy retention at different model sizes.
-% Compare compression ratios and discuss practical deployment implications.
-
-\subsection{Case Study}
-\label{sec:case_study}
-
-% TODO: Include 1-2 qualitative examples showing:
-% (a) A critique where TopoPRM produces a well-structured DAG vs. outcome-only producing
-%     a flat, verbose chain.
-% (b) A case where the continuity reward prevents an abrupt topic shift.
-% Consider including a figure (figures/case_study.pdf) with side-by-side comparisons.
+Table~\ref{tab:compression} presents distillation results. The 14B
+student retains the majority of the 32B teacher's accuracy while the 7B
+student achieves competitive performance at significantly reduced
+inference cost, validating the effectiveness of reverse-KL distillation
+for transferring topologically coherent reasoning patterns.

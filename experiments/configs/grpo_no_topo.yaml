@@ -1,7 +1,7 @@
 # GRPO: No topology reward (ablation) - Qwen3-32B
-model: Qwen/Qwen3-32B
+model: /mnt/users/rwl/models/Qwen/Qwen3-32B
 adapters:
-  - PLACEHOLDER_SFT_CHECKPOINT
+  - /mnt/users/rwl/topoprm/output/sft_qwen3_32b/v1-20260316-154443/checkpoint-120
 
 dataset:
   - /mnt/users/rwl/topoprm/data/grpo_ready/train.jsonl
@@ -21,7 +21,6 @@ lora_rank: 64
 lora_alpha: 128
 target_modules: all-linear
 
-deepspeed: zero2
 
 per_device_train_batch_size: 1
 gradient_accumulation_steps: 4

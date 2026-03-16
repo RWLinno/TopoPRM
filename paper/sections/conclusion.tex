@@ -2,31 +2,28 @@
 \label{sec:conclusion}
 
 We presented TopoPRM, a topology-aware process reward framework for
-reinforcement fine-tuning of mathematical critique models. By augmenting
+reinforcement fine-tuning of mathematical reasoning models. By augmenting
 standard outcome rewards with topological structure and continuity
 signals---both fully verifiable and requiring no learned reward
-models---TopoPRM improves critique accuracy while producing more concise
-and structurally coherent reasoning chains. Our reverse-KL distillation
-pipeline further compresses these improvements into smaller student
-models suitable for efficient deployment.
+models---TopoPRM improves reasoning accuracy while producing more concise
+and structurally coherent reasoning chains. Our Stratified Clipping
+Advantage Estimation (SCAE) method effectively prevents reward hacking
+from auxiliary process rewards by hierarchically prioritising answer
+correctness. The reverse-KL distillation pipeline further compresses
+these improvements into smaller student models for efficient deployment.
 
 \paragraph{Limitations.}
-Our DAG extraction relies on rule-based parsing of structured step
-annotations, which assumes the model has been trained to produce such
-annotations. Extending TopoPRM to free-form reasoning without explicit
-step markers remains an open challenge. Additionally, the continuity
-reward uses a frozen embedding model whose quality directly affects the
-coherence signal; domain-specific embeddings may yield further gains.
-Our evaluation focuses on mathematical critique; applicability to other
-structured reasoning domains (e.g., code review, scientific peer review)
-is left for future work.
+Our DAG extraction relies on rule-based parsing of inter-step references,
+which may miss implicit dependencies in free-form reasoning. The
+continuity reward uses regex-based expression matching rather than
+semantic understanding, which limits its sensitivity to subtle logical
+gaps. Our evaluation focuses on mathematical reasoning; applicability to
+other structured reasoning domains (e.g., code generation, scientific
+reasoning) is left for future work.
 
 \paragraph{Future work.}
-Several directions merit further investigation: (i)~learning the reward
-weights $w_o, w_t, w_c, w_f$ adaptively during training rather than
-fixing them as hyperparameters, (ii)~extending the topological reward
-to handle uncertainty and probabilistic dependency structures,
-(iii)~applying TopoPRM to multi-turn dialogue settings where the
-reasoning graph spans multiple conversational turns, and (iv)~exploring
-the combination of TopoPRM with learned process reward models for
-complementary supervision.
+Several directions merit investigation: (i)~learning the reward weights
+adaptively during training, (ii)~extending the topological reward to
+handle probabilistic dependency structures, (iii)~combining TopoPRM with
+learned process reward models for complementary supervision, and
+(iv)~applying TopoPRM to multi-modal reasoning tasks.

@@ -2,107 +2,214 @@
 \label{sec:method}
 
 We present TopoPRM, a topology-aware process reward framework for
-reinforcement fine-tuning of mathematical critique models. We first
-formalise the problem setup (\S\ref{sec:problem_setup}), then describe
-the two topology-aware reward components (\S\ref{sec:topo_rewards}),
-the composite RLVR training objective (\S\ref{sec:composite_rlvr}),
-and finally the reasoning compression stage (\S\ref{sec:compression}).
+reinforcement fine-tuning of mathematical reasoning models.
+Our approach consists of four stages: supervised fine-tuning with
+structured reasoning data (\S\ref{sec:sft}), DAG-based process reward
+extraction (\S\ref{sec:topo_rewards}), composite RLVR with stratified
+advantage estimation (\S\ref{sec:composite_rlvr}), and reasoning
+compression via reverse-KL distillation (\S\ref{sec:compression}).
 
-\subsection{Problem Setup}
-\label{sec:problem_setup}
+\subsection{Supervised Fine-Tuning with Structured Reasoning}
+\label{sec:sft}
 
-Given a mathematical problem $q$ and a candidate student solution $s$,
-a critique model $\pi_\theta$ generates a structured evaluation
-$c = \pi_\theta(q, s)$ consisting of: (i)~a sequence of reasoning
-steps $\{r_1, r_2, \ldots, r_T\}$ analysing the solution, (ii)~an
-identification of the first error step (if any), and (iii)~a final
-correctness verdict. Each reasoning step $r_i$ may reference earlier
-steps, inducing an implicit dependency structure that we model as a
-directed acyclic graph (DAG) $\mathcal{G} = (\mathcal{V}, \mathcal{E})$,
-where $\mathcal{V} = \{r_1, \ldots, r_T\}$ and $(r_i, r_j) \in
-\mathcal{E}$ if step $r_j$ logically depends on step $r_i$.
+Given a mathematical problem $q$ and, optionally, a student solution $s$,
+the model $\pi_\theta$ generates a structured response
+$c = \pi_\theta(q, s)$ consisting of a reasoning trace enclosed in
+\texttt{<think>$\cdots$</think>} tags and a structured answer in
+\texttt{<answer>$\cdots$</answer>} tags. The reasoning trace is a sequence
+of reasoning steps $\{r_1, r_2, \ldots, r_T\}$, each implicitly depending
+on earlier steps. These dependencies induce a directed acyclic graph (DAG)
+$\mathcal{G} = (\mathcal{V}, \mathcal{E})$, where $\mathcal{V} = \{r_1,
+\ldots, r_T\}$ and $(r_i, r_j) \in \mathcal{E}$ if step $r_j$ logically
+depends on step $r_i$.
 
-The goal is to fine-tune $\pi_\theta$ via reinforcement learning such
-that generated critiques are not only \emph{correct} in their final
-verdict but also \emph{structurally sound} in their reasoning process.
+We first fine-tune $\pi_\theta$ on a curated dataset of mathematical
+reasoning traces using LoRA~\citep{hu2022lora}, teaching the model the
+desired output format and structured reasoning patterns. This SFT stage
+provides a warm-start policy for subsequent reinforcement learning.
 
 \subsection{Topology-Aware Verifiable Rewards}
 \label{sec:topo_rewards}
 
-\paragraph{DAG extraction.}
-We extract the reasoning DAG $\mathcal{G}$ from a generated critique $c$
-using a rule-based parser that identifies step boundaries (marked by
-structured tags) and inter-step references (explicit citations of earlier
-steps). When a step $r_j$ mentions the conclusion of step $r_i$ (with
-$i < j$), we add edge $(r_i, r_j)$ to $\mathcal{E}$. This extraction is
-fully deterministic and requires no learned components.
+We design two topology-aware reward components that evaluate the
+\emph{structural quality} of the reasoning DAG extracted from each model
+completion. Both rewards are computed by deterministic programs and thus
+satisfy the verifiability requirement of RLVR.
 
-\paragraph{Topological structure reward.}
+\subsubsection{DAG Extraction}
+\label{sec:dag_extraction}
+
+Given a reasoning trace $c$, we extract the DAG $\mathcal{G} =
+(\mathcal{V}, \mathcal{E})$ using a rule-based parser:
+\begin{enumerate}[leftmargin=*,itemsep=1pt]
+    \item \textbf{Step segmentation.} We identify step boundaries via
+    structural markers (numbered steps, mathematical delimiters, logical
+    connectives such as $\because$, $\therefore$, and key phrases).
+    Each segment becomes a node $r_i \in \mathcal{V}$.
+    \item \textbf{Dependency detection.} For each pair $(r_i, r_j)$ with
+    $i < j$, we check whether $r_j$ references mathematical expressions,
+    variables, or conclusions from $r_i$. Detected references yield edges
+    $(r_i, r_j) \in \mathcal{E}$. Additionally, consecutive steps receive
+    weak sequential edges with lower weight.
+    \item \textbf{Step classification.} Each node is classified into one of
+    seven types: \textsc{definition}, \textsc{derivation},
+    \textsc{computation}, \textsc{conclusion}, \textsc{auxiliary},
+    \textsc{substitution}, or \textsc{case\_analysis}, based on keyword
+    patterns.
+\end{enumerate}
+This extraction is fully deterministic and introduces no learned components
+into the reward computation pipeline.
+
+\subsubsection{Topological Structure Reward}
+\label{sec:r_topo}
+
 The topological structure reward $R_{\mathrm{topo}}$ evaluates the
-extracted DAG against three structural properties:
+extracted DAG against four structural properties:
 \begin{equation}
 \label{eq:r_topo}
-R_{\mathrm{topo}}(\mathcal{G}) = \underbrace{\mathbb{1}[\mathcal{G} \text{ is acyclic}]}_{\text{acyclicity}} \cdot \left( \alpha \cdot \underbrace{\frac{|\mathcal{V}| - |\mathcal{V}_{\mathrm{orphan}}|}{|\mathcal{V}|}}_{\text{connectivity}} + (1 - \alpha) \cdot \underbrace{\frac{d(\mathcal{G})}{|\mathcal{V}|}}_{\text{depth ratio}} \right),
+R_{\mathrm{topo}}(\mathcal{G}) = R_{\mathrm{base}} + R_{\mathrm{acyc}}
+    + R_{\mathrm{conn}} + R_{\mathrm{dir}},
 \end{equation}
-where $\mathcal{V}_{\mathrm{orphan}}$ denotes nodes with no incoming or
-outgoing edges, $d(\mathcal{G})$ is the length of the longest path in the
-DAG, and $\alpha \in [0, 1]$ is a balancing coefficient. The acyclicity
-indicator acts as a hard gate: any cycle in the reasoning graph zeroes
-out the reward entirely, strongly discouraging circular reasoning.
+where:
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+    \item $R_{\mathrm{base}} = 0.4 \cdot \mathbb{1}[|\mathcal{V}| > 0]$
+    is a base score for extracting any reasoning steps;
+    \item $R_{\mathrm{acyc}} = 0.2 \cdot \mathbb{1}[\mathcal{G} \text{ is
+    acyclic}]$ gates on the absence of circular reasoning;
+    \item $R_{\mathrm{conn}} = 0.2 \cdot (1 - |\mathcal{V}_{\mathrm{orphan}}|
+    / |\mathcal{V}|)$ penalises orphan conclusion nodes that lack
+    supporting predecessors;
+    \item $R_{\mathrm{dir}} = 0.1 \cdot \delta(\mathcal{G})$ rewards
+    directional consistency, where $\delta(\mathcal{G}) \in [0, 1]$
+    measures the fraction of edges that maintain a forward reasoning
+    direction (no conclusion$\to$premise back-edges).
+\end{itemize}
+Optionally, when a reference DAG $\mathcal{G}^*$ is available, we add a
+coverage term $R_{\mathrm{cov}} = 0.1 \cdot |\mathcal{E} \cap
+\mathcal{E}^*| / |\mathcal{E}^*|$ measuring overlap with the reference
+dependency structure. The total reward satisfies $R_{\mathrm{topo}} \in
+[0, 1]$.
 
-\paragraph{Continuity reward.}
-The continuity reward $R_{\mathrm{cont}}$ measures the semantic coherence
-of consecutive reasoning steps:
+\subsubsection{Continuity Reward}
+\label{sec:r_cont}
+
+The continuity reward $R_{\mathrm{cont}}$ captures the step-to-step
+semantic coherence of the reasoning trace:
 \begin{equation}
 \label{eq:r_cont}
-R_{\mathrm{cont}}(c) = \frac{1}{T - 1} \sum_{i=1}^{T-1} \mathrm{sim}(\mathbf{e}_{r_i}, \mathbf{e}_{r_{i+1}}),
+R_{\mathrm{cont}}(c) = \frac{|\{i : \mathrm{supported}(r_i, r_{<i})\}|}{T},
 \end{equation}
-where $\mathbf{e}_{r_i} \in \mathbb{R}^d$ is a frozen sentence embedding
-of step $r_i$ and $\mathrm{sim}(\cdot, \cdot)$ denotes cosine similarity.
-This reward penalises abrupt topic shifts between adjacent steps, encouraging
-smooth logical flow. Since the embedding model is frozen, $R_{\mathrm{cont}}$
-is fully verifiable and introduces no trainable parameters into the reward
-computation.
+where $\mathrm{supported}(r_i, r_{<i})$ evaluates whether step $r_i$
+references only mathematical expressions and conclusions that appear in
+earlier steps $r_{<i}$ or in the problem statement. Steps that introduce
+novel claims without prior support (``skipped steps'') decrease the
+continuity score. This reward is computed via regex-based expression
+matching and requires no neural model.
 
-\subsection{Composite RLVR Framework}
+\subsection{Composite RLVR with Stratified Advantage Estimation}
 \label{sec:composite_rlvr}
 
-We combine the topology-aware rewards with a standard outcome reward
-$R_{\mathrm{outcome}} \in \{0, 1\}$ (correct verdict) and a format reward
-$R_{\mathrm{format}} \in [0, 1]$ (adherence to required output structure)
-into a composite reward:
+\subsubsection{Composite Reward}
+\label{sec:composite_reward}
+
+We compose the topology-aware rewards with outcome and format rewards:
 \begin{equation}
 \label{eq:r_total}
-R_{\mathrm{total}} = w_o \cdot R_{\mathrm{outcome}} + w_t \cdot R_{\mathrm{topo}} + w_c \cdot R_{\mathrm{cont}} + w_f \cdot R_{\mathrm{format}},
+R_{\mathrm{total}} = w_o R_{\mathrm{outcome}} + w_t R_{\mathrm{topo}}
+    + w_c R_{\mathrm{cont}} + w_f R_{\mathrm{format}}
+    + w_l R_{\mathrm{len}},
 \end{equation}
-where $w_o, w_t, w_c, w_f \geq 0$ are weighting coefficients satisfying
-$w_o + w_t + w_c + w_f = 1$. All four components are computed
-programmatically from the model output without any learned reward model.
+where $R_{\mathrm{outcome}} \in \{0, 1\}$ checks answer correctness,
+$R_{\mathrm{format}} \in [0, 1]$ checks adherence to required output
+structure (\texttt{<think>}/\texttt{<answer>} tags with valid JSON), and
+$R_{\mathrm{len}} \in [0, 1]$ is a length penalty that linearly decays
+for outputs exceeding a threshold. All five components are computed
+programmatically. Default weights are $w_o = 0.4$, $w_t = 0.2$,
+$w_c = 0.15$, $w_f = 0.15$, $w_l = 0.1$.
+
+\subsubsection{Stratified Clipping Advantage Estimation}
+\label{sec:scae}
+
+A key challenge when combining process-level and outcome-level rewards
+is \emph{reward hacking}: the model may learn to produce topologically
+well-structured but incorrect reasoning. To address this, we propose
+\textbf{Stratified Clipping Advantage Estimation (SCAE)}, which
+hierarchically prioritises answer correctness over structural quality.
+
+For each group of $G$ sampled completions, SCAE proceeds as follows:
+
+\paragraph{Group stratification.}
+We compute the mean accuracy reward $\bar{r}_{\mathrm{acc}}$ and
+partition the group into a correct set
+$\mathcal{C} = \{i : R_{\mathrm{outcome}}^{(i)} = 1\}$ and an incorrect
+set $\mathcal{W} = \{j : R_{\mathrm{outcome}}^{(j)} = 0\}$. The
+baseline accuracy advantages are:
+\begin{equation}
+\label{eq:a_acc}
+A_{\mathrm{acc}}^{(i)} = \begin{cases}
+    1 - \bar{r}_{\mathrm{acc}} & \text{if } i \in \mathcal{C}, \\
+    -\bar{r}_{\mathrm{acc}} & \text{if } i \in \mathcal{W}.
+\end{cases}
+\end{equation}
+
+\paragraph{Asymmetric auxiliary clipping.}
+Within each stratum, we compute the mean auxiliary reward
+$\bar{r}_{\mathrm{aux}}^{+}$ (for $\mathcal{C}$) and
+$\bar{r}_{\mathrm{aux}}^{-}$ (for $\mathcal{W}$), where the auxiliary
+reward aggregates all non-outcome components. We then apply asymmetric
+clipping:
+\begin{align}
+A^{(i)} &= A_{\mathrm{acc}}^{(i)} + \max\!\big(0,\;
+    r_{\mathrm{aux}}^{(i)} - \bar{r}_{\mathrm{aux}}^{+}\big),
+    \quad i \in \mathcal{C}, \label{eq:a_correct} \\
+A^{(j)} &= A_{\mathrm{acc}}^{(j)} + \min\!\big(0,\;
+    r_{\mathrm{aux}}^{(j)} - \bar{r}_{\mathrm{aux}}^{-}\big),
+    \quad j \in \mathcal{W}. \label{eq:a_wrong}
+\end{align}
+
+This ensures two critical properties:
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+    \item \textbf{Accuracy primacy:} Correct completions always have
+    $A^{(i)} \geq 1 - \bar{r}_{\mathrm{acc}} \geq 0$; incorrect
+    completions always have $A^{(j)} \leq -\bar{r}_{\mathrm{acc}} \leq 0$.
+    \item \textbf{Reward hacking resilience:} High structural quality on
+    an incorrect trace provides no advantage bonus; low structural quality
+    on a correct trace incurs no penalty.
+\end{itemize}
+
+\subsubsection{GRPO Optimisation}
 
 We optimise $\pi_\theta$ using Group Relative Policy Optimisation
-(GRPO)~\citep{shao2024deepseekmath}. For each prompt $(q, s)$, GRPO
-samples a group of $G$ completions $\{c^{(1)}, \ldots, c^{(G)}\}$,
-computes their rewards, and updates the policy using advantages computed
-relative to the group mean:
+(GRPO)~\citep{shao2024deepseekmath} with the stratified advantages from
+SCAE replacing the standard normalised advantage. The policy gradient loss
+retains the standard PPO clipping and KL regularisation:
 \begin{equation}
-\label{eq:grpo}
-\hat{A}^{(i)} = \frac{R_{\mathrm{total}}(c^{(i)}) - \mathrm{mean}(\{R_{\mathrm{total}}(c^{(j)})\}_{j=1}^G)}{\mathrm{std}(\{R_{\mathrm{total}}(c^{(j)})\}_{j=1}^G) + \epsilon}.
+\label{eq:grpo_loss}
+\mathcal{L}_{\mathrm{GRPO}} = -\mathbb{E}\bigg[
+    \min\!\Big(\rho_t \hat{A}^{(i)},\;
+    \mathrm{clip}(\rho_t, 1\!-\!\epsilon, 1\!+\!\epsilon)\hat{A}^{(i)}
+    \Big) - \beta\, D_{\mathrm{KL}}(\pi_\theta \| \pi_{\mathrm{ref}})
+\bigg],
 \end{equation}
+where $\rho_t = \pi_\theta(a_t | s_t) / \pi_{\mathrm{ref}}(a_t | s_t)$
+is the importance ratio, $\epsilon$ is the clipping parameter, and $\beta$
+controls the KL penalty.
 
 \subsection{Reasoning Compression via Reverse-KL Distillation}
 \label{sec:compression}
 
-After GRPO training, the 14B teacher $\pi_{\theta^*}$ produces accurate
-but sometimes verbose critiques. To deploy efficient inference, we distil
-the teacher's reasoning behaviour into smaller student models
-$\pi_\phi$ (7B and 1.5B) by minimising the reverse KL divergence:
+After GRPO training, the 32B teacher $\pi_{\theta^*}$ produces accurate
+but sometimes verbose reasoning traces. We distil the teacher's reasoning
+behaviour into smaller student models $\pi_\phi$ by minimising the reverse
+KL divergence:
 \begin{equation}
 \label{eq:distill}
-\mathcal{L}_{\mathrm{distill}} = \mathbb{E}_{(q,s) \sim \mathcal{D}} \left[ D_{\mathrm{KL}}\!\left( \pi_\phi(\cdot \mid q, s) \;\|\; \pi_{\theta^*}(\cdot \mid q, s) \right) \right].
+\mathcal{L}_{\mathrm{distill}} = \mathbb{E}_{(q,s) \sim \mathcal{D}}
+    \Big[ D_{\mathrm{KL}}\!\big(\pi_\phi(\cdot | q, s)
+    \,\|\, \pi_{\theta^*}(\cdot | q, s)\big) \Big].
 \end{equation}
-Reverse KL (mode-seeking) encourages the student to concentrate probability
-mass on the teacher's high-quality outputs rather than spreading over all
-plausible completions, which we find empirically important for preserving
-reasoning conciseness. The distillation data consists of teacher-generated
-critiques filtered to retain only those with $R_{\mathrm{total}}$ above
-a quality threshold $\tau$.
+Reverse KL (mode-seeking) encourages the student to concentrate
+probability mass on the teacher's highest-quality outputs rather than
+covering all plausible completions. The distillation dataset consists of
+teacher-generated traces filtered to retain only those with
+$R_{\mathrm{total}} > \tau$ for a quality threshold $\tau$.

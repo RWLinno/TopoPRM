@@ -8,6 +8,26 @@ structured reasoning data (\S\ref{sec:sft}), DAG-based process reward
 extraction (\S\ref{sec:topo_rewards}), composite RLVR with stratified
 advantage estimation (\S\ref{sec:composite_rlvr}), and reasoning
 compression via reverse-KL distillation (\S\ref{sec:compression}).
+Figure~\ref{fig:overview} illustrates the complete pipeline.
+
+\begin{figure*}[t]
+    \centering
+    % TODO: Replace with actual figure generated from figures/README.md prompts
+    \fbox{\parbox{0.95\textwidth}{\centering\vspace{3cm}
+    \textbf{Figure Placeholder: TopoPRM Framework Overview}\\[6pt]
+    \small Three-stage pipeline: (1) SFT on structured reasoning data,
+    (2) GRPO with TopoPRM composite reward (outcome + topology + continuity
+    + format + length) and SCAE advantage estimation,
+    (3) reverse-KL distillation to smaller student models.\\[6pt]
+    See \texttt{paper/figures/README.md} for the generation prompt.
+    \vspace{3cm}}}
+    \caption{Overview of the TopoPRM framework. The training pipeline
+    consists of three stages: supervised fine-tuning on structured
+    mathematical reasoning data, GRPO optimization with the TopoPRM
+    composite reward and Stratified Clipping Advantage Estimation (SCAE),
+    and reverse-KL distillation to smaller student models.}
+    \label{fig:overview}
+\end{figure*}
 
 \subsection{Supervised Fine-Tuning with Structured Reasoning}
 \label{sec:sft}
@@ -59,6 +79,25 @@ Given a reasoning trace $c$, we extract the DAG $\mathcal{G} =
 \end{enumerate}
 This extraction is fully deterministic and introduces no learned components
 into the reward computation pipeline.
+
+\begin{figure}[t]
+    \centering
+    % TODO: Replace with actual figure generated from figures/README.md prompts
+    \fbox{\parbox{0.95\columnwidth}{\centering\vspace{2cm}
+    \textbf{Figure Placeholder: DAG Extraction Example}\\[6pt]
+    \small Left: a 6-step math reasoning trace with step type labels.
+    Right: the extracted DAG showing dependency edges between steps.
+    Below: structural property checkmarks.\\[6pt]
+    See \texttt{paper/figures/README.md} for the generation prompt.
+    \vspace{2cm}}}
+    \caption{Example of DAG extraction from a mathematical reasoning
+    trace. Each step is classified by type (definition, computation,
+    derivation, substitution, conclusion) and dependency edges are
+    detected through shared mathematical expressions. The resulting DAG
+    is evaluated for acyclicity, connectivity, directional consistency,
+    and orphan-free conclusions.}
+    \label{fig:dag_extraction}
+\end{figure}
 
 \subsubsection{Topological Structure Reward}
 \label{sec:r_topo}
@@ -176,6 +215,25 @@ This ensures two critical properties:
     an incorrect trace provides no advantage bonus; low structural quality
     on a correct trace incurs no penalty.
 \end{itemize}
+
+\begin{figure}[t]
+    \centering
+    % TODO: Replace with actual figure generated from figures/README.md prompts
+    \fbox{\parbox{0.95\columnwidth}{\centering\vspace{2cm}
+    \textbf{Figure Placeholder: SCAE vs Standard Advantage}\\[6pt]
+    \small Left: standard GRPO where wrong answers with high structural
+    reward get positive advantages. Right: SCAE partitions by correctness
+    first, ensuring correct $\geq 0$ and wrong $\leq 0$.\\[6pt]
+    See \texttt{paper/figures/README.md} for the generation prompt.
+    \vspace{2cm}}}
+    \caption{Comparison of advantage computation between standard GRPO
+    and Stratified Clipping Advantage Estimation (SCAE). Standard GRPO
+    may assign positive advantages to incorrect completions that happen
+    to score well on auxiliary rewards. SCAE prevents this by
+    partitioning completions by answer correctness before computing
+    auxiliary advantages.}
+    \label{fig:scae}
+\end{figure}
 
 \subsubsection{GRPO Optimisation}
 

@@ -35,6 +35,23 @@ We compare against the base Qwen3-32B, Qwen3-32B-Instruct, our SFT
 checkpoint, and GRPO with outcome-only reward. We additionally evaluate
 ablation variants that remove individual reward components.
 
+\begin{figure}[t]
+    \centering
+    % TODO: Replace with actual training curves from TensorBoard
+    \fbox{\parbox{0.95\columnwidth}{\centering\vspace{2cm}
+    \textbf{Figure Placeholder: Training Dynamics}\\[6pt]
+    \small Top: composite reward vs training steps for TopoPRM, outcome-only,
+    w/o topo, and w/o continuity. Bottom: mean completion length vs steps
+    showing reasoning compression during training.\\[6pt]
+    See \texttt{paper/figures/README.md} for the generation prompt.
+    \vspace{2cm}}}
+    \caption{GRPO training dynamics. (Top) Composite reward convergence
+    for TopoPRM and ablation variants. (Bottom) Mean completion length
+    during training, showing that TopoPRM produces progressively shorter
+    reasoning traces without sacrificing accuracy.}
+    \label{fig:training_dynamics}
+\end{figure}
+
 \subsection{Main Results}
 \label{sec:main_results}
 

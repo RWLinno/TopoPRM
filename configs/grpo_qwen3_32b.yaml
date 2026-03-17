@@ -1,13 +1,13 @@
 # ms-swift 4.x GRPO configuration for Qwen3-32B on 8x L20X
-model: /mnt/users/rwl/models/Qwen/Qwen3-32B
+model: Qwen/Qwen3-32B
 adapters:
-  - /mnt/users/rwl/topoprm/output/sft_qwen3_32b/v1-20260316-154443/checkpoint-120
+  - output/sft_qwen3_32b/v1-20260316-154443/checkpoint-120
 
 dataset:
-  - /mnt/users/rwl/topoprm/data/grpo_ready/train.jsonl
+  - data/grpo_ready/train.jsonl
 
 external_plugins:
-  - /mnt/users/rwl/topoprm/src/reward/composite_reward.py
+  - src/reward/composite_reward.py
 reward_funcs:
   - topo_composite
 
@@ -39,4 +39,4 @@ save_total_limit: 3
 report_to:
   - tensorboard
 logging_steps: 5
-output_dir: /mnt/users/rwl/topoprm/output/grpo_qwen3_32b
+output_dir: output/grpo_qwen3_32b

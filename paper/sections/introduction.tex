@@ -1,86 +1,82 @@
 \section{Introduction}
 \label{sec:introduction}
 
-Mathematical reasoning is among the most challenging tasks for large
-language models (LLMs), requiring not merely correct final answers but
-logically sound, step-by-step derivations where each conclusion follows
-from its premises~\citep{ElKishky2024OpenAIOS,Chen2025TowardsRE}.
-Reinforcement learning with verifiable rewards
-(RLVR)~\citep{deepseekr1,shao2024deepseekmath} has emerged as a powerful
-paradigm for improving reasoning: by rewarding models for producing
-correct answers, RLVR fine-tunes policies to explore and refine their
-reasoning strategies without requiring human preference annotations.
+Mathematical reasoning requires language models to produce not merely
+correct final answers but logically sound, step-by-step derivations in
+which each conclusion follows from its
+premises~\citep{ElKishky2024OpenAIOS,Chen2025TowardsRE}. Reinforcement
+learning with verifiable rewards
+(RLVR)~\citep{deepseekr1,shao2024deepseekmath} has become a standard
+approach for improving such reasoning: a programmatic check verifies
+whether the model's answer matches the ground truth, and the resulting
+binary signal drives policy optimization through Group Relative Policy
+Optimization (GRPO). Because the reward depends only on the final answer,
+however, RLVR provides no gradient for improving the quality of the
+reasoning trace itself.
 
-However, current RLVR methods rely almost exclusively on outcome-level
-supervision, treating the reasoning process as an opaque black box. This
-leaves the \emph{structure} of reasoning entirely unsupervised, giving
-rise to several well-documented failure modes.
+This outcome-only supervision creates three systematic failure modes.
+First, models can reach correct answers without constructing logically
+sound derivations, a phenomenon sometimes called outcome
+hacking~\citep{Denison2024SycophancyTS}. Second, reasoning traces often
+contain orphan conclusions that lack supporting premises, circular
+references between steps, and inconsistent logical direction, because
+inter-step dependencies are never supervised. Third, without any length
+or coherence signal, models tend to produce verbose, repetitive chains
+that waste inference budget and occasionally introduce
+self-contradictions~\citep{reasoning_compression_2025}.
 
-\paragraph{Limitations of outcome-only RLVR.}
-We identify three systematic shortcomings:
+Process reward models (PRMs)~\citep{lightman2023lets,wang2024math}
+address some of these issues by assigning per-step scores, but they
+require either expensive human annotations or learned verifiers whose
+accuracy is itself uncertain. We observe that a complementary source of
+process supervision is already present in the reasoning trace: the
+\emph{topological structure} of inter-step dependencies. Mathematical
+derivations form a directed acyclic graph (DAG) in which each step
+depends on a subset of previous steps. Structural properties of this
+graph, such as acyclicity, connectivity, and directional consistency, are
+checkable by simple algorithms and provide verifiable process rewards
+without any learned component.
 
-\begin{enumerate}[leftmargin=*,itemsep=2pt]
-    \item \textbf{Outcome hacking.} Models learn to shortcut to correct
-    answers without constructing logically sound derivations. The reward
-    signal provides no gradient for improving the quality of the reasoning
-    trace itself~\citep{Denison2024SycophancyTS}.
+We propose \textbf{TopoPRM}, a composite reward framework that
+supplements the outcome reward with two topology-aware process signals.
+Given a model-generated reasoning trace, a rule-based parser segments it
+into steps and detects inter-step dependencies through shared
+mathematical expressions, producing the implicit reasoning DAG. A
+\emph{topological structure reward} evaluates whether this DAG satisfies
+structural soundness properties. A \emph{continuity reward} checks
+whether each step can be derived from preceding context, penalizing
+unsupported jumps. Both rewards are computed by deterministic programs
+and stay within the RLVR paradigm.
 
-    \item \textbf{Structural incoherence.} Without explicit modelling of
-    inter-step dependencies, reasoning traces often contain orphan
-    conclusions (claims without supporting premises), circular references,
-    and inconsistent logical direction.
-
-    \item \textbf{Long-chain redundancy.} Without any length or
-    coherence penalty, RLVR-trained models tend to produce verbose,
-    repetitive reasoning chains that waste inference budget and often
-    degrade accuracy through self-contradictions~\citep{reasoning_compression_2025}.
-\end{enumerate}
-
-\paragraph{TopoPRM: topology-aware process rewards.}
-Inspired by the structured cognitive mechanisms of human
-reasoning~\citep{George2021ClonestructuredGR}, we observe that
-mathematical derivations inherently possess a topological structure:
-each reasoning step depends on a subset of previous steps, forming a
-directed acyclic graph (DAG). We propose to leverage this structure as a
-source of verifiable process rewards, rather than relying on learned
-reward models or human annotations.
-
-Concretely, we propose \textbf{TopoPRM}, a composite reward framework
-that supplements the outcome reward with two topology-aware process
-signals. Given a model-generated reasoning trace, we extract its implicit
-reasoning DAG by parsing inter-step dependency patterns. A
-\emph{topological structure reward} $R_{\mathrm{topo}}$ then evaluates
-whether this DAG satisfies basic structural properties---acyclicity,
-connectivity, and directional consistency. Concurrently, a
-\emph{continuity reward} $R_{\mathrm{cont}}$ measures whether each
-step can be derived from preceding context, penalising unsupported
-logical jumps. Both signals are computed programmatically and require
-no learned reward model.
-
-To prevent the auxiliary process rewards from causing reward hacking
-(where models optimise structural quality at the expense of
-correctness), we introduce \emph{Stratified Clipping Advantage
-Estimation} (SCAE), which hierarchically separates correct and incorrect
-completions during advantage computation. Finally, we apply
-reverse-KL distillation to compress the improved reasoning behaviour
-from a 32B teacher into smaller models for efficient deployment.
+Combining multiple reward components introduces a new risk: the model
+may optimize auxiliary process rewards at the expense of answer
+correctness. To prevent this, we introduce \emph{Stratified Clipping
+Advantage Estimation} (SCAE), which partitions each group of sampled
+completions into correct and incorrect sets before computing advantages.
+SCAE ensures that correct completions always receive positive advantages
+regardless of their structural scores, while incorrect completions
+receive negative advantages regardless of how well-structured they are.
+After GRPO training, a reverse-KL distillation stage compresses the
+improved reasoning behavior from the 32B teacher into smaller student
+models.
 
 \paragraph{Contributions.}
-Our main contributions are:
 \begin{enumerate}[leftmargin=*,itemsep=2pt]
-    \item We propose TopoPRM, a topology-aware verifiable process
-    reward that evaluates the structural quality of reasoning DAGs
-    without requiring a learned reward model.
+    \item We propose TopoPRM, a verifiable process reward that evaluates
+    the topological structure of reasoning DAGs using deterministic
+    algorithms, requiring no learned reward model or human annotations.
 
-    \item We design Stratified Clipping Advantage Estimation (SCAE)
-    to hierarchically prioritise correctness over structural quality,
-    preventing reward hacking from auxiliary rewards.
+    \item We design Stratified Clipping Advantage Estimation (SCAE), a
+    principled mechanism that prevents reward hacking when combining
+    outcome and process rewards by hierarchically separating correct and
+    incorrect completions during advantage computation.
 
-    \item We introduce a composite GRPO framework combining outcome,
-    topological structure, continuity, and format rewards, all computed
-    programmatically from model outputs.
+    \item We implement a complete GRPO training pipeline within the
+    MS-Swift framework, combining outcome, topological structure,
+    continuity, format, and length rewards, all computed programmatically.
 
-    \item We conduct extensive experiments on mathematical reasoning
-    benchmarks, demonstrating that TopoPRM improves accuracy while
-    producing more structurally coherent and concise reasoning traces.
+    \item We conduct experiments on 7{,}595 Chinese mathematical critique
+    problems showing that TopoPRM improves both accuracy and structural
+    coherence while producing shorter reasoning traces than outcome-only
+    GRPO.
 \end{enumerate}

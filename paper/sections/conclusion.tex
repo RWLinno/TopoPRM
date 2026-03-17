@@ -1,29 +1,48 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-We presented TopoPRM, a topology-aware process reward framework for
-reinforcement fine-tuning of mathematical reasoning models. By augmenting
-standard outcome rewards with topological structure and continuity
-signals---both fully verifiable and requiring no learned reward
-models---TopoPRM improves reasoning accuracy while producing more concise
-and structurally coherent reasoning chains. Our Stratified Clipping
-Advantage Estimation (SCAE) method effectively prevents reward hacking
-from auxiliary process rewards by hierarchically prioritising answer
-correctness. The reverse-KL distillation pipeline further compresses
-these improvements into smaller student models for efficient deployment.
+We present TopoPRM, a topology-aware process reward framework for
+reinforcement fine-tuning of mathematical reasoning models. TopoPRM
+augments standard outcome rewards with two verifiable process signals: a
+topological structure reward that evaluates whether the reasoning trace
+forms a valid directed acyclic graph with acyclicity, connectivity, and
+directional consistency, and a continuity reward that checks whether each
+step follows from preceding context. Both signals are computed by
+deterministic programs, keeping the method within the RLVR paradigm
+without requiring learned reward models or human annotations. Stratified
+Clipping Advantage Estimation (SCAE) prevents reward hacking by
+hierarchically prioritizing answer correctness over auxiliary process
+rewards. A reverse-KL distillation stage compresses these improvements
+into smaller student models for efficient deployment. Experiments on
+Chinese mathematical critique benchmarks show that TopoPRM improves
+reasoning accuracy, particularly on harder problems, while producing
+shorter and more structurally coherent reasoning chains compared to
+outcome-only GRPO.
 
 \paragraph{Limitations.}
-Our DAG extraction relies on rule-based parsing of inter-step references,
-which may miss implicit dependencies in free-form reasoning. The
+Three limitations deserve attention. First, the DAG extraction relies on
+rule-based parsing of inter-step references through keyword matching and
+expression overlap. This procedure may miss implicit logical dependencies
+that lack explicit surface-level cues, such as unstated algebraic
+identities or geometric properties applied without reference. Second, the
 continuity reward uses regex-based expression matching rather than
-semantic understanding, which limits its sensitivity to subtle logical
-gaps. Our evaluation focuses on mathematical reasoning; applicability to
-other structured reasoning domains (e.g., code generation, scientific
-reasoning) is left for future work.
+semantic understanding; it detects when a step references an expression
+from a previous step but cannot identify subtle logical gaps or incorrect
+applications of mathematical principles that reuse the same symbols.
+Third, our evaluation focuses exclusively on mathematical reasoning in a
+Chinese educational critique setting. Whether TopoPRM generalizes to
+other structured reasoning domains, such as code generation or scientific
+reasoning, remains an open question.
 
 \paragraph{Future work.}
-Several directions merit investigation: (i)~learning the reward weights
-adaptively during training, (ii)~extending the topological reward to
-handle probabilistic dependency structures, (iii)~combining TopoPRM with
-learned process reward models for complementary supervision, and
-(iv)~applying TopoPRM to multi-modal reasoning tasks.
+Three concrete directions follow from this work. First, replacing the
+rule-based DAG extractor with a lightweight learned parser could capture
+implicit dependencies while remaining fast enough for online reward
+computation during GRPO training. Second, combining the verifiable
+structural rewards of TopoPRM with learned
+PRMs~\citep{lightman2023lets} could provide complementary supervision:
+structural rewards enforce global coherence while learned rewards capture
+fine-grained step correctness. Third, extending the framework to
+multi-modal mathematical reasoning, where diagrams and figures introduce
+spatial dependency structures beyond text, would test the generality of
+topology-aware rewards in richer settings.

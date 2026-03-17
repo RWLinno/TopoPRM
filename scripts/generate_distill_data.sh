@@ -13,10 +13,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
-export PATH="/mnt/users/conda_env/swift/bin:$PATH"
+export PATH="$(dirname $(which swift)):$PATH"
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1,2,3,4,5,6,7}"
 
-MODEL="/mnt/users/rwl/models/Qwen/Qwen3-32B"
+MODEL="Qwen/Qwen3-32B"
 TEACHER_ADAPTER="output/grpo_main/v5-20260316-110039/checkpoint-150"
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Generating distillation data from teacher..."

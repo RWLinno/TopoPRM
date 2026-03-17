@@ -1,13 +1,13 @@
-# GRPO: Full TopoPRM - Qwen3-32B with vLLM colocate
-model: /mnt/users/rwl/models/Qwen/Qwen3-32B
+# GRPO: Full TopoPRM - Qwen3-32B with vLLM server mode
+model: Qwen/Qwen3-32B
 adapters:
-  - /mnt/users/rwl/topoprm/output/sft_qwen3_32b/v1-20260316-154443/checkpoint-120
+  - output/sft_qwen3_32b/v1-20260316-154443/checkpoint-120
 
 dataset:
-  - /mnt/users/rwl/topoprm/data/grpo_ready/train.jsonl
+  - data/grpo_ready/train.jsonl
 
 external_plugins:
-  - /mnt/users/rwl/topoprm/src/reward/composite_reward.py
+  - src/reward/composite_reward.py
 reward_funcs:
   - topo_composite
 
@@ -17,13 +17,9 @@ max_completion_length: 2048
 top_p: 0.95
 
 use_vllm: true
-vllm_mode: colocate
-vllm_gpu_memory_utilization: 0.5
-vllm_max_model_len: 4096
-vllm_enable_prefix_caching: false
-sleep_level: 1
-offload_model: true
-offload_optimizer: true
+vllm_mode: server
+vllm_server_base_url:
+  - "http://127.0.0.1:8000"
 
 train_type: lora
 lora_rank: 64
@@ -31,7 +27,7 @@ lora_alpha: 128
 target_modules: all-linear
 lora_dropout: 0.05
 
-per_device_train_batch_size: 1
+per_device_train_batch_size: 2
 gradient_accumulation_steps: 4
 learning_rate: 5e-6
 num_train_epochs: 1
@@ -47,4 +43,4 @@ save_total_limit: 5
 report_to:
   - tensorboard
 logging_steps: 5
-output_dir: /mnt/users/rwl/topoprm/output/grpo_main
+output_dir: output/grpo_main

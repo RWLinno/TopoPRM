@@ -10,8 +10,13 @@ conducted using MS-Swift~\citep{msswift} with LoRA (rank 64, alpha 128)
 applied to all linear layers. SFT uses 5{,}000 samples mixing 637
 Chinese mathematical critique samples with 3{,}000 NuminaMath-CoT and
 2{,}000 MetaMathQA English samples. GRPO uses 637 Chinese mathematical
-critique prompts with TopoPRM composite rewards. Training runs on
-8$\times$ NVIDIA L20X GPUs (143\,GB each) with bfloat16 precision.
+critique prompts with TopoPRM composite rewards. We adopt the
+MS-Swift~\citep{msswift} framework with its \emph{server-mode} GRPO
+paradigm: a vLLM rollout server (4 GPUs, tensor-parallel) generates
+completions, while 4 separate GPUs perform LoRA training. This
+architecture cleanly separates inference and optimisation, enabling
+high-throughput generation without memory conflicts. All experiments run
+on 8$\times$ NVIDIA L20X GPUs (143\,GB each) with bfloat16 precision.
 Detailed hyperparameters are in Appendix~\ref{app:details}.
 
 \paragraph{Benchmarks.}

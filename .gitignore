@@ -61,3 +61,5 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+paper/awesome-ai-research-writing/
+data/test/

@@ -2,7 +2,7 @@
 model: Qwen/Qwen3-1.5B
 
 dataset:
-  - /mnt/users/rwl/topoprm/data/sft_ready/distill_train.jsonl
+  - data/sft_ready/distill_train.jsonl
 
 train_type: lora
 lora_rank: 32
@@ -28,4 +28,4 @@ save_total_limit: 3
 report_to:
   - tensorboard
 logging_steps: 10
-output_dir: /mnt/users/rwl/topoprm/output/distill_1_5b
+output_dir: output/distill_1_5b

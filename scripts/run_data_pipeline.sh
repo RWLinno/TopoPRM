@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.." && export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 
-RAW_INPUT_DIR="${1:-/mnt/users/postrain/ms-swift/data/数学0305}"
+RAW_INPUT_DIR="${1:-data/raw}"
 
 echo "============================================"
 echo "  TopoPRM Data Pipeline"

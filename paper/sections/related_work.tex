@@ -2,54 +2,65 @@
 \label{sec:related_work}
 
 \paragraph{Reinforcement learning with verifiable rewards.}
-RLHF~\citep{ouyang2022training} established the paradigm of aligning
-language models via reward signals derived from human preferences.
-DeepSeek-R1~\citep{deepseekr1} and
-DeepSeekMath~\citep{shao2024deepseekmath} extended this to
-\emph{verifiable} rewards (RLVR), using programmatic correctness checks
-for mathematical reasoning. GRPO~\citep{shao2024deepseekmath} computes
-group-relative advantages without a critic network, offering a
-lightweight alternative to PPO. These approaches rely exclusively on
-outcome-level signals and do not supervise the intermediate reasoning
-process. TopoPRM complements RLVR by adding process-level topology
-rewards that remain fully verifiable and code-computed.
+RLHF~\citep{ouyang2022training} aligns language models with human
+preferences through learned reward models trained on preference
+annotations. DeepSeek-R1~\citep{deepseekr1} and
+DeepSeekMath~\citep{shao2024deepseekmath} replaced learned preference
+models with programmatic correctness checks, establishing the
+reinforcement learning with verifiable rewards (RLVR) paradigm for
+mathematical reasoning. GRPO~\citep{shao2024deepseekmath} computes
+group-relative advantages without a separate critic network, reducing
+memory cost relative to PPO while maintaining competitive performance on
+math benchmarks. These methods supervise only the final answer and treat
+the intermediate reasoning trace as opaque. TopoPRM retains the
+verifiable reward paradigm but extends it to process-level supervision:
+the topology and continuity rewards are computed by deterministic
+programs, yet they provide step-level structural feedback that
+outcome-only RLVR cannot offer.
 
 \paragraph{Process reward models.}
 \citet{lightman2023lets} introduced process reward models (PRMs) that
-assign scalar rewards to each reasoning step, trained via human
-annotations of step-level correctness. Math-Shepherd~\citep{wang2024math}
-automates PRM data collection using Monte Carlo estimation.
-Proof-RM~\citep{proofRM2026} designs scalable rewards specifically for
-mathematical proofs. While PRMs provide step-level supervision, they
-require either expensive human labels or learned verifiers that may
-themselves be unreliable. In contrast, TopoPRM derives process rewards
-from structural properties of the reasoning graph, requiring no learned
-components and introducing no additional model parameters.
+assign scalar rewards to individual reasoning steps, using human
+annotations of step-level correctness as training signal.
+Math-Shepherd~\citep{wang2024math} reduces annotation cost by estimating
+step-level value through Monte Carlo rollouts from each intermediate
+state. Proof-RM~\citep{proofRM2026} targets mathematical proofs and
+designs reward functions that account for proof structure. These
+approaches improve over outcome-only supervision but depend on either
+expensive per-step human labels or learned verifiers whose accuracy is
+itself uncertain. TopoPRM takes a complementary approach: rather than
+scoring individual steps, it extracts structural properties of the full
+reasoning graph (acyclicity, connectivity, directional consistency) using
+deterministic rules, requiring no annotations and introducing no
+additional model parameters.
 
 \paragraph{Graph-structured reasoning.}
-Graph-of-Thought~\citep{besta2024graph} organises reasoning into
-graph-like structures via prompt engineering.
-GRP~\citep{grp2025} proposes a graph reasoning paradigm that trains
-models to produce graph-structured outputs with cognitive labels. While
-GRP focuses on \emph{generating} graph-structured solutions with
-specialised labels, TopoPRM uses graph topology as a \emph{reward
-signal} for standard autoregressive generation, requiring no
-architectural modifications or specialised output formats.
+Graph-of-Thought~\citep{besta2024graph} organizes LLM reasoning into
+graph structures through prompt engineering, enabling exploration of
+multiple reasoning paths during inference.
+GRP~\citep{grp2025} trains models to produce graph-structured outputs
+with explicit cognitive labels, requiring specialized output formats and
+task-specific decoding procedures. TopoPRM differs from both approaches
+in a key respect: it uses graph topology as a \emph{reward signal} for
+standard autoregressive generation rather than requiring models to
+produce explicit graph-structured outputs. The model generates ordinary
+text; our reward function extracts and evaluates the implicit dependency
+graph post-hoc. This design requires no changes to model architecture or
+output format, making it compatible with any text-generation policy.
 
-\paragraph{Reward hacking and advantage estimation.}
-Reward hacking---where models exploit auxiliary rewards without
-improving task performance---is a well-known challenge in
-RL~\citep{Denison2024SycophancyTS}. Recent work on GRPO variants
-addresses related issues: DAPO introduces dynamic
-sampling~\citep{dapo2026}, while difficulty-aware
-GRPO~\citep{difficultyGRPO2026} adjusts training based on problem
-difficulty. Our SCAE method is orthogonal to these approaches,
-specifically addressing the interaction between outcome and process
-rewards through stratified advantage clipping.
-
-\paragraph{Reasoning compression.}
-On-policy self-distillation~\citep{reasoning_compression_2025} and
-reverse-KL distillation~\citep{hinton2015distilling} have been explored
-for compressing verbose chain-of-thought reasoning into shorter outputs.
-Our distillation stage transfers both accuracy and structural conciseness
-from the TopoPRM-trained teacher to smaller student models.
+\paragraph{Reward hacking and reasoning compression.}
+Reward hacking, where models exploit auxiliary reward signals without
+genuine task improvement, is a persistent problem in RL-based
+training~\citep{Denison2024SycophancyTS}. In the GRPO setting,
+DAPO~\citep{dapo2026} introduces dynamic sampling to stabilize training,
+and difficulty-aware GRPO~\citep{difficultyGRPO2026} adjusts
+optimization pressure based on problem difficulty. On the compression
+side, on-policy self-distillation~\citep{reasoning_compression_2025} and
+reverse-KL distillation~\citep{hinton2015distilling} reduce verbose
+chain-of-thought outputs into shorter reasoning traces. TopoPRM
+addresses reward hacking through a different mechanism: Stratified
+Clipping Advantage Estimation (SCAE) hierarchically prioritizes answer
+correctness over auxiliary process rewards, preventing models from
+accumulating topology or continuity reward at the expense of accuracy.
+Our distillation stage then transfers both accuracy and structural
+conciseness from the TopoPRM-trained teacher to smaller student models.

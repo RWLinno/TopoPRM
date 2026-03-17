@@ -12,7 +12,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
-export PATH="/mnt/users/conda_env/swift/bin:$PATH"
+export PATH="$(dirname $(which swift)):$PATH"
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1,2,3,4,5,6,7}"
 export NPROC_PER_NODE="${NPROC_PER_NODE:-8}"
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
@@ -21,7 +21,7 @@ export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Cleaning shared memory..."
 rm -f /dev/shm/nccl-* /dev/shm/vllm-* /dev/shm/cuda-* 2>/dev/null || true
 
-CKPT="/mnt/users/rwl/topoprm/output/grpo_main/v5-20260316-110039/checkpoint-150"
+CKPT="$(cd "$(dirname "$0")/.." && pwd)/output/grpo_main/v5-20260316-110039/checkpoint-150"
 
 if [ ! -d "$CKPT" ]; then
     echo "[ERROR] Checkpoint not found: $CKPT"

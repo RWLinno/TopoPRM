@@ -1,8 +1,8 @@
 # ms-swift 4.x SFT configuration for Qwen3-32B on 8x L20X
-model: /mnt/users/rwl/models/Qwen/Qwen3-32B
+model: Qwen/Qwen3-32B
 
 dataset:
-  - /mnt/users/rwl/topoprm/data/sft_ready/train_augmented.jsonl
+  - data/sft_ready/train_augmented.jsonl
 
 train_type: lora
 lora_rank: 64
@@ -31,4 +31,4 @@ report_to:
 logging_steps: 5
 gradient_checkpointing: true
 
-output_dir: /mnt/users/rwl/topoprm/output/sft_qwen3_32b
+output_dir: output/sft_qwen3_32b

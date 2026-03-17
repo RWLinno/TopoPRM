@@ -1,32 +1,27 @@
 \begin{abstract}
-We study reinforcement fine-tuning for mathematical reasoning, where
-language models must produce not only correct answers but also
-structurally coherent, multi-step reasoning traces. Existing
-reinforcement learning with verifiable rewards (RLVR) approaches rely
-predominantly on outcome-level signals---checking only whether the final
-answer is correct---and ignore the \emph{topological quality} of the
-intermediate reasoning process. This leads to three persistent problems:
-(i)~outcome hacking, where models produce correct answers without sound
-justification; (ii)~structural incoherence, where reasoning steps lack
-logical dependency; and (iii)~long-chain redundancy, where unnecessarily
-verbose traces waste inference budget and degrade accuracy.
-
-We propose \textbf{TopoPRM} (\textbf{Topo}logy-aware \textbf{P}rocess
-\textbf{R}eward \textbf{M}odel), a composite verifiable reward framework
-that augments standard outcome rewards with two topology-aware process
-signals. A \emph{topological structure reward} extracts the directed
-acyclic graph (DAG) of reasoning steps and penalises cycles, orphan
-nodes, and structural incoherence. A \emph{continuity reward} evaluates
-step-to-step logical coherence, discouraging abrupt jumps within the
-reasoning chain. To prevent reward hacking from auxiliary process signals,
-we further introduce \emph{Stratified Clipping Advantage Estimation}
-(SCAE), which hierarchically prioritises answer correctness over
-structural quality during GRPO optimisation. We additionally propose a
-\emph{reverse-KL distillation} stage that compresses the improved
-reasoning behaviour from a 32B teacher into smaller student models.
-
-Experiments on MATH500, GSM8K, CMATH, and GaoKao benchmarks show that
-TopoPRM significantly improves both reasoning accuracy and structural
-quality compared to outcome-only RLVR baselines, while the distilled
-students retain the majority of gains at a fraction of the inference cost.
+Reinforcement learning with verifiable rewards (RLVR) improves
+mathematical reasoning in large language models by rewarding correct
+final answers, yet it treats intermediate reasoning as an opaque
+black box. This outcome-only supervision leaves reasoning structure
+entirely unconstrained, leading to chains that reach correct answers
+through unsound derivations, circular logic, or excessive verbosity.
+We propose \textbf{TopoPRM}, a verifiable process reward framework
+that adds two topology-aware signals to the standard outcome reward.
+A rule-based parser extracts the implicit directed acyclic graph (DAG)
+of inter-step dependencies from each reasoning trace. A
+\emph{topological structure reward} then checks whether this DAG
+satisfies acyclicity, connectivity, and directional consistency, while
+a \emph{continuity reward} verifies that each step references
+expressions or conclusions established earlier. Both signals are
+computed by deterministic programs and require no learned reward model
+or human annotations. To prevent models from accumulating process reward
+at the expense of answer correctness, we introduce Stratified Clipping
+Advantage Estimation (SCAE), which partitions completions by
+correctness before computing advantages. We train Qwen3-32B with
+LoRA-based GRPO using the MS-Swift framework on 637 mathematical
+critique prompts and evaluate on 7{,}595 test problems spanning middle
+and high school difficulty. TopoPRM produces reasoning traces that
+are shorter, more structurally coherent, and more accurate than
+those from outcome-only GRPO. A reverse-KL distillation stage transfers
+these gains to smaller student models at reduced inference cost.
 \end{abstract}

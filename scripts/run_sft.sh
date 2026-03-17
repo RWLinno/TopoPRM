@@ -1,8 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-PROJECT_ROOT="/mnt/users/rwl/topoprm"
-SWIFT="/mnt/users/conda_env/swift/bin/swift"
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+SWIFT="swift"
 NPROC_PER_NODE="${NPROC_PER_NODE:-8}"
 
 export PYTHONPATH="${PROJECT_ROOT}:${PYTHONPATH:-}"

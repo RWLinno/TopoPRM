@@ -78,9 +78,14 @@ warmup, batch size 2, gradient accumulation 8, and max sequence length
 \paragraph{GRPO stage.}
 We train with the TopoPRM composite reward on 637 Chinese mathematical
 critique prompts. Each prompt generates 8 completions with temperature
-0.7, top-$p$ 0.95, and max completion length 2{,}048. vLLM (colocate
-mode) accelerates generation. Training runs for 1 epoch with learning
-rate $5 \times 10^{-6}$, cosine decay, batch size 1, and gradient
+0.7, top-$p$ 0.95, and max completion length 2{,}048. We adopt
+MS-Swift's \emph{server mode} architecture, where a dedicated vLLM
+rollout server (4 GPUs, tensor-parallel) handles high-throughput
+generation while 4 separate GPUs perform LoRA gradient updates. After
+each optimisation step, updated adapter weights are synchronised back to
+the server via NCCL broadcast, ensuring the generation policy stays
+current. Training runs for 1 epoch with learning rate
+$5 \times 10^{-6}$, cosine decay, per-device batch size 2, and gradient
 accumulation 4.
 
 \paragraph{Reward weights.}
@@ -89,6 +94,10 @@ $w_c = 0.15$ (continuity), $w_f = 0.15$ (format), $w_l = 0.1$ (length).
 
 \paragraph{Hardware.}
 All experiments run on 8$\times$ NVIDIA L20X GPUs (143\,GB VRAM each).
+For GRPO, we partition GPUs into an inference group (4 GPUs running the
+vLLM rollout server with tensor parallelism) and a training group
+(4 GPUs running distributed LoRA optimisation), following the
+MS-Swift~\citep{msswift} framework's recommended server-mode paradigm.
 
 \section{Case Study}
 \label{app:case_study}

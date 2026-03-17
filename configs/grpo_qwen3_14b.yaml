@@ -1,15 +1,15 @@
 # ms-swift 4.x GRPO configuration for Qwen3-14B (post-SFT)
 model: Qwen/Qwen3-14B
 adapters:
-  - /mnt/users/rwl/topoprm/output/sft_qwen3_14b/v0-20260313-195147/checkpoint-120
+  - output/sft_qwen3_14b/v0-20260313-195147/checkpoint-120
 
 # Dataset (flat list of paths)
 dataset:
-  - /mnt/users/rwl/topoprm/data/grpo_ready/train.jsonl
+  - data/grpo_ready/train.jsonl
 
 # Custom reward plugin
 external_plugins:
-  - /mnt/users/rwl/topoprm/src/reward/composite_reward.py
+  - src/reward/composite_reward.py
 reward_funcs:
   - topo_composite
 

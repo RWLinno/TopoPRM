@@ -10,6 +10,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
+export PATH="/mnt/users/conda_env/topoprm/bin:$PATH"
 export PATH="$(dirname $(which swift)):$PATH"
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1,2,3,4,5,6,7}"
 
@@ -34,7 +35,7 @@ swift infer \
     --max_new_tokens 2048 \
     --temperature 0.1 \
     --infer_backend vllm \
-    --gpu_memory_utilization 0.9 \
+    --vllm_gpu_memory_utilization 0.9 \
     --max_model_len 4096 \
     --result_path "output/eval/${OUTPUT_NAME}_middle.jsonl" \
     2>&1 | tee "output/eval/${OUTPUT_NAME}_middle.log"
@@ -48,7 +49,7 @@ swift infer \
     --max_new_tokens 2048 \
     --temperature 0.1 \
     --infer_backend vllm \
-    --gpu_memory_utilization 0.9 \
+    --vllm_gpu_memory_utilization 0.9 \
     --max_model_len 4096 \
     --result_path "output/eval/${OUTPUT_NAME}_high.jsonl" \
     2>&1 | tee "output/eval/${OUTPUT_NAME}_high.log"

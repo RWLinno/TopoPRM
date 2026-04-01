@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TopoPRM Framework Visualization (Final)</title>
+  <style>
+    body { margin:0; font-family:"Segoe UI",sans-serif; background:#f6f8fc; color:#1d2840; }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 30px 20px 40px; }
+    svg { width:100%; height:auto; background:white; border:1px solid #d9e1f5; border-radius:14px; }
+    .panel { margin-top:14px; background:#fff; border:1px solid #d9e1f5; border-radius:12px; padding:12px; min-height:64px; }
+    .hint { margin-top:8px; color:#4a5b82; font-size:14px; }
+    .node { transition: all .2s ease; cursor:pointer; }
+    .node.active { filter: drop-shadow(0 0 10px rgba(61,130,255,.45)); stroke-width:3px; }
+    .edge { transition: all .2s ease; }
+    .edge.active { stroke:#1f67ff !important; stroke-width:4px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>TopoPRM 框架可视化（终版）</h1>
+    <p class="hint">点击节点可高亮依赖路径并查看模块解释。</p>
+
+    <svg viewBox="0 0 1200 560" aria-label="framework">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L9,3 z" fill="#5870b8"></path>
+        </marker>
+      </defs>
+
+      <line id="e1" class="edge" x1="280" y1="125" x2="340" y2="120" stroke="#5870b8" stroke-width="3" marker-end="url(#arrow)"/>
+      <line id="e2" class="edge" x1="600" y1="120" x2="660" y2="120" stroke="#5870b8" stroke-width="3" marker-end="url(#arrow)"/>
+      <line id="e3" class="edge" x1="790" y1="200" x2="790" y2="250" stroke="#5870b8" stroke-width="3" marker-end="url(#arrow)"/>
+      <line id="e4" class="edge" x1="920" y1="310" x2="980" y2="310" stroke="#5870b8" stroke-width="3" marker-end="url(#arrow)"/>
+      <line id="e5" class="edge" x1="1068" y1="400" x2="700" y2="460" stroke="#5870b8" stroke-width="3" marker-end="url(#arrow)"/>
+
+      <rect id="n0" class="node" x="60" y="80" width="220" height="90" rx="12" fill="#e9f0ff" stroke="#5d7dd6"/>
+      <text x="90" y="130" font-size="18">Input (q, s)</text>
+
+      <rect id="n1" class="node" x="340" y="60" width="260" height="120" rx="12" fill="#e8fff1" stroke="#3ba86d"/>
+      <text x="375" y="110" font-size="18">Teacher Training</text>
+      <text x="375" y="136" font-size="14">SFT → GRPO</text>
+
+      <rect id="n2" class="node" x="660" y="40" width="260" height="160" rx="12" fill="#fff7e8" stroke="#d39a43"/>
+      <text x="692" y="90" font-size="18">Contribution A</text>
+      <text x="692" y="116" font-size="14">Verifiable Process Reward Model</text>
+      <text x="692" y="140" font-size="14">dependency DAG + topology/continuity</text>
+
+      <rect id="n3" class="node" x="660" y="250" width="260" height="120" rx="12" fill="#edf7ff" stroke="#4b9bcf"/>
+      <text x="700" y="298" font-size="18">Trace Filtering</text>
+      <text x="700" y="324" font-size="14">process-aware quality gate</text>
+
+      <rect id="n4" class="node" x="980" y="220" width="180" height="180" rx="12" fill="#f4ecff" stroke="#8d66cc"/>
+      <text x="1002" y="275" font-size="18">Contribution B</text>
+      <text x="1002" y="301" font-size="14">Reverse-KL</text>
+      <text x="1002" y="327" font-size="14">Distillation</text>
+
+      <rect id="n5" class="node" x="340" y="410" width="360" height="100" rx="12" fill="#eef3ff" stroke="#5d7dd6"/>
+      <text x="372" y="460" font-size="18">Outcomes: Accuracy + Coherence + Efficiency</text>
+    </svg>
+
+    <div id="panel" class="panel">点击节点查看解释…</div>
+  </div>
+
+  <script>
+    const notes = {
+      n0: '输入问题与上下文，作为 teacher/student 共享条件。',
+      n1: 'Teacher 阶段：标准 SFT 后进入 GRPO，主目标是 outcome correctness。',
+      n2: '贡献 A：deterministic PRM。提取 dependency DAG，计算 topology/continuity 可验证结构奖励。',
+      n3: '蒸馏前进行 process-aware filtering，筛掉低质量或冗余轨迹。',
+      n4: '贡献 B：reverse-KL distillation。mode-seeking 压缩高质量 teacher 推理行为。',
+      n5: '最终目标：准确率提升、结构连贯性改善、推理成本下降。'
+    };
+
+    const pathMap = {
+      n0: ['e1'],
+      n1: ['e1','e2'],
+      n2: ['e2','e3'],
+      n3: ['e3','e4'],
+      n4: ['e4','e5'],
+      n5: ['e5']
+    };
+
+    const panel = document.getElementById('panel');
+    const nodes = Array.from(document.querySelectorAll('.node'));
+    const edges = Array.from(document.querySelectorAll('.edge'));
+
+    function clearAll() {
+      nodes.forEach(n => n.classList.remove('active'));
+      edges.forEach(e => e.classList.remove('active'));
+    }
+
+    nodes.forEach(n => {
+      n.addEventListener('click', () => {
+        clearAll();
+        n.classList.add('active');
+        (pathMap[n.id] || []).forEach(eid => document.getElementById(eid)?.classList.add('active'));
+        panel.textContent = notes[n.id] || 'N/A';
+      });
+    });
+  </script>
+</body>
+</html>

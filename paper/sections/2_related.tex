@@ -1,0 +1,100 @@
+\section{Related Work}
+\label{sec:related_work}
+
+\paragraph{Reinforcement learning with verifiable rewards.}
+RLHF~\citep{ouyang2022training} aligns language models with human
+preferences through learned reward models.
+DeepSeek-R1~\citep{guo2025deepseekr1} and
+DeepSeekMath~\citep{shao2024deepseekmath} replaced learned preference
+models with programmatic correctness checks, establishing the
+reinforcement learning with verifiable rewards (RLVR) paradigm for
+mathematical reasoning.
+GRPO~\citep{shao2024deepseekmath} computes group-relative advantages
+without a separate critic network, reducing memory cost relative to PPO.
+\citet{mroueh2025grpo} provides a theoretical analysis showing that GRPO
+with binary rewards can be expressed as a KL-regularised contrastive loss
+with an explicit closed-form optimal policy.
+$\lambda$-GRPO~\citep{lambdagrpo2025} introduces learnable token
+preferences to address length bias in GRPO training.
+These methods supervise only the final answer and treat the intermediate
+reasoning trace as opaque.
+TopoPRM retains the verifiable reward paradigm but extends it to
+process-level supervision: the topology and continuity rewards are
+computed by deterministic programs, yet they provide step-level structural
+feedback that outcome-only RLVR cannot offer.
+
+\paragraph{Process reward models.}
+\citet{lightman2023lets} introduced process reward models (PRMs) that
+assign scalar rewards to individual reasoning steps, using human
+annotations of step-level correctness as training signal.
+Math-Shepherd~\citep{wang2024mathshepherd} reduces annotation cost by
+estimating step-level value through Monte Carlo rollouts from each
+intermediate state.
+Proof-RM~\citep{proofRM2025} targets mathematical proof verification and
+designs reward functions that account for proof structure, using an
+``LLM-as-a-RM-for-RM'' approach with balanced token weighting to
+stabilise RL training.
+Verifiable Process Reward Models (VPRMs)~\citep{vprm2025} introduce
+deterministic, rule-based verifiers for intermediate reasoning steps in
+medical evidence synthesis, achieving up to 20\% higher F1 than
+state-of-the-art models.
+PPRM~\citep{pprm2025} uses Bradley-Terry loss with preference-based
+learning to mitigate bias from heuristic search strategies.
+These approaches improve over outcome-only supervision but depend on
+either expensive per-step human labels or learned verifiers whose accuracy
+is itself uncertain.
+TopoPRM takes a complementary approach: rather than scoring individual
+steps, it extracts structural properties of the full reasoning graph
+(acyclicity, connectivity, directional consistency) using deterministic
+rules, requiring no annotations and introducing no additional model
+parameters.
+
+\paragraph{Graph-structured reasoning.}
+Graph-of-Thought~\citep{besta2024graph} organises LLM reasoning into
+graph structures through prompt engineering, enabling exploration of
+multiple reasoning paths during inference.
+GRP~\citep{grp2025} trains models to produce graph-structured outputs
+with explicit cognitive labels, requiring specialised output formats and
+task-specific decoding procedures.
+TopoPRM is closest to this line but differs in two practical choices:
+(1)~it keeps standard text generation format and extracts implicit DAGs
+post-hoc, and (2)~it emphasises compatibility with stock RLVR training
+stacks through plugin-level verifiable rewards.
+This design avoids graph-annotation requirements and architecture changes
+while retaining structure-aware optimisation signals.
+
+\paragraph{Reasoning compression and distillation.}
+Reasoning models produce thousands of tokens of internal deliberation,
+much of which is redundant or even harmful~\citep{sang2026opsdc}.
+On-policy self-distillation for reasoning compression
+(OPSDC)~\citep{sang2026opsdc} teaches models to reason more concisely by
+distilling their own concise behaviour, achieving 57--59\% token
+reduction on MATH-500 while improving accuracy by 9--16 points.
+MENTALMS~\citep{mentalms2025} trains models to reason in compressed
+``Mentalese'' tokens, achieving 4--16$\times$ fewer tokens across
+mathematical benchmarks.
+\citet{compressionreasoning2026} benchmarks quantisation, distillation,
+and pruning on reasoning models, finding that weight count impacts
+knowledge memorisation more than reasoning capability.
+Caprese~\citep{caprese2025} proposes low-rank distillation using
+approximately 1\% additional parameters.
+Standard reverse-KL distillation~\citep{hinton2015distilling} provides
+the mode-seeking objective that encourages students to concentrate on
+high-probability teacher modes.
+TopoPRM's distillation stage differs from these approaches by using
+\emph{process-aware filtering}: only teacher traces satisfying topology
+and continuity quality thresholds are retained for student training,
+ensuring that the compressed reasoning inherits structural quality rather
+than merely shortening output length.
+
+\paragraph{Reward aggregation and reward hacking.}
+Reward hacking, where models exploit auxiliary reward signals without
+genuine task improvement, is a persistent problem in RL-based
+training~\citep{Denison2024SycophancyTS}.
+DAPO~\citep{dapo2025} introduces dynamic sampling to stabilise training,
+and difficulty-aware methods~\citep{difficultyGRPO2026} adjust
+optimisation pressure based on problem difficulty.
+TopoPRM addresses reward hacking through Stratified Clipping Advantage
+Estimation (SCAE), which hierarchically prioritises answer correctness
+over auxiliary process rewards, preventing models from accumulating
+topology or continuity reward at the expense of accuracy.

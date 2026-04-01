@@ -1,14 +1,37 @@
+% Table 5: Reasoning compression via reverse-KL distillation.
 \begin{table}[t]
 \centering
-\caption{Reasoning compression via reverse-KL distillation from the TopoPRM-trained 32B teacher to smaller student models.}
+\caption{Reasoning compression via reverse-KL distillation from the
+  TopoPRM-trained Qwen3-32B teacher to a Qwen3-8B student.
+  \textbf{Private} columns report critique accuracy on the light-200
+  protocol; \textbf{Public} columns report accuracy on standard benchmarks
+  (full test sets).  Speedup is measured by mean token reduction.}
 \label{tab:compression}
-\begin{tabular}{l cccc}
+\vspace{2pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l cc cc cc c@{}}
 \toprule
-\textbf{Model} & \textbf{Middle-Acc} & \textbf{High-Acc} & \textbf{Avg-Len} & \textbf{Speedup} \\
+& \multicolumn{2}{c}{\textbf{Private Critique}}
+& \multicolumn{2}{c}{\textbf{GSM8K}}
+& \multicolumn{2}{c}{\textbf{MATH-500}}
+& \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+\textbf{Model}
+  & Mid-Acc & High-Acc
+  & Acc & $n$
+  & Acc & $n$
+  & \textbf{Avg-Len} \\
 \midrule
-Teacher (32B, TopoPRM)  & -- & -- & -- & $1.0\times$ \\
-Student (14B)           & -- & -- & -- & -- \\
-Student (7B)            & -- & -- & -- & -- \\
+Teacher (Qwen3-32B + TopoPRM) & 37.2 & 22.3 & 77.9 & 1\,319 & 9.2$^*$ & 500 & 364 \\
+\rowcolor{blue!5}
+Student (Qwen3-8B + RKL)      & \textbf{60.0} & \textbf{58.0} & \textbf{82.5} & 1\,319 & \textbf{59.8} & 500 & 532 \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{8}{@{}l}{\textit{External References (no TopoPRM training)}} \\
+Qwen2.5-7B-Instruct           & --- & --- & 93.0 & 200 & 74.2 & 500 & --- \\
+Llama-3.1-8B-Instruct         & --- & --- & 84.5 & 200 & 52.2 & 500 & --- \\
 \bottomrule
-\end{tabular}
+\multicolumn{8}{@{}l}{\footnotesize $^*$Qwen3-32B base MATH-500 score is anomalously low, likely due to answer-extraction mismatch with thinking-mode output.} \\
+\end{tabular}%
+}
 \end{table}

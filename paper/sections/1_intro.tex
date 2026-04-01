@@ -1,0 +1,38 @@
+\section{Introduction}
+\label{sec:introduction}
+
+Outcome-level reinforcement learning with verifiable rewards (RLVR) has become a practical route to improve mathematical reasoning in large language models~\citep{guo2025deepseekr1,shao2024deepseekmath}.
+In most deployments, however, the reward is dominated by final-answer correctness, which leaves intermediate reasoning quality only weakly constrained.
+As a result, models may obtain correct outcomes through traces that are structurally fragile, unsupported at key transitions, or unnecessarily verbose---a phenomenon increasingly documented in the long chain-of-thought reasoning literature~\citep{sang2026opsdc,mroueh2025grpo}.
+
+A natural solution is process supervision.
+Existing learned process reward models (PRMs) can provide dense step-level feedback~\citep{lightman2023lets,wang2024mathshepherd}, but they typically require additional annotation cost and introduce an extra model whose reliability must itself be calibrated.
+Recent work on verifiable process rewards~\citep{proofRM2025} has shown that deterministic, rule-based verification can be effective for structured domains, motivating a complementary question: \emph{can process supervision be made deterministic, reproducible, and directly compatible with standard RLVR pipelines?}
+
+We answer this question with \textbf{TopoPRM}, a two-part framework built around two core contributions.
+
+\paragraph{Contribution I: Verifiable Process Reward Model.}
+Given a free-form reasoning trace, a deterministic extractor constructs an inferred dependency DAG over reasoning steps.
+On this extracted graph, we define two complementary process rewards: a \emph{topology reward} that captures global dependency regularity (acyclicity, orphan-conclusion ratio, directional consistency), and a \emph{continuity reward} that captures local support traceability between adjacent reasoning decisions.
+We emphasise scope: the DAG is an extracted structural proxy, not a ground-truth proof graph.
+Accordingly, ``verifiable'' here means that reward computation is deterministic, auditable, and reproducible after generation, rather than a guarantee of semantic proof correctness.
+
+\paragraph{Contribution II: Reverse-KL Reasoning Distillation.}
+After teacher optimisation with sparse but verifiable rewards, we perform process-aware trace filtering and distil to smaller students via reverse KL~\citep{sang2026opsdc}.
+This stage transfers graph-enriched teacher reasoning behaviour into compact chain-like student reasoning.
+The student is not required to output explicit DAGs; instead, it learns dense conditional distributions over high-quality teacher traces, reducing dependence on sparse answer rewards during the student stage.
+
+A practical challenge is reward aggregation.
+Naive scalarisation can rank structurally plausible but answer-incorrect traces above correct traces with weaker auxiliary signals.
+We therefore use correctness-first stratified shaping (implemented via SCAE-style reward shaping) to preserve answer correctness as the primary optimisation target while still exploiting process signals for within-stratum refinement.
+
+In summary, our contributions are:
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+\item \textbf{Deterministic verifiable process supervision.}
+  We provide a plugin-compatible process reward module that extracts dependency DAGs and computes topology and continuity rewards through deterministic programs, requiring no learned reward model or human annotation.
+\item \textbf{Reverse-KL reasoning distillation.}
+  We introduce process-aware filtered distillation that compresses graph-enriched teacher behaviours into compact chain-like student reasoning via a mode-seeking reverse-KL objective.
+\item \textbf{Empirical validation.}
+  On Chinese mathematical critique benchmarks, TopoPRM improves overall accuracy by $+13.4$ points over outcome-only GRPO while reducing response length by 11\%.
+  The distilled Qwen3-8B student achieves 82.5\% on GSM8K and 59.8\% on MATH-500, competitive with models of comparable scale.
+\end{enumerate}

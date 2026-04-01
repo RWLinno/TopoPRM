@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TopoPRM Technical Roadmap</title>
+  <style>
+    body { margin:0; background:#101522; color:#eaf0ff; font-family:"Segoe UI",sans-serif; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 36px 20px 60px; }
+    h1 { margin:0; }
+    .sub { color:#9fb0d6; margin:8px 0 20px; }
+    .lane { border-left:3px solid #3f63b7; margin-left:10px; padding-left:20px; }
+    .item { margin: 18px 0; padding:12px 14px; background:#161f34; border:1px solid #2f416b; border-radius:10px; }
+    .item h3 { margin:0 0 6px; }
+    .badge { font-size:12px; color:#081426; background:#76e3ff; display:inline-block; padding:2px 8px; border-radius:999px; margin-right:6px; }
+    .todo { background:#2b2433; border-color:#6e5a92; }
+    .done { background:#173226; border-color:#3f9d70; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>TopoPRM 技术路线图</h1>
+    <div class="sub">从方法定义、系统实现到论文与对外展示的完整路线。</div>
+
+    <div class="lane">
+      <div class="item done">
+        <h3><span class="badge">已完成</span>叙事重构</h3>
+        <p>全篇统一为两大贡献：deterministic PRM 与 reverse-KL distillation。</p>
+      </div>
+      <div class="item done">
+        <h3><span class="badge">已完成</span>模块骨架升级</h3>
+        <p>新增 <code>src/prm</code> 与 <code>src/distill</code>，兼容现有 GRPO 训练链路。</p>
+      </div>
+      <div class="item done">
+        <h3><span class="badge">已完成</span>文档与展示资产</h3>
+        <p>新增 demo 页面、框架图可视化、技术路线页以及结构化工作报告。</p>
+      </div>
+      <div class="item todo">
+        <h3><span class="badge">下一步</span>实现实质迁移</h3>
+        <p>将 <code>build_dag.py</code> 拆分为 parser 子模块实体实现，减少 wrapper 层。</p>
+      </div>
+      <div class="item todo">
+        <h3><span class="badge">下一步</span>蒸馏链路升级</h3>
+        <p>将 distill 脚本与配置全面切换到 <code>src/distill/*</code>，补全训练细节与日志。</p>
+      </div>
+      <div class="item todo">
+        <h3><span class="badge">下一步</span>实验与论文收口</h3>
+        <p>补齐主表、消融、局限性实验（extractor fidelity、mode collapse 风险分析）。</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

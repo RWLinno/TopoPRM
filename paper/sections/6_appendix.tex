@@ -1,0 +1,214 @@
+\newpage
+\appendix
+\section{Training Details}
+\label{app:details}
+
+\paragraph{SFT stage.}
+We fine-tune Qwen3-32B using LoRA with rank 64 and alpha 128 on all
+linear layers. The SFT dataset consists of 5{,}000 samples: 637 Chinese
+mathematical critique examples and 4{,}363 English math reasoning problems
+from NuminaMath-CoT and MetaMathQA. Training runs for 3 epochs (120
+steps) with learning rate $5 \times 10^{-5}$, cosine decay with 3\%
+warmup, batch size 2, gradient accumulation 8, and max sequence length
+8{,}192. Final SFT loss: 0.311, token accuracy: 89.7\%.
+
+\paragraph{GRPO stage.}
+We train with the TopoPRM composite reward on 637 Chinese mathematical
+critique prompts. Each prompt generates 8 completions with temperature
+0.7, top-$p$ 0.95, and max completion length 2{,}048. We adopt the
+MS-Swift \emph{server mode} architecture, where a dedicated vLLM rollout
+server (4 GPUs, tensor-parallel) handles high-throughput generation while
+4 separate GPUs perform LoRA gradient updates. After each optimisation
+step, updated adapter weights are synchronised back to the server via
+NCCL broadcast, ensuring the generation policy stays current. Training
+runs for 1 epoch with learning rate $5 \times 10^{-6}$, cosine decay,
+per-device batch size 2, and gradient accumulation 4.
+
+\paragraph{Reward weights.}
+Default weights: $w_o = 0.4$ (outcome), $w_t = 0.2$ (topology),
+$w_c = 0.15$ (continuity), $w_f = 0.15$ (format), $w_l = 0.1$ (length).
+
+\paragraph{Hardware.}
+All experiments run on 8$\times$ NVIDIA L20X GPUs (143\,GB VRAM each).
+For GRPO, we partition GPUs into an inference group (4 GPUs running the
+vLLM rollout server with tensor parallelism) and a training group
+(4 GPUs running distributed LoRA optimisation), following the
+MS-Swift~\citep{msswift} server-mode paradigm.
+
+\section{SCAE Algorithm}
+\label{app:scae}
+
+Algorithm~\ref{alg:scae} presents the full procedure of Stratified
+Clipping Advantage Estimation.
+
+\begin{algorithm}[H]
+\caption{Stratified Clipping Advantage Estimation (SCAE)}
+\label{alg:scae}
+\begin{algorithmic}[1]
+\Require Group of completions $\{c^{(1)}, \ldots, c^{(G)}\}$ for prompt $q$
+\Require Outcome rewards $\{R_\mathrm{out}^{(i)}\}_{i=1}^G$, auxiliary rewards $\{r_\mathrm{aux}^{(i)}\}_{i=1}^G$
+\State $\bar{r}_\mathrm{acc} \leftarrow \frac{1}{G}\sum_{i=1}^G R_\mathrm{out}^{(i)}$
+\State $\mathcal{C} \leftarrow \{i : R_\mathrm{out}^{(i)} = 1\}$ \Comment{correct set}
+\State $\mathcal{W} \leftarrow \{j : R_\mathrm{out}^{(j)} = 0\}$ \Comment{incorrect set}
+\State $\bar{r}_\mathrm{aux}^+ \leftarrow \mathrm{mean}(\{r_\mathrm{aux}^{(i)} : i \in \mathcal{C}\})$ if $\mathcal{C} \neq \emptyset$ else $0$
+\State $\bar{r}_\mathrm{aux}^- \leftarrow \mathrm{mean}(\{r_\mathrm{aux}^{(j)} : j \in \mathcal{W}\})$ if $\mathcal{W} \neq \emptyset$ else $0$
+\For{$i \in \mathcal{C}$}
+    \State $A^{(i)} \leftarrow (1 - \bar{r}_\mathrm{acc}) + \max(0,\; r_\mathrm{aux}^{(i)} - \bar{r}_\mathrm{aux}^+)$
+\EndFor
+\For{$j \in \mathcal{W}$}
+    \State $A^{(j)} \leftarrow -\bar{r}_\mathrm{acc} + \min(0,\; r_\mathrm{aux}^{(j)} - \bar{r}_\mathrm{aux}^-)$
+\EndFor
+\Return Advantages $\{A^{(i)}\}_{i=1}^G$
+\end{algorithmic}
+\end{algorithm}
+
+\section{DAG Extraction Details}
+\label{app:dag}
+
+\paragraph{Step segmentation.}
+We identify reasoning step boundaries using the following markers:
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+    \item Numbered steps: patterns such as ``Step 1:'', ``(1)'', and Chinese-style step markers   \item Mathematical delimiters: ``$\because$'', ``$\therefore$'',
+          ``$\Rightarrow$''
+    \item Logical connectives: ``hence'', ``therefore'', and their
+          Chinese equivalents
+    \item Line breaks with significant indentation changes
+\end{itemize}
+
+\paragraph{Dependency detection.}
+For each pair of steps $(r_i, r_j)$ with $i < j$, we check:
+\begin{enumerate}[leftmargin=*,itemsep=1pt]
+    \item \textbf{Expression overlap}: whether $r_j$ contains
+    mathematical expressions (extracted via regex) that first appeared
+    in $r_i$.
+    \item \textbf{Variable reference}: whether $r_j$ uses variables or
+    intermediate results defined in $r_i$.
+    \item \textbf{Sequential proximity}: consecutive steps
+    $(r_i, r_{i+1})$ receive weak sequential edges (weight 0.3).
+\end{enumerate}
+
+\paragraph{Step classification.}
+Each node is classified by keyword matching into one of seven types:
+\textsc{definition}, \textsc{derivation}, \textsc{computation},
+\textsc{conclusion}, \textsc{auxiliary}, \textsc{substitution}, and
+\textsc{case\_analysis}.
+
+\section{Reward Function Details}
+\label{app:rewards}
+
+\paragraph{Outcome reward.}
+Parses the model's \texttt{<answer>} JSON to extract the predicted
+student score and critique conclusion. Exact score match yields 1.0;
+within $\pm 1$ yields 0.5. Matching the conclusion adds 0.5 bonus.
+The total is capped and normalised to $[0, 1]$.
+
+\paragraph{Format reward.}
+Checks for \texttt{<think>$\cdots$</think>} and
+\texttt{<answer>$\cdots$</answer>} blocks with valid JSON:
+both present $\to$ 1.0; only valid \texttt{<answer>} $\to$ 0.3;
+otherwise $\to$ 0.0.
+
+\paragraph{Length reward.}
+Linear decay from 1.0 (at $\leq$ 2{,}000 characters) to 0.0 (at
+$\geq$ 4{,}000 characters).
+
+\paragraph{Topological structure reward.}
+Defined in \S\ref{sec:method}.
+The topology reward decomposes into six auditable components with default weights:
+valid DAG ($\lambda_b{=}0.20$), acyclicity ($\lambda_a{=}0.15$),
+no-orphan conclusions ($\lambda_o{=}0.15$), directional consistency
+($\lambda_d{=}0.15$), step alignment ($0.10$), and reference-edge F1
+($\lambda_k{=}0.25$, redistributed when no reference graph is available).
+A hard gate zeros the topology score when the extracted graph is invalid.
+
+\paragraph{Dynamic weight adaptation.}
+The composite reward supports optional dynamic weight adaptation.
+At each batch, per-component correlation with outcome correctness and
+spread (standard deviation) are computed.
+A reliability score $\rho_m = 0.5 \cdot \mathrm{corr}(r_m, r_o) + 0.5 \cdot \min(1, 2\sigma_m)$
+modulates each weight, blended with the static baseline via
+$\eta{=}0.50$.
+An outcome-floor constraint ($w_o \geq 0.35$) is enforced after
+renormalisation to prevent correctness signal erosion.
+
+\paragraph{Continuity reward.}
+Defined in \S\ref{sec:method}. Uses regex-based expression matching
+to verify that each step references expressions or claims from prior
+steps or the problem statement.
+Full coverage ($\eta{=}1.0$) yields reward 1.0; partial coverage yields
+$0.8\,\eta$.
+
+\section{Limitations}
+\label{app:limitations}
+
+Three limitations of the current work warrant discussion. First, the DAG
+extraction relies on rule-based parsing of inter-step references through
+keyword matching and expression overlap. This procedure may miss implicit
+logical dependencies that lack explicit surface-level cues, such as
+unstated algebraic identities or geometric properties applied without
+reference. Second, the continuity reward uses regex-based expression
+matching rather than semantic understanding; it detects when a step
+references an expression from a previous step but cannot identify subtle
+logical gaps or incorrect applications of mathematical principles that
+reuse the same symbols. Third, our evaluation focuses exclusively on
+mathematical reasoning in a Chinese educational critique setting. Whether
+TopoPRM generalises to other structured reasoning domains, such as code
+generation or scientific reasoning, remains an open question.
+
+\section{Future Work}
+\label{app:future}
+
+Three directions follow from this work. First, replacing the rule-based
+DAG extractor with a lightweight learned parser could capture implicit
+dependencies while remaining fast enough for online reward computation
+during GRPO training. Second, combining the verifiable structural rewards
+of TopoPRM with learned PRMs~\citep{lightman2023lets} could provide
+complementary supervision: structural rewards enforce global coherence
+while learned rewards capture fine-grained step correctness. Third,
+extending the framework to multi-modal mathematical reasoning, where
+diagrams and figures introduce spatial dependency structures beyond text,
+would test the generality of topology-aware rewards in richer settings.
+
+\section{Case Study}
+\label{app:case_study}
+
+We present a representative example comparing the reasoning structure
+of completions from the SFT baseline, outcome-only GRPO, and TopoPRM
+on a high-school algebra problem requiring multi-step equation solving
+with verification of intermediate steps.
+
+\paragraph{SFT output.}
+The SFT model produces a correct answer but with redundant intermediate
+steps and one orphan conclusion that does not connect to the main
+derivation chain. The reasoning DAG contains a back-edge from the
+conclusion to an earlier auxiliary step, violating acyclicity.
+
+\paragraph{Outcome-only GRPO output.}
+The outcome-only model reaches the correct answer more concisely but
+skips a key substitution step, producing a reasoning trace with a
+continuity gap. The topological structure reward assigns a low continuity
+score to this trace.
+
+\paragraph{TopoPRM output.}
+The TopoPRM model produces a concise, well-structured derivation where
+each step follows logically from its predecessors. The extracted DAG is
+acyclic, fully connected, and directionally consistent. The reasoning
+trace is 23\% shorter than the SFT output while maintaining correctness.
+
+\section{Distillation Details}
+\label{app:distill}
+
+For reasoning compression, we use the TopoPRM-trained Qwen3-32B
+(GRPO checkpoint-79) as the teacher model to generate high-quality
+reasoning traces. We filter teacher outputs to retain only those with
+composite reward $R_\mathrm{total} > 0.7$. The student model (Qwen3-8B)
+is trained using reverse-KL distillation with LoRA (rank 32, alpha 64)
+for 2 epochs, max sequence length 2{,}048, learning rate
+$3 \times 10^{-5}$, and a maximum of 4{,}000 training samples.
+On public benchmarks, the distilled student achieves 82.5\% on GSM8K
+(1{,}319 problems) and 59.8\% on MATH-500.
+
+\section{Additional Results}
+\label{app:additional}
+% Training curves, per-category breakdowns, and additional ablations
+% will be added after all experiments complete.

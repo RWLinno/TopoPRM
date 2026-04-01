@@ -111,3 +111,7 @@ orms["ablation_no_topo"] = NoTopoReward
 orms["ablation_no_continuity"] = NoContinuityReward
 orms["ablation_no_format"] = NoFormatReward
 orms["ablation_topo_only"] = TopoOnlyReward
+
+
+# Alias for the verifier-style topology reward after R_topo refactor
+orms["ablation_verifiable_topo"] = TopoOnlyReward

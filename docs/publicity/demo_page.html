@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TopoPRM Demo (Final)</title>
+  <style>
+    :root { --bg:#0b1020; --fg:#eaf1ff; --muted:#a7b6d9; --a:#66d9ef; --b:#9effa1; --c:#ffd580; --line:#2b3558; }
+    body { margin:0; font-family:"Segoe UI",sans-serif; background: radial-gradient(1200px 600px at 20% -10%, #223, transparent), var(--bg); color:var(--fg); }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 36px 20px 60px; }
+    .top { display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; align-items:flex-end; }
+    .muted { color:var(--muted); }
+    .kpi { display:flex; gap:12px; margin-top:14px; flex-wrap:wrap; }
+    .kpi div { background:#121a33; border:1px solid var(--line); padding:10px 12px; border-radius:10px; min-width:140px; }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:16px; }
+    .card { border:1px solid var(--line); border-radius:12px; padding:14px; background:rgba(255,255,255,0.03); }
+    .toolbar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    select, input[type="file"] { background:#10192e; color:#dfe8ff; border:1px solid #334; border-radius:8px; padding:6px 8px; }
+    .chart { margin-top:16px; background:#121a33; border:1px solid var(--line); border-radius:12px; padding:14px; }
+    table { width:100%; border-collapse: collapse; margin-top:10px; }
+    th,td { border-bottom:1px solid var(--line); padding:8px; text-align:left; font-size:13px; }
+    .bars { margin-top:12px; display:grid; gap:8px; }
+    .bar-row { display:grid; grid-template-columns: 200px 1fr 70px; align-items:center; gap:10px; }
+    .bar-track { height:14px; background:#0f1830; border:1px solid #334; border-radius:999px; overflow:hidden; }
+    .bar-fill { height:100%; background:linear-gradient(90deg,#49d6ff,#9effa1); }
+    .notice { margin-top:18px; border-left:4px solid var(--c); padding:10px 12px; background:#241f16; color:#ffe6b7; border-radius:8px; }
+    code { color:#7bdcff; }
+    @media (max-width: 900px) { .grid { grid-template-columns:1fr; } .bar-row { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1 style="margin:0;">TopoPRM 最终 Demo 页</h1>
+        <p class="muted" style="margin:8px 0 0;">Deterministic Verifiable Process Rewards + Reverse-KL Distillation</p>
+      </div>
+      <div class="toolbar">
+        <label>排序指标
+          <select id="sortKey">
+            <option value="score_accuracy">accuracy</option>
+            <option value="format_compliance">format</option>
+            <option value="step_coverage">step_coverage</option>
+          </select>
+        </label>
+        <label>筛选
+          <select id="filterKey">
+            <option value="all">all</option>
+            <option value="grpo_main">grpo_main</option>
+            <option value="grpo_outcome">grpo_outcome</option>
+            <option value="baseline">baseline</option>
+            <option value="sft">sft</option>
+          </select>
+        </label>
+        <input id="fileInput" type="file" accept="application/json" />
+      </div>
+    </div>
+
+    <div class="kpi" id="kpi"></div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>贡献 A：Verifiable PRM</h3>
+        <p>从 trace 提取 dependency DAG，计算 topology/continuity 两类确定性结构奖励，支持审计与复现实验。</p>
+      </div>
+      <div class="card">
+        <h3>贡献 B：Reverse-KL Distillation</h3>
+        <p>Teacher 轨迹经 process-aware filtering 后蒸馏到 Student，形成 compact chain-like reasoning。</p>
+      </div>
+      <div class="card">
+        <h3>关键边界</h3>
+        <ul>
+          <li>可验证奖励是程序化可验证，不是语义证明完备验证</li>
+          <li>dependency DAG 是结构代理，不是真值证明图</li>
+          <li>correctness-first 保证正确性优先</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>数据说明</h3>
+        <p class="muted">默认读取 <code>data/summary.json</code>。若浏览器本地策略阻止读取，请手动上传该文件。</p>
+      </div>
+    </div>
+
+    <div class="chart">
+      <h3 style="margin:0;">Main vs Outcome-only（Top 运行对比）</h3>
+      <div id="compare" class="bars"></div>
+    </div>
+
+    <div class="chart">
+      <h3 style="margin:0;">运行榜单</h3>
+      <table>
+        <thead><tr><th>run</th><th>accuracy</th><th>format</th><th>coverage</th><th>samples</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="notice">配套页面：<code>index.html</code> / <code>framework_visualization.html</code> / <code>technical_roadmap.html</code></div>
+  </div>
+
+  <script>
+    let SUMMARY = null;
+    const kpiEl = document.getElementById('kpi');
+    const tbody = document.getElementById('tbody');
+    const compareEl = document.getElementById('compare');
+    const sortKeyEl = document.getElementById('sortKey');
+    const filterKeyEl = document.getElementById('filterKey');
+
+    function bucket(name) {
+      if (name.includes('grpo_main')) return 'grpo_main';
+      if (name.includes('grpo_outcome')) return 'grpo_outcome';
+      if (name.includes('baseline')) return 'baseline';
+      if (name.includes('sft')) return 'sft';
+      return 'other';
+    }
+
+    function renderKpi(summary) {
+      const avg = summary.averages || {};
+      const blocks = [
+        ['num_runs', summary.num_runs ?? 0],
+        ['avg_accuracy', Number(avg.score_accuracy || 0).toFixed(3)],
+        ['avg_format', Number(avg.format_compliance || 0).toFixed(3)],
+        ['avg_step_cov', Number(avg.step_coverage || 0).toFixed(3)],
+      ];
+      kpiEl.innerHTML = blocks.map(([k,v]) => `<div><small>${k}</small><br/><b>${v}</b></div>`).join('');
+    }
+
+    function renderCompare(rows) {
+      const main = rows.filter(r => r.file.includes('grpo_main')).sort((a,b) => b.score_accuracy - a.score_accuracy)[0];
+      const out = rows.filter(r => r.file.includes('grpo_outcome')).sort((a,b) => b.score_accuracy - a.score_accuracy)[0];
+      const data = [
+        ['grpo_main(best)', main?.score_accuracy ?? 0],
+        ['grpo_outcome(best)', out?.score_accuracy ?? 0],
+      ];
+      compareEl.innerHTML = data.map(([name,v]) => `
+        <div class="bar-row">
+          <div>${name}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.max(0,Math.min(100,v*100))}%"></div></div>
+          <div>${Number(v).toFixed(3)}</div>
+        </div>`).join('');
+    }
+
+    function renderTable(summary) {
+      const sortKey = sortKeyEl.value;
+      const filter = filterKeyEl.value;
+      let rows = [...(summary.runs || [])];
+      if (filter !== 'all') rows = rows.filter(r => bucket(r.file) === filter);
+      rows.sort((a,b) => (b[sortKey] || 0) - (a[sortKey] || 0));
+
+      tbody.innerHTML = rows.slice(0, 20).map(r =>
+        `<tr><td>${r.file}</td><td>${Number(r.score_accuracy).toFixed(3)}</td><td>${Number(r.format_compliance).toFixed(3)}</td><td>${Number(r.step_coverage).toFixed(3)}</td><td>${r.num_samples}</td></tr>`
+      ).join('');
+
+      renderCompare(rows);
+    }
+
+    function renderAll(summary) {
+      SUMMARY = summary;
+      renderKpi(summary);
+      renderTable(summary);
+    }
+
+    sortKeyEl.addEventListener('change', () => SUMMARY && renderTable(SUMMARY));
+    filterKeyEl.addEventListener('change', () => SUMMARY && renderTable(SUMMARY));
+
+    document.getElementById('fileInput').addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const txt = await file.text();
+      renderAll(JSON.parse(txt));
+    });
+
+    (async () => {
+      try {
+        const res = await fetch('data/summary.json', {cache:'no-store'});
+        if (!res.ok) throw new Error('no summary');
+        renderAll(await res.json());
+      } catch {
+        kpiEl.innerHTML = '<div><small>status</small><br/><b>请上传 summary.json</b></div>';
+      }
+    })();
+  </script>
+</body>
+</html>

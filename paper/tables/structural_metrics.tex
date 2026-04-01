@@ -1,16 +1,31 @@
+% Table 3: Structural quality of generated reasoning DAGs.
 \begin{table}[t]
 \centering
-\caption{Structural quality of generated reasoning graphs on the Middle School test set. Acyclic\% measures the fraction of responses whose extracted DAG is acyclic. No-Orphan\% measures the fraction with no orphan conclusion nodes. Continuity measures average step-to-step coherence score.}
+\caption{Structural quality of extracted reasoning DAGs on the Middle-School
+  test set (637 samples).  Acyclic\% is the fraction of traces whose
+  extracted graph is a valid DAG; No-Orphan\% measures traces without
+  unsupported conclusion nodes; Dir-Cons.\ is mean directional consistency;
+  DAG Depth is mean dependency depth; Edge-Keep\% is the fraction of
+  dependency edges retained after compression.}
 \label{tab:structural_metrics}
-\begin{tabular}{l cccc}
+\vspace{2pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l ccccc@{}}
 \toprule
-\textbf{Model} & \textbf{Acyclic\%} & \textbf{No-Orphan\%} & \textbf{Continuity} & \textbf{DAG Depth} \\
+\textbf{Model}
+  & \textbf{Acyclic\%}$\uparrow$
+  & \textbf{No-Orphan\%}$\uparrow$
+  & \textbf{Dir-Cons.}$\uparrow$
+  & \textbf{DAG Depth}
+  & \textbf{Edge-Keep\%}$\uparrow$ \\
 \midrule
-Qwen3-32B + SFT             & -- & -- & -- & -- \\
-\quad + GRPO (outcome only)  & -- & -- & -- & -- \\
-\quad + GRPO (w/o topo)      & -- & -- & -- & -- \\
+Qwen3-32B + SFT              & TBD & TBD & TBD & TBD & TBD \\
+\quad + GRPO (outcome only)   & TBD & TBD & TBD & TBD & TBD \\
+\quad + GRPO (w/o topology)   & TBD & TBD & TBD & TBD & TBD \\
+\quad + GRPO (w/o continuity) & TBD & TBD & TBD & TBD & TBD \\
 \rowcolor{blue!5}
-\quad + GRPO (TopoPRM full)  & -- & -- & -- & -- \\
+\quad + GRPO (TopoPRM full)   & TBD & TBD & TBD & TBD & TBD \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}

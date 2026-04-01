@@ -1,6 +1,6 @@
 # *TopoPRM: Efficient and Verifiable* Mathematical Reasoning via Topological Process Reward Model
 
-业务做的是教育批注，数学解题批改这一块。主要想研究RLVR (**基于可验证奖励的强化学习**)和奖励模型 (Reward Models?Reasoning Models?)。我们能拿到的数据是单模态的，只有解答过程和对错的标签。后面也有转到多模态<图片-语料-标注>的想法。
+教育批注，数学解题批改这一块领域。主要想研究RLVR (**基于可验证奖励的强化学习**)和奖励模型 (Reward Models?Reasoning Models?)。我们能拿到的数据是单模态的，只有解答过程和对错的标签。后面也有转到多模态<图片-语料-标注>的想法。
 
 ![f81f73bcae3ed4e063e05746b7cb94a8.png](attachment:c1117d8c-eb12-414f-908b-1d44e7013507:f81f73bcae3ed4e063e05746b7cb94a8.png)
 

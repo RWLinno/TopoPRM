@@ -3,63 +3,36 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
-from dataclasses import dataclass, field
+import re
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
 
 @dataclass
 class CritiqueMetrics:
-    """Aggregated critique-quality metrics."""
-
     score_accuracy: float = 0.0
+    error_identification_precision: float = 0.0
+    error_identification_recall: float = 0.0
     error_identification_f1: float = 0.0
     step_coverage: float = 0.0
     format_compliance: float = 0.0
+    avg_prediction_tokens: float = 0.0
     num_samples: int = 0
 
 
 class CritiqueEvaluator:
-    """Evaluate the quality of model-generated critiques.
+    """Evaluate quality of model-generated math critique outputs.
 
-    The evaluator loads prediction and ground-truth JSONL files and
-    computes four metrics:
-
-    * **score_accuracy** – fraction of samples where the predicted student
-      score exactly matches the ground truth.
-    * **error_identification_f1** – micro-averaged F1 over the sets of
-      identified error step indices.
-    * **step_coverage** – average ratio of ground-truth steps that appear
-      (textually) in the predicted critique.
-    * **format_compliance** – fraction of predictions that contain both
-      ``<think>`` and ``<answer>`` blocks with parseable JSON.
-
-    Both files are in **JSONL** format.  Each line must be a JSON object
-    with at least an ``"id"`` field.
-
-    Expected prediction fields
-    --------------------------
-    * ``id`` – sample identifier
-    * ``prediction`` or ``output`` – the raw model output string
-    * ``score`` or ``学生得分`` – predicted score (optional, can be inside
-      ``<answer>`` JSON)
-
-    Expected ground-truth fields
-    ----------------------------
-    * ``id`` – sample identifier
-    * ``score`` or ``学生得分`` – ground-truth score
-    * ``error_steps`` – list of step indices where errors occur
-    * ``steps`` – list of step-text strings (for coverage computation)
+    This version supports multiple field schemas observed in this project:
+    - prediction text keys: prediction / output / response
+    - ground-truth score keys: score / 学生得分 / std_score / solution
+    - optional step fields: error_steps / step_results / steps
     """
 
     def __init__(self) -> None:
         self._predictions: list[dict[str, Any]] = []
         self._ground_truths: list[dict[str, Any]] = []
-
-    # ------------------------------------------------------------------
-    # I/O
-    # ------------------------------------------------------------------
 
     @staticmethod
     def _load_jsonl(path: str | Path) -> list[dict[str, Any]]:
@@ -71,172 +44,202 @@ class CritiqueEvaluator:
                     records.append(json.loads(line))
         return records
 
-    def load(
-        self,
-        predictions_path: str | Path,
-        ground_truth_path: str | Path,
-    ) -> None:
-        """Load prediction and ground-truth JSONL files."""
+    def load(self, predictions_path: str | Path, ground_truth_path: str | Path) -> None:
         self._predictions = self._load_jsonl(predictions_path)
         self._ground_truths = self._load_jsonl(ground_truth_path)
 
-    # ------------------------------------------------------------------
-    # individual metrics
-    # ------------------------------------------------------------------
+    @staticmethod
+    def _extract_text(record: dict[str, Any]) -> str:
+        return str(record.get("prediction") or record.get("output") or record.get("response") or "")
 
     @staticmethod
-    def _extract_score(record: dict[str, Any]) -> Optional[float]:
-        """Try to get a numeric score from a record."""
-        for key in ("score", "学生得分", "得分"):
-            if key in record:
-                try:
-                    return float(record[key])
-                except (TypeError, ValueError):
-                    continue
-        import re
-        text = record.get("prediction") or record.get("output") or ""
-        m = re.search(r"<answer>\s*(.*?)\s*</answer>", str(text), re.DOTALL)
-        if m:
+    def _approx_token_count(text: str) -> int:
+        # A lightweight, tokenizer-free approximation:
+        # - English words/digits count as one token
+        # - each CJK character counts as one token
+        # - remaining non-space symbols count as one token
+        parts = re.findall(r"[A-Za-z0-9_]+|[\u4e00-\u9fff]|[^\s]", text)
+        return len(parts)
+
+    @staticmethod
+    def _extract_answer_json(text: str) -> Optional[dict[str, Any]]:
+        m = re.search(r"<answer>\s*(.*?)\s*</answer>", text, re.DOTALL)
+        if not m:
+            return None
+        payload = m.group(1)
+        try:
+            return json.loads(payload)
+        except json.JSONDecodeError:
+            # last-resort cleanup: trim trailing commas before braces/brackets
+            cleaned = re.sub(r",\s*([}\]])", r"\1", payload)
             try:
-                obj = json.loads(m.group(1))
-                for key in ("score", "学生得分", "得分"):
-                    if key in obj:
-                        return float(obj[key])
-            except (json.JSONDecodeError, TypeError, ValueError):
-                pass
+                return json.loads(cleaned)
+            except json.JSONDecodeError:
+                return None
+
+    @staticmethod
+    def _to_float(v: Any) -> Optional[float]:
+        try:
+            if v is None:
+                return None
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+
+    def _extract_score(self, record: dict[str, Any]) -> Optional[float]:
+        # direct keys
+        for key in ("score", "学生得分", "得分", "std_score", "solution"):
+            if key in record:
+                sv = self._to_float(record.get(key))
+                if sv is not None:
+                    return sv
+
+        # parse from answer json in text fields
+        text = self._extract_text(record)
+        ans = self._extract_answer_json(text)
+        if ans is not None:
+            for key in ("score", "学生得分", "得分"):
+                if key in ans:
+                    sv = self._to_float(ans.get(key))
+                    if sv is not None:
+                        return sv
         return None
 
     @staticmethod
     def _extract_error_steps(record: dict[str, Any]) -> set[int]:
-        raw = record.get("error_steps", [])
+        # Explicit schema
+        raw = record.get("error_steps")
         if isinstance(raw, list):
-            return {int(x) for x in raw}
+            out = set()
+            for x in raw:
+                try:
+                    out.add(int(x))
+                except Exception:
+                    pass
+            return out
+
+        # Ground-truth schema: step_results may contain correctness labels
+        step_results = record.get("step_results")
+        if isinstance(step_results, list):
+            errs = set()
+            for i, item in enumerate(step_results, start=1):
+                txt = str(item)
+                if any(t in txt for t in ["错误", "错", "incorrect", "False"]):
+                    errs.add(i)
+            return errs
+
         return set()
 
-    def score_accuracy(
-        self,
-        preds: list[dict[str, Any]],
-        gts: list[dict[str, Any]],
-    ) -> float:
-        """Fraction of samples with an exact score match."""
-        gt_map = {g["id"]: g for g in gts}
-        correct = 0
-        total = 0
+    @staticmethod
+    def _extract_steps(record: dict[str, Any]) -> list[str]:
+        if isinstance(record.get("steps"), list):
+            return [str(x) for x in record["steps"]]
+        if isinstance(record.get("user_step_split_emb"), list):
+            return [str(x) for x in record["user_step_split_emb"]]
+        return []
+
+
+    @staticmethod
+    def _pair_records(preds: list[dict[str, Any]], gts: list[dict[str, Any]]) -> list[tuple[dict[str, Any], dict[str, Any]]]:
+        """Pair prediction/ground-truth records by id when available, otherwise by index."""
+        gt_map = {g.get("id"): g for g in gts if g.get("id") is not None}
+        pairs: list[tuple[dict[str, Any], dict[str, Any]]] = []
+
+        # try id-based pairing first
+        id_hits = 0
         for p in preds:
-            gt = gt_map.get(p.get("id"))
-            if gt is None:
-                continue
+            pid = p.get("id")
+            if pid is not None and pid in gt_map:
+                pairs.append((p, gt_map[pid]))
+                id_hits += 1
+
+        # if almost no ids exist in predictions, fallback to positional pairing
+        if id_hits == 0:
+            m = min(len(preds), len(gts))
+            pairs = [(preds[i], gts[i]) for i in range(m)]
+
+        return pairs
+
+    def score_accuracy(self, preds: list[dict[str, Any]], gts: list[dict[str, Any]]) -> float:
+        pairs = self._pair_records(preds, gts)
+        correct = total = 0
+        for p, gt in pairs:
             total += 1
-            pred_score = self._extract_score(p)
-            gt_score = self._extract_score(gt)
-            if pred_score is not None and gt_score is not None and pred_score == gt_score:
+            ps = self._extract_score(p)
+            gs = self._extract_score(gt)
+            if ps is not None and gs is not None and ps == gs:
                 correct += 1
         return correct / total if total else 0.0
 
-    def error_identification_f1(
-        self,
-        preds: list[dict[str, Any]],
-        gts: list[dict[str, Any]],
-    ) -> float:
-        """Micro-averaged F1 over error-step identification."""
-        gt_map = {g["id"]: g for g in gts}
-        tp_total = 0
-        fp_total = 0
-        fn_total = 0
-        for p in preds:
-            gt = gt_map.get(p.get("id"))
-            if gt is None:
-                continue
+    def error_identification_prf(self, preds: list[dict[str, Any]], gts: list[dict[str, Any]]) -> tuple[float, float, float]:
+        pairs = self._pair_records(preds, gts)
+        tp = fp = fn = 0
+        for p, gt in pairs:
             pred_set = self._extract_error_steps(p)
             gt_set = self._extract_error_steps(gt)
-            tp_total += len(pred_set & gt_set)
-            fp_total += len(pred_set - gt_set)
-            fn_total += len(gt_set - pred_set)
-        precision = tp_total / (tp_total + fp_total) if (tp_total + fp_total) else 0.0
-        recall = tp_total / (tp_total + fn_total) if (tp_total + fn_total) else 0.0
-        if precision + recall == 0:
-            return 0.0
-        return 2 * precision * recall / (precision + recall)
+            tp += len(pred_set & gt_set)
+            fp += len(pred_set - gt_set)
+            fn += len(gt_set - pred_set)
+        precision = tp / (tp + fp) if (tp + fp) else 0.0
+        recall = tp / (tp + fn) if (tp + fn) else 0.0
+        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
+        return precision, recall, f1
 
-    def step_coverage(
-        self,
-        preds: list[dict[str, Any]],
-        gts: list[dict[str, Any]],
-    ) -> float:
-        """Average ratio of ground-truth steps mentioned in the prediction."""
-        gt_map = {g["id"]: g for g in gts}
-        ratios: list[float] = []
+    def average_prediction_tokens(self, preds: list[dict[str, Any]]) -> float:
+        if not preds:
+            return 0.0
+        total = 0
         for p in preds:
-            gt = gt_map.get(p.get("id"))
-            if gt is None:
-                continue
-            gt_steps: list[str] = gt.get("steps", [])
+            total += self._approx_token_count(self._extract_text(p))
+        return total / len(preds)
+
+    def step_coverage(self, preds: list[dict[str, Any]], gts: list[dict[str, Any]]) -> float:
+        pairs = self._pair_records(preds, gts)
+        ratios: list[float] = []
+        for p, gt in pairs:
+            gt_steps = self._extract_steps(gt)
             if not gt_steps:
                 continue
-            pred_text = str(p.get("prediction") or p.get("output") or "")
+            pred_text = self._extract_text(p)
             covered = sum(1 for s in gt_steps if s.strip() and s.strip() in pred_text)
             ratios.append(covered / len(gt_steps))
         return sum(ratios) / len(ratios) if ratios else 0.0
 
     def format_compliance(self, preds: list[dict[str, Any]]) -> float:
-        """Fraction of predictions with ``<think>`` + ``<answer>`` + valid JSON."""
-        import re
-
         compliant = 0
         for p in preds:
-            text = str(p.get("prediction") or p.get("output") or "")
+            text = self._extract_text(p)
             has_think = bool(re.search(r"<think>.*?</think>", text, re.DOTALL))
-            m = re.search(r"<answer>\s*(.*?)\s*</answer>", text, re.DOTALL)
-            has_answer_json = False
-            if m:
-                try:
-                    json.loads(m.group(1))
-                    has_answer_json = True
-                except json.JSONDecodeError:
-                    pass
-            if has_think and has_answer_json:
+            ans = self._extract_answer_json(text)
+            if has_think and ans is not None:
                 compliant += 1
         return compliant / len(preds) if preds else 0.0
-
-    # ------------------------------------------------------------------
-    # aggregate
-    # ------------------------------------------------------------------
 
     def evaluate(
         self,
         predictions: Optional[list[dict[str, Any]]] = None,
         ground_truths: Optional[list[dict[str, Any]]] = None,
     ) -> CritiqueMetrics:
-        """Compute all metrics and return a :class:`CritiqueMetrics` object."""
         preds = predictions if predictions is not None else self._predictions
         gts = ground_truths if ground_truths is not None else self._ground_truths
-
+        precision, recall, f1 = self.error_identification_prf(preds, gts)
         return CritiqueMetrics(
             score_accuracy=self.score_accuracy(preds, gts),
-            error_identification_f1=self.error_identification_f1(preds, gts),
+            error_identification_precision=precision,
+            error_identification_recall=recall,
+            error_identification_f1=f1,
             step_coverage=self.step_coverage(preds, gts),
             format_compliance=self.format_compliance(preds),
+            avg_prediction_tokens=self.average_prediction_tokens(preds),
             num_samples=len(preds),
         )
 
 
 def main() -> None:
-    """CLI entry-point for critique evaluation."""
-    parser = argparse.ArgumentParser(
-        description="Evaluate critique quality against ground truth",
-    )
-    parser.add_argument(
-        "--predictions", required=True,
-        help="Path to predictions JSONL file",
-    )
-    parser.add_argument(
-        "--ground_truth", required=True,
-        help="Path to ground-truth JSONL file",
-    )
-    parser.add_argument(
-        "--output", default=None,
-        help="Optional path to write metrics JSON",
-    )
+    parser = argparse.ArgumentParser(description="Evaluate critique quality against ground truth")
+    parser.add_argument("--predictions", required=True, help="Path to predictions JSONL file")
+    parser.add_argument("--ground_truth", required=True, help="Path to ground-truth JSONL file")
+    parser.add_argument("--output", default=None, help="Optional path to write metrics JSON")
     args = parser.parse_args()
 
     evaluator = CritiqueEvaluator()
@@ -245,9 +248,12 @@ def main() -> None:
 
     result = {
         "score_accuracy": metrics.score_accuracy,
+        "error_identification_precision": metrics.error_identification_precision,
+        "error_identification_recall": metrics.error_identification_recall,
         "error_identification_f1": metrics.error_identification_f1,
         "step_coverage": metrics.step_coverage,
         "format_compliance": metrics.format_compliance,
+        "avg_prediction_tokens": metrics.avg_prediction_tokens,
         "num_samples": metrics.num_samples,
     }
 

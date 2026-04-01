@@ -61,9 +61,11 @@ class Node:
 class Edge:
     source: int
     target: int
-    edge_type: str = "sequential"
+    # New canonical labels: solid_edge / virtual_edge / double_barrier_edge
+    # Keep legacy labels loadable through from_dict compatibility.
+    edge_type: str = "solid_edge"
     dep_type: str = ""
-    weight: float = 0.5
+    weight: float = 0.3
 
     def to_dict(self) -> dict:
         return {
@@ -76,10 +78,17 @@ class Edge:
 
     @classmethod
     def from_dict(cls, d: dict) -> "Edge":
+        edge_type = d.get("edge_type", "solid_edge")
+        if edge_type == "sequential":
+            edge_type = "solid_edge"
+        elif edge_type == "dependency":
+            edge_type = "virtual_edge"
+        elif edge_type == "implicit":
+            edge_type = "double_barrier_edge"
         return cls(
             source=d["source"],
             target=d["target"],
-            edge_type=d.get("edge_type", "sequential"),
+            edge_type=edge_type,
             dep_type=d.get("dep_type", ""),
-            weight=d.get("weight", 0.5),
+            weight=d.get("weight", 0.3),
         )

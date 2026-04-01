@@ -36,7 +36,7 @@ class TestNodeEdgeDataclass:
         assert restored.sub_question_id == node.sub_question_id
 
     def test_edge_to_dict_roundtrip(self):
-        edge = Edge(source=0, target=1, edge_type="dependency", dep_type="expr_ref", weight=1.0)
+        edge = Edge(source=0, target=1, edge_type="virtual_edge", dep_type="expr_ref", weight=1.0)
         d = edge.to_dict()
         restored = Edge.from_dict(d)
 
@@ -56,9 +56,9 @@ class TestNodeEdgeDataclass:
 
     def test_edge_defaults(self):
         edge = Edge(source=0, target=1)
-        assert edge.edge_type == "sequential"
+        assert edge.edge_type == "solid_edge"
         assert edge.dep_type == ""
-        assert edge.weight == 0.5
+        assert edge.weight == 0.3
 
 
 # ---------------------------------------------------------------------------

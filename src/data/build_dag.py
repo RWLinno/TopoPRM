@@ -15,13 +15,12 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import os
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from src.dag.node import Node, StepType, LocalVerdict, Edge
-from src.dag.graph import ReasoningDAG
+from src.dag.graph import DOUBLE_BARRIER_EDGE, VIRTUAL_EDGE, ReasoningDAG
+from src.dag.node import LocalVerdict, Node, StepType
 
 logger = logging.getLogger(__name__)
 
@@ -67,11 +66,13 @@ def extract_steps_from_answer(standard_answer: str) -> List[Dict[str, Any]]:
         if sq is not None:
             current_sub_q = sq
 
-        steps.append({
-            "step_id": idx,
-            "raw_text": line,
-            "sub_question_id": current_sub_q,
-        })
+        steps.append(
+            {
+                "step_id": idx,
+                "raw_text": line,
+                "sub_question_id": current_sub_q,
+            }
+        )
 
     return steps
 
@@ -176,11 +177,15 @@ def classify_step_type(text: str) -> StepType:
 
 def build_dependency_edges_by_rules(
     nodes: List[Node],
-) -> List[Tuple[int, int, str]]:
-    """Heuristic: if *node_j* references an expression or claim that first
-    appeared in an earlier *node_i*, add a dependency edge.
+) -> List[Tuple[int, int, str, str]]:
+    """Generate strong virtual edges and no-reward implicit barrier edges.
+
+    Strong (virtual) edges are added when an expression/claim in node_j first
+    appeared in an earlier node_i. If a derivation/conclusion step has no strong
+    source, we add a double-barrier implicit edge to preserve graph connectivity
+    without adding reward credit.
     """
-    edges: List[Tuple[int, int, str]] = []
+    edges: List[Tuple[int, int, str, str]] = []
     expr_origin: Dict[str, int] = {}
     claim_origin: Dict[str, int] = {}
 
@@ -198,18 +203,18 @@ def build_dependency_edges_by_rules(
         for expr in node.exprs:
             src = expr_origin.get(expr)
             if src is not None and src < node.step_id and src not in seen_sources:
-                edges.append((src, node.step_id, "expr_ref"))
+                edges.append((src, node.step_id, VIRTUAL_EDGE, "expr_ref"))
                 seen_sources.add(src)
 
         for claim in node.claims:
             src = claim_origin.get(claim)
             if src is not None and src < node.step_id and src not in seen_sources:
-                edges.append((src, node.step_id, "claim_ref"))
+                edges.append((src, node.step_id, VIRTUAL_EDGE, "claim_ref"))
                 seen_sources.add(src)
 
         if not seen_sources and node.step_id > 0:
             if node.step_type in (StepType.DERIVATION, StepType.CONCLUSION):
-                edges.append((node.step_id - 1, node.step_id, "implicit"))
+                edges.append((node.step_id - 1, node.step_id, DOUBLE_BARRIER_EDGE, "implicit_block"))
 
     return edges
 
@@ -217,7 +222,7 @@ def build_dependency_edges_by_rules(
 def build_dependency_edges_by_llm(
     nodes: List[Node],
     llm_client: Any = None,
-) -> List[Tuple[int, int, str]]:
+) -> List[Tuple[int, int, str, str]]:
     """LLM-based dependency detection (placeholder).
 
     Falls back to rule-based detection when no *llm_client* is provided.
@@ -245,8 +250,8 @@ def build_dag_from_answer(
     1. Split into individual steps.
     2. Extract expressions and claims per step.
     3. Classify each step's type.
-    4. Add sequential edges.
-    5. Add dependency edges (rule-based).
+    4. Add solid sequential-order edges (weak-signal scaffold).
+    5. Add virtual conditional dependency edges and implicit barrier edges.
     """
     dag = ReasoningDAG(problem_id=problem_id)
 
@@ -273,8 +278,11 @@ def build_dag_from_answer(
     dag.add_sequential_edges()
 
     dep_edges = build_dependency_edges_by_rules(nodes)
-    for src_id, tgt_id, dep_type in dep_edges:
-        dag.add_dependency_edge(src_id, tgt_id, dep_type)
+    for src_id, tgt_id, edge_type, dep_type in dep_edges:
+        if edge_type == VIRTUAL_EDGE:
+            dag.add_dependency_edge(src_id, tgt_id, dep_type)
+        else:
+            dag.add_implicit_barrier_edge(src_id, tgt_id)
 
     return dag
 

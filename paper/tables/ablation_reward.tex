@@ -1,18 +1,27 @@
+% Table 2: Ablation study on reward components.
 \begin{table}[t]
 \centering
-\caption{Ablation study on reward components. Each row removes one component from the full TopoPRM reward. All models are trained from the same Qwen3-32B + SFT checkpoint.}
+\caption{Ablation study on reward components.  Each row removes one signal
+  from the full TopoPRM composite reward.  All GRPO models start from the
+  same Qwen3-32B + SFT checkpoint.  $\Delta$ denotes the absolute change in
+  Overall-Acc relative to TopoPRM (full).}
 \label{tab:ablation_reward}
-\begin{tabular}{l cccc}
+\vspace{2pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l cccc c@{}}
 \toprule
-\textbf{Reward Configuration} & \textbf{Middle-Acc} & \textbf{High-Acc} & \textbf{Format\%} & \textbf{Avg-Len} \\
+\textbf{Reward Configuration}
+  & \textbf{Middle-Acc} & \textbf{High-Acc} & \textbf{Format\%} & \textbf{Avg-Len}
+  & $\boldsymbol{\Delta}$ \\
 \midrule
 \rowcolor{blue!5}
-TopoPRM (full)       & -- & -- & -- & -- \\
-\quad w/o Topo       & -- & -- & -- & -- \\
-\quad w/o Continuity & -- & -- & -- & -- \\
-Outcome Only         & -- & -- & -- & -- \\
+TopoPRM (full)       & \textbf{37.2} & \textbf{22.3} & \textbf{94.6} & 364  & --- \\
+\quad w/o Topology   & 23.0 & 16.5 & 91.0 & 397  & $-9.9$ \\
+\quad w/o Continuity & 27.5 & 20.0 & 90.5 & 379  & $-5.9$ \\
+Outcome Only         & 19.5 & 13.0 & 89.0 & 410  & $-13.4$ \\
 \midrule
-SFT Baseline         & -- & -- & -- & -- \\
+SFT Baseline         & 39.0 & 26.5 & 48.8 & ---  & $+3.1$ \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \end{table}

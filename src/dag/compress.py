@@ -77,8 +77,8 @@ def remove_transitive_edges(dag: ReasoningDAG) -> ReasoningDAG:
         original_data = dag.graph.edges[u, v]
         new_dag.graph.add_edge(
             u, v,
-            weight=original_data.get("weight", 0.5),
-            edge_type=original_data.get("edge_type", "sequential"),
+            weight=original_data.get("weight", 0.3),
+            edge_type=original_data.get("edge_type", "solid_edge"),
             dep_type=original_data.get("dep_type", ""),
         )
 

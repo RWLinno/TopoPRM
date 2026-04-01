@@ -1,0 +1,36 @@
+# ─── Evaluation configuration for TopoPRM models ───
+models:
+  base:
+    path: Qwen/Qwen3-32B
+    label: "Qwen3-32B (base)"
+  sft:
+    path: output/sft/checkpoint-best
+    label: "Qwen3-32B + SFT"
+  grpo:
+    path: output/grpo_main/checkpoint-best
+    label: "Qwen3-32B + SFT + GRPO"
+
+benchmarks:
+  MATH:
+    path: data/benchmarks/MATH
+    split: test
+    metric: accuracy
+  GSM8K:
+    path: data/benchmarks/GSM8K
+    split: test
+    metric: accuracy
+  CMATH:
+    path: data/benchmarks/CMATH
+    split: test
+    metric: accuracy
+
+generation:
+  max_new_tokens: 2048
+  temperature: 0.0
+  do_sample: false
+
+metrics:
+  primary: accuracy
+  extract_answer_regex: "\\\\boxed\\{(.+?)\\}"
+
+output_dir: output/eval

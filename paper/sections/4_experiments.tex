@@ -4,25 +4,25 @@
 \subsection{Experimental Setup}
 \label{sec:setup}
 
-\paragraph{Base model and training.}
+\paragraph{Base Model and Training.}
 We use Qwen3-32B as the base model and MS-Swift~\citep{msswift} for both SFT and GRPO training.
-We choose GRPO over DPO because our supervision takes the form of deterministic process scores rather than pairwise preference labels, and GRPO directly optimizes sampled trajectories under such reward signals~\citep{shao2024deepseekmath,mroueh2025grpo}.
+We choose GRPO over DPO because our supervision takes the form of deterministic process scores rather than pairwise preference labels, and GRPO directly optimises sampled trajectories under such reward signals~\citep{shao2024deepseekmath,mroueh2025grpo}.
 The teacher is trained with the full TopoPRM composite reward (topology + continuity + correctness-first shaping).
 Distillation experiments compress the teacher into a Qwen3-8B student via process-filtered reverse-KL training.
 
 \paragraph{Benchmarks.}
 We evaluate on two complementary benchmark families:
-\emph{(i)}~a private Chinese mathematical critique dataset comprising Middle-School (2\,181 problems) and High-School (5\,414 problems) subsets, totalling 7\,595 samples; and
-\emph{(ii)}~public benchmarks including GSM8K~\citep{cobbe2021gsm8k} (1\,319 problems) and MATH-500~\citep{hendrycks2021math} (500 problems).
+(i)~a private Chinese mathematical critique dataset comprising Middle-School (2\,181 problems) and High-School (5\,414 problems) subsets, totalling 7\,595 samples; and
+(ii)~public benchmarks including GSM8K~\citep{cobbe2021gsm8k} (1\,319 problems) and MATH-500~\citep{hendrycks2021math} (500 problems).
 Private sets are used for process-level critique evaluation; public sets provide broad positioning on final-answer accuracy.
 
 \paragraph{Metrics.}
-On private sets we report \emph{Score-Acc} (critique scoring accuracy), \emph{Format\%} (structural compliance with the required \texttt{<think>}$\cdots$\texttt{<answer>} format), and \emph{Avg-Len} (mean prediction length in tokens).
+On private sets we report Score-Acc (critique scoring accuracy), Format\% (structural compliance with the required \texttt{<think>}$\cdots$\texttt{<answer>} format), and Avg-Len (mean prediction length in tokens).
 On public benchmarks we report standard accuracy.
 For structural analysis we additionally report DAG-derived diagnostics (acyclicity, orphan-conclusion ratio, directional consistency).
 
 \paragraph{Baselines.}
-We compare against: (1)~Qwen3-32B base (zero-shot), (2)~Qwen3-32B + SFT, (3)~outcome-only GRPO, and (4)~two ablation variants that remove topology or continuity reward channels.
+We compare against: (1)~Qwen3-32B base (zero-shot), (2)~Qwen3-32B + SFT, (3)~outcome-only GRPO, and (4)~two ablation variants that remove the topology or continuity reward channel.
 External references (Qwen2.5-7B-Instruct, Llama-3.1-8B-Instruct) are included for public benchmark positioning only.
 
 \subsection{Main Results}
@@ -30,28 +30,33 @@ External references (Qwen2.5-7B-Instruct, Llama-3.1-8B-Instruct) are included fo
 
 \input{tables/main_results}
 
+\paragraph{TopoPRM Achieves the Highest Critique Accuracy among GRPO Variants.}
 Table~\ref{tab:main_results} summarises the main results.
-Among GRPO variants, TopoPRM (full) achieves the highest overall critique accuracy at 29.7\%, with 37.2\% on Middle-School and 22.3\% on High-School subsets.
+TopoPRM (full) achieves an overall critique accuracy of 29.7\%, with 37.2\% on the Middle-School subset and 22.3\% on the High-School subset.
 This represents a $+13.4$ absolute improvement over outcome-only GRPO (16.3\%) and a $+9.9$ gain over the topology-ablated variant (19.8\%).
-Notably, TopoPRM simultaneously achieves the highest format compliance among GRPO models (94.6\% Middle, 89.3\% High) while producing the shortest responses (364 tokens Middle, 424 tokens High), demonstrating that structure-aware process rewards improve both quality and efficiency.
+TopoPRM simultaneously achieves the highest format compliance among GRPO models (94.6\% Middle, 89.3\% High) while producing the shortest responses (364 tokens Middle, 424 tokens High), indicating that structure-aware process rewards improve both quality and efficiency.
 
-The SFT baseline achieves higher raw accuracy (32.8\%) but with substantially lower format compliance (48.8\%), indicating that SFT learns content patterns without internalising the structured output format.
-GRPO training with TopoPRM rewards closes this accuracy gap while raising format compliance by $+45.8$ percentage points.
+\paragraph{SFT Learns Content but Not Format.}
+The SFT baseline achieves higher raw accuracy (32.8\%) but with substantially lower format compliance (48.8\%).
+GRPO training with TopoPRM rewards closes this accuracy gap while raising format compliance by $+45.8$ percentage points, suggesting that on-policy optimisation naturally reinforces format adherence through the format reward channel.
 
-The distilled Qwen3-8B student achieves a striking 59.0\% overall accuracy---surpassing the 32B teacher---with near-perfect format compliance (94--97\%).
-We attribute this to the process-aware filtering in distillation data construction, which selects only high-quality teacher traces, effectively removing noisy training signal.
+\paragraph{Distillation Surpasses the Teacher.}
+The distilled Qwen3-8B student achieves 59.0\% overall accuracy, surpassing the 32B teacher, with near-perfect format compliance (94--97\%).
+We attribute this to the process-aware filtering in distillation data construction, which selects only high-quality teacher traces and effectively removes noisy training signal.
 
-\subsection{Ablation on Verifiable PRM Components}
+\subsection{Ablation on Reward Components}
 \label{sec:ablation}
 
 \input{tables/ablation_reward}
 
+\paragraph{Topology Is the Most Impactful Process Signal.}
 Table~\ref{tab:ablation_reward} isolates the contribution of each reward component.
 Removing the topology reward causes the largest degradation ($\Delta = -9.9$), confirming that global DAG-level structural regularity is the most impactful signal.
 Removing continuity yields a smaller but meaningful drop ($\Delta = -5.9$), showing complementary value from local step-to-step traceability.
 The outcome-only baseline suffers the largest deficit ($\Delta = -13.4$), validating the necessity of process-level supervision beyond answer correctness.
 
-Interestingly, all GRPO variants achieve substantially higher format compliance ($\geq$89\%) than SFT (48.8\%), suggesting that GRPO's on-policy optimisation naturally reinforces format adherence through the format reward channel, even when process rewards are partially ablated.
+\paragraph{GRPO Reinforces Format Compliance Regardless of Process Rewards.}
+All GRPO variants achieve substantially higher format compliance ($\geq$89\%) than SFT (48.8\%), suggesting that on-policy optimisation reinforces format adherence even when process rewards are partially ablated.
 
 \subsection{Structural Quality Analysis}
 \label{sec:structural_quality}
@@ -60,31 +65,34 @@ Interestingly, all GRPO variants achieve substantially higher format compliance 
 
 Table~\ref{tab:structural_metrics} reports DAG-level structural diagnostics.
 Models trained with the full TopoPRM reward are expected to produce traces with higher acyclicity rates, fewer orphan conclusions, and stronger directional consistency.
-We interpret improvements in these metrics as enhanced structural traceability under the extracted-graph proxy, not as proof-level semantic verification---an important scope distinction discussed in \S\ref{sec:method}.
+Improvements in these metrics reflect enhanced structural traceability under the extracted-graph proxy, not proof-level semantic verification, an important scope distinction discussed in \S\ref{sec:reward_module}.
 
 \subsection{Accuracy--Length Trade-off}
 \label{sec:length_analysis}
 
 \input{tables/ablation_length}
 
+\paragraph{TopoPRM Achieves the Best Efficiency Ratio.}
 Table~\ref{tab:ablation_length} examines the accuracy--length trade-off.
-TopoPRM achieves the best efficiency ratio (75.5 accuracy points per 1\,000 tokens) among all configurations.
+TopoPRM achieves 75.5 accuracy points per 1\,000 tokens, the highest efficiency ratio among all configurations.
 Compared with outcome-only GRPO, TopoPRM reduces mean response length by 11.2\% while improving accuracy by $+13.4$ points, suggesting that deterministic process supervision discourages redundant reasoning branches and unsupported logical jumps.
-The base Qwen3-32B model produces responses $3.3\times$ longer than TopoPRM while achieving less than half the accuracy, highlighting the efficiency gains from structured RLVR training.
+The base Qwen3-32B model produces responses $3.3\times$ longer than TopoPRM while achieving less than half the accuracy.
 
-\paragraph{Reward collapse analysis.}
+\paragraph{Reward Collapse under Linear Aggregation.}
 We observe that naive linear reward aggregation leads to severe reward collapse during GRPO training: after approximately 20 gradient steps, the fraction of batches with zero reward standard deviation exceeds 93\%, and the reward standard deviation drops below $10^{-3}$.
 This prevents GRPO from computing meaningful group-relative advantages.
 The hierarchical multiplicative aggregation (Eq.~\ref{eq:r_total}) with batch rescaling and anti-collapse mechanisms resolves this issue by maintaining reward variance throughout training.
 
-\subsection{Reverse-KL Distillation Results}
+\subsection{Distillation Results}
 \label{sec:compression_results}
 
 \input{tables/compression}
 
+\paragraph{The Student Retains and Exceeds Teacher Quality.}
 Table~\ref{tab:compression} evaluates reasoning compression via reverse-KL distillation.
-The Qwen3-8B student not only retains but substantially \emph{exceeds} the teacher's critique accuracy (59.0\% vs.\ 29.7\%), while maintaining high format compliance.
+The Qwen3-8B student not only retains but substantially exceeds the teacher's critique accuracy (59.0\% vs.\ 29.7\%), while maintaining high format compliance.
 On public benchmarks, the student achieves 82.5\% on GSM8K (full set, 1\,319 problems) and 59.8\% on MATH-500, competitive with Llama-3.1-8B-Instruct (84.5\% / 52.2\%) despite being trained exclusively on Chinese critique data.
 
-We note that the teacher's anomalously low MATH-500 score (9.2\%) is likely an artefact of answer-extraction mismatch with Qwen3-32B's thinking-mode output format, rather than a genuine capability deficit.
+\paragraph{Teacher MATH-500 Anomaly.}
+The teacher's anomalously low MATH-500 score (9.2\%) is likely an artefact of answer-extraction mismatch with the thinking-mode output format of Qwen3-32B, rather than a genuine capability deficit.
 The student's strong MATH-500 performance (59.8\%) confirms that the distillation process successfully transfers mathematical reasoning capability while compressing the reasoning chain.

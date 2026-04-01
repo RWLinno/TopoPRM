@@ -1,13 +1,13 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-We presented TopoPRM, a two-part framework for mathematical reasoning post-training that combines deterministic verifiable process reward modelling with reverse-KL reasoning distillation.
-The first contribution adds reproducible, auditable process supervision through dependency-DAG-based topology and continuity rewards, requiring no learned reward model or human annotation.
-The second transfers graph-enriched teacher behaviour to compact chain-like student reasoning via process-aware filtering and a mode-seeking reverse-KL objective.
+We presented TopoPRM, a framework for mathematical reasoning post-training that combines deterministic verifiable process rewards with reverse-KL reasoning distillation.
+The process reward module extracts dependency DAGs from reasoning traces and computes topology and continuity rewards through deterministic programs, requiring no learned reward model or human annotation.
+The distillation stage transfers graph-enriched teacher behaviour to compact chain-like student reasoning via process-aware filtering and a mode-seeking reverse-KL objective.
 
-Empirically, TopoPRM improves overall critique accuracy by $+13.4$ points over outcome-only GRPO while reducing mean response length by 11\%, demonstrating that structure-aware process rewards improve both quality and efficiency.
+TopoPRM improves overall critique accuracy by $+13.4$ points over outcome-only GRPO while reducing mean response length by 11\%.
 The distilled Qwen3-8B student achieves 82.5\% on GSM8K and 59.8\% on MATH-500, competitive with models of comparable scale.
 The method remains compatible with standard GRPO pipelines and introduces only plugin-level changes.
 
-We explicitly scope our claims: deterministic reward computation provides verifiable structural process supervision, but does not constitute complete semantic proof verification.
-Extending the framework to domains beyond mathematics---such as code generation or scientific reasoning---and replacing the rule-based DAG extractor with a lightweight learned parser remain promising directions for future work.
+We scope our claims explicitly: deterministic reward computation provides verifiable structural process supervision, but does not constitute complete semantic proof verification.
+Extending the framework to domains beyond mathematics and replacing the rule-based DAG extractor with a lightweight learned parser remain promising directions for future work.

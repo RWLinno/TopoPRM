@@ -1,14 +1,14 @@
 \begin{abstract}
-Outcome-only reinforcement learning with verifiable rewards (RLVR) improves final-answer accuracy but provides weak supervision for intermediate reasoning quality.
-Learned process reward models can supply denser guidance, yet they require costly annotations or introduce additional model uncertainty.
-We present \textbf{TopoPRM}, a two-part framework that combines deterministic process supervision with efficient reasoning transfer.
+Outcome-only reinforcement learning with verifiable rewards (RLVR) improves final-answer accuracy but provides weak supervision over intermediate reasoning quality.
+Learned process reward models can supply denser guidance, yet they require costly annotations or introduce model uncertainty of their own.
+We present TopoPRM, a framework that combines deterministic process supervision with efficient reasoning transfer.
 
-First, we introduce a \emph{Verifiable Process Reward Model} that maps free-form reasoning traces to inferred dependency DAGs via a rule-based extractor.
-On these graphs we compute two complementary deterministic rewards: a \emph{topology reward} for global structural regularity (acyclicity, dependency consistency) and a \emph{continuity reward} for local step-to-step traceability.
-Both rewards are verifiable in an operational sense---reproducible, auditable, and programmatically checkable---without claiming complete semantic proof verification.
+We first introduce a verifiable process reward model that maps free-form reasoning traces to inferred dependency DAGs through a rule-based extractor.
+On these graphs we compute two complementary deterministic rewards: a topology reward that captures global structural regularity (acyclicity, dependency consistency) and a continuity reward that captures local step-to-step traceability.
+Both rewards are verifiable in an operational sense, being reproducible, auditable, and programmatically checkable, without claiming complete semantic proof verification.
 A correctness-first stratified shaping mechanism ensures that answer correctness remains the primary optimisation target.
 
-Second, we introduce \emph{reverse-KL reasoning distillation}: a teacher trained with TopoPRM rewards is filtered by process-aware quality criteria, and a smaller student is trained via reverse KL to concentrate on high-quality reasoning modes, internalising graph-enriched behaviour as compact chain-like reasoning.
+We then introduce reverse-KL reasoning distillation: a teacher trained with TopoPRM rewards is filtered by process-aware quality criteria, and a smaller student is trained via reverse KL to concentrate on high-quality reasoning modes, internalising graph-enriched behaviour as compact chain-like reasoning.
 
 On Chinese mathematical critique benchmarks, TopoPRM improves overall critique accuracy by $+13.4$ points over outcome-only GRPO while reducing mean response length by 11\%.
 The distilled Qwen3-8B student achieves 82.5\% on GSM8K and 59.8\% on MATH-500, competitive with models of comparable scale trained on substantially more data.

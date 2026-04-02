@@ -34,8 +34,9 @@ For each reasoning trace $y=(s_1,\ldots,s_T)$ from the \texttt{<think>} block, w
 where each node $v_i\in\mathcal{V}$ corresponds to reasoning step $s_i$, and each directed edge $(u,v)\in\mathcal{A}$ indicates a rule-defined dependency (expression reuse, claim reference, or structural connector).
 The extractor segments the trace by numbered steps, mathematical delimiters, and logical connectives, then detects dependencies through shared mathematical expressions and variable references.
 
-We emphasise an important scope distinction: the extracted graph is an inferred dependency DAG induced by deterministic rules, not a ground-truth proof graph.
-Deterministic extraction ensures reproducible reward computation, not semantic completeness of dependency recovery.
+% 这个地方不像是方法正文应该写的，可以在附录详细说明
+% We emphasise an important scope distinction: the extracted graph is an inferred dependency DAG induced by deterministic rules, not a ground-truth proof graph.
+% Deterministic extraction ensures reproducible reward computation, not semantic completeness of dependency recovery.
 
 \subsubsection{Topology Reward}
 
@@ -66,13 +67,15 @@ r_{\mathrm{cont}}(y)=
 \qquad
 \eta(y)=\frac{1}{T}\sum_{i=1}^{T}\mathbb{1}[\mathrm{supported}(s_i,s_{<i},q)].
 \end{equation}
+
+% 这里不能有写死的值，在代码和方法都需要改正这一点。而且它并不是一个重点。
 A step is marked as supported if it reuses prior claims or expressions, or explicitly cites problem givens, as determined by deterministic regex-based matching.
 Full coverage ($\eta{=}1$) yields the maximum reward; partial coverage is discounted by a factor of $0.8$.
 
-\subsubsection{Scope of Verifiability}
-
-Our use of ``verifiable'' is operational: once a trace is produced, all reward values are computed by deterministic procedures and are therefore reproducible and auditable.
-This is distinct from semantic proof verification; we do not claim step-correctness guarantees or logical completeness.
+%\subsubsection{Scope of Verifiability}
+% 这里也不太像是方法正文应该写的内容，可以放附录并且改进表述。
+% Our use of ``verifiable'' is operational: once a trace is produced, all reward values are computed by deterministic procedures and are therefore reproducible and auditable.
+% This is distinct from semantic proof verification; we do not claim step-correctness guarantees or logical completeness.
 
 \subsection{Post-Training and Optimisation}
 \label{sec:post_training}

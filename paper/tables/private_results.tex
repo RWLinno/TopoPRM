@@ -1,0 +1,46 @@
+% Table 1: Main results on private Chinese mathematical critique benchmarks.
+\begin{table}[t]
+\centering
+\caption{Main results on private Chinese mathematical critique benchmarks.
+  \textbf{Middle} and \textbf{High} denote middle-school and high-school
+  subsets.  Score-Acc measures critique scoring accuracy;
+  Err-F1 measures error identification F1;
+  Format\% measures structural compliance; Avg-Len reports mean prediction
+  length in tokens.  Best results per column are \textbf{bolded};
+  second-best are \underline{underlined}.  $^\dagger$Evaluated on the full
+  test set (2\,181 / 5\,414 samples); all others use the light-200 protocol.}
+\label{tab:private_results}
+\vspace{2pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l cccc cccc c@{}}
+\toprule
+& \multicolumn{4}{c}{\textbf{Middle School}} & \multicolumn{4}{c}{\textbf{High School}} & \\
+\cmidrule(lr){2-5} \cmidrule(lr){6-9}
+\textbf{Model} & Acc & Err-F1 & Fmt\% & Len & Acc & Err-F1 & Fmt\% & Len & \textbf{Overall} \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{10}{@{}l}{\textit{Zero-shot / Few-shot Baselines}} \\
+Qwen3-32B (zero-shot)         & 16.0 & TBD & 64.5 & 1\,200 & 7.0  & TBD & 43.5 & 1\,240 & 11.5 \\
+Qwen3-32B (few-shot)          & TBD  & TBD & TBD  & TBD   & TBD  & TBD & TBD  & TBD   & TBD  \\
+GPT-4o-mini                   & TBD  & TBD & TBD  & TBD   & TBD  & TBD & TBD  & TBD   & TBD  \\
+DeepSeek-R1-Distill-7B        & TBD  & TBD & TBD  & TBD   & TBD  & TBD & TBD  & TBD   & TBD  \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{10}{@{}l}{\textit{Fine-tuned Models}} \\
+Qwen3-32B + SFT               & \underline{39.0} & TBD & 48.8 & ---  & \underline{26.5} & TBD & 45.8 & ---  & \underline{32.8} \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{10}{@{}l}{\textit{GRPO Variants (from SFT checkpoint)}} \\
+\quad + Outcome Only           & 19.5 & TBD & 89.0 & 410  & 13.0 & TBD & 85.5 & 475  & 16.3 \\
+\quad + w/o Topology           & 23.0 & TBD & 91.0 & 397  & 16.5 & TBD & 86.0 & 460  & 19.8 \\
+\quad + w/o Continuity         & 27.5 & TBD & 90.5 & 379  & 20.0 & TBD & 85.0 & 436  & 23.8 \\
+\rowcolor{blue!5}
+\quad + TopoPRM (full)$^\dagger$ & \textbf{37.2} & TBD & \underline{94.6} & 364  & \textbf{22.3} & TBD & \underline{89.3} & 424  & \textbf{29.7} \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{10}{@{}l}{\textit{Distillation}} \\
+Qwen3-8B + RKL Distill         & 60.0 & TBD & \textbf{94.0} & 532  & 58.0 & TBD & \textbf{97.0} & 613  & 59.0 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

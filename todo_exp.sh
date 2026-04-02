@@ -1,66 +1,101 @@
 #!/usr/bin/env bash
-# TopoPRM NIPS26 experiment launch commands (one-command-per-line runbook)
+# TopoPRM NeurIPS 2026 — Master Experiment Runbook
 # 说明：每一步都用 nohup 后台运行；先看注释，再执行下一行命令。
+# 更新日期：2026-04-02
 
-# 0) 准备日志目录（只需执行一次）
-nohup bash -lc 'mkdir -p ./logs ./output/eval ./output/analysis ./docs/publicity/data' > ./logs/run_prepare_dirs.log 2>&1 &
+# ═══════════════════════════════════════════════════════════════
+# Phase 0: 环境准备
+# ═══════════════════════════════════════════════════════════════
 
-# 1) 数据流水线：生成/更新训练与评测所需数据
+# 0a) 创建目录
+mkdir -p ./logs ./output/eval ./output/analysis ./output/distill_data ./output/distill_logs
+
+# 0b) 数据流水线
 nohup bash scripts/run_data_pipeline.sh > ./logs/run_data_pipeline.log 2>&1 &
 
-# 2) 下载公开 benchmark 数据（MATH/GSM8K/CMATH 等）
+# 0c) 下载公开 benchmark
 nohup bash scripts/download_benchmarks.sh > ./logs/run_download_benchmarks.log 2>&1 &
 
-# 3) SFT 训练：得到基础适配器（LoRA）
+# ═══════════════════════════════════════════════════════════════
+# Phase 1: SFT 冷启动
+# ═══════════════════════════════════════════════════════════════
+
 nohup bash scripts/run_sft.sh > ./logs/run_sft.log 2>&1 &
 
-# 4) GRPO 主实验：TopoPRM full reward
-nohup bash scripts/run_grpo.sh grpo_main > ./logs/run_grpo_main.log 2>&1 &
+# ═══════════════════════════════════════════════════════════════
+# Phase 2: GRPO 训练（主实验 + 消融）
+# ═══════════════════════════════════════════════════════════════
 
-# 5) GRPO 消融：outcome-only
+# 2a) 主实验：层次化聚合（推荐，解决 reward collapse）
+nohup bash scripts/run_grpo.sh grpo_hierarchical > ./logs/run_grpo_hierarchical.log 2>&1 &
+
+# 2b) 消融：仅答案奖励
 nohup bash scripts/run_grpo.sh grpo_outcome_only > ./logs/run_grpo_outcome_only.log 2>&1 &
 
-# 6) GRPO 消融：去掉 topology reward
+# 2c) 消融：去掉拓扑奖励
 nohup bash scripts/run_grpo.sh grpo_no_topo > ./logs/run_grpo_no_topo.log 2>&1 &
 
-# 7) GRPO 消融：去掉 continuity reward
+# 2d) 消融：去掉连续性奖励
 nohup bash scripts/run_grpo.sh grpo_no_continuity > ./logs/run_grpo_no_continuity.log 2>&1 &
 
-# 8) GRPO 聚合策略：clipped
-nohup bash scripts/run_grpo.sh grpo_clipped > ./logs/run_grpo_clipped.log 2>&1 &
+# 2e) 对比：线性聚合（用于展示 reward collapse）
+nohup bash scripts/run_grpo.sh grpo_main > ./logs/run_grpo_main.log 2>&1 &
 
-# 9) GRPO 聚合策略：confidence-gated
-nohup bash scripts/run_grpo.sh grpo_confgate > ./logs/run_grpo_confgate.log 2>&1 &
+# 2f) [可选] 其他聚合策略消融
+# nohup bash scripts/run_grpo.sh grpo_clipped > ./logs/run_grpo_clipped.log 2>&1 &
+# nohup bash scripts/run_grpo.sh grpo_confgate > ./logs/run_grpo_confgate.log 2>&1 &
+# nohup bash scripts/run_grpo.sh grpo_mulgate > ./logs/run_grpo_mulgate.log 2>&1 &
 
-# 10) GRPO 聚合策略：multiplicative-gated
-nohup bash scripts/run_grpo.sh grpo_mulgate > ./logs/run_grpo_mulgate.log 2>&1 &
+# 2g) 训练监控（另开终端）
+# bash scripts/monitor_training.sh 60
 
-# 11) GRPO 聚合策略：SCAE-style（论文主方法）
-nohup bash scripts/run_grpo.sh grpo_scae > ./logs/run_grpo_scae.log 2>&1 &
+# ═══════════════════════════════════════════════════════════════
+# Phase 3: 私有 Benchmark 评估
+# ═══════════════════════════════════════════════════════════════
 
-# 12) 优先 benchmark：不依赖 opencompass 的 light200 对比（优先拿结果）
-nohup bash scripts/run_benchmark_priority.sh > ./logs/run_benchmark_priority.log 2>&1 &
-
-# 13) 统一评测：对所有已完成模型跑 run_eval_all
+# 3a) 评估所有 GRPO 变体 + SFT baseline（私有批改数据集）
 nohup bash scripts/run_eval_all.sh > ./logs/run_eval_all.log 2>&1 &
 
-# 14) 蒸馏数据生成：从 teacher 生成 distill_train.jsonl
-nohup bash scripts/generate_distill_data.sh > ./logs/run_generate_distill_data.log 2>&1 &
+# ═══════════════════════════════════════════════════════════════
+# Phase 4: 公开 Benchmark 评估
+# ═══════════════════════════════════════════════════════════════
 
-# 15) 训练监控：持续记录 GPU/内存/共享内存
-nohup bash scripts/monitor_training.sh 60 > ./logs/run_monitor_training.log 2>&1 &
+# 4a) TopoPRM 教师（层次化）
+nohup bash scripts/run_public_benchmarks.sh Qwen/Qwen3-32B "$(find output/grpo_hierarchical -name 'checkpoint-*' -type d | sort -V | tail -1)" grpo_hierarchical > ./logs/benchmark_hierarchical.log 2>&1 &
 
-# 16) 自动后处理：等待实验完成后自动评测与汇总 CSV
-nohup bash scripts/auto_post_exp.sh > ./logs/run_auto_post_exp.log 2>&1 &
+# 4b) 外部参考模型
+nohup bash scripts/run_public_benchmarks.sh Qwen/Qwen2.5-7B-Instruct "" qwen25_7b_instruct > ./logs/benchmark_qwen25_7b.log 2>&1 &
+nohup bash scripts/run_public_benchmarks.sh meta-llama/Llama-3.1-8B-Instruct "" llama31_8b > ./logs/benchmark_llama31_8b.log 2>&1 &
 
-# 17) 生成宣传报告数据（供 docs/publicity 页面读取）
-nohup python3 scripts/generate_publicity_report.py --eval_dir output/eval --output_dir docs/publicity/data > ./logs/run_generate_publicity_report.log 2>&1 &
+# 4c) Base Qwen3-32B（无 adapter）
+nohup bash scripts/run_public_benchmarks.sh Qwen/Qwen3-32B "" base_qwen3_32b > ./logs/benchmark_base_32b.log 2>&1 &
 
-# 18) 一体化总控（可选）：按环境变量开关控制全流程
-nohup bash scripts/run_all.sh > ./logs/run_all.log 2>&1 &
+# ═══════════════════════════════════════════════════════════════
+# Phase 5: DAG 结构质量评估
+# ═══════════════════════════════════════════════════════════════
 
-# ---- 2026-03-25 临时调度记录（人工执行，不自动重启）----
-# [已执行] 暂停 GPU3/5/6 上的 public eval 任务，后续暂不重启。
-# [已执行] 按用户要求对 GPU0 空转执行：ps aux -> 定位 pid -> kill -9 pid。
-# [结果] GPU0 残留占用 pid=2136374 在 ps aux 中不可见，kill -9 返回 No such process；
-#       当前仍表现为 utilization=0 但 memory.used 较高（驱动层残留占用）。
+nohup bash scripts/run_dag_metrics.sh > ./logs/run_dag_metrics.log 2>&1 &
+
+# ═══════════════════════════════════════════════════════════════
+# Phase 6: 蒸馏
+# ═══════════════════════════════════════════════════════════════
+
+# 6a) 完整蒸馏流程（生成 -> 过滤 -> 训练 -> 评估）
+nohup bash scripts/run_distill.sh distill_7b_compact > ./logs/run_distill.log 2>&1 &
+
+# 6b) 蒸馏后公开 benchmark
+# （run_distill.sh 会自动调用，也可手动执行）
+# nohup bash scripts/run_public_benchmarks.sh Qwen/Qwen3-8B "$(find output/distill_7b_compact -name 'checkpoint-*' -type d | sort -V | tail -1)" distill_8b > ./logs/benchmark_distill_8b.log 2>&1 &
+
+# ═══════════════════════════════════════════════════════════════
+# Phase 7: 导出论文表格
+# ═══════════════════════════════════════════════════════════════
+
+python3 -m src.eval.export_paper_tables --eval_dir output/eval --output output/eval/paper_table_summary.csv
+
+# ═══════════════════════════════════════════════════════════════
+# Phase 8: 清理（可选，先 dry-run）
+# ═══════════════════════════════════════════════════════════════
+
+# bash scripts/cleanup_experiments.sh          # dry-run
+# bash scripts/cleanup_experiments.sh --execute # 实际删除

@@ -18,12 +18,14 @@ def _load_ablation_config(path: Optional[str] = None) -> dict:
     Checks (in order): explicit path, TOPO_ABLATION_CONFIG env var, default path.
     Returns empty dict if no config found.
     """
-    import yaml
+    try:
+        import yaml
+    except ImportError:
+        return {}
 
     candidates = [
         path,
         os.environ.get("TOPO_ABLATION_CONFIG"),
-        "configs/ablation_template.yaml",
     ]
     for p in candidates:
         if p and os.path.exists(p):
@@ -354,10 +356,19 @@ class TopoHierarchicalReward(_SafeCompositeBase):
         "format": 0.15,
         "length": 0.15,
     }
-    ALPHA: float = float(os.environ.get("TOPO_HIER_ALPHA", "0.60") or 0.60)
-    NOISE_EPS: float = float(os.environ.get("TOPO_HIER_NOISE_EPS", "0.01") or 0.01)
-    MIN_STD: float = float(os.environ.get("TOPO_HIER_MIN_STD", "0.005") or 0.005)
-    REWARD_TEMP: float = float(os.environ.get("TOPO_HIER_REWARD_TEMP", "2.0") or 2.0)
+    # Defaults; overridden by YAML ablation config or env vars
+    ALPHA: float = 0.60
+    NOISE_EPS: float = 0.01
+    MIN_STD: float = 0.005
+    REWARD_TEMP: float = 2.0
+
+    def __init__(self, ablation_config: Optional[str] = None, **kwargs: Any) -> None:
+        super().__init__(ablation_config=ablation_config, **kwargs)
+        cfg = self._ablation
+        self.ALPHA = float(os.environ.get("TOPO_HIER_ALPHA", cfg.get("alpha", self.ALPHA)))
+        self.NOISE_EPS = float(os.environ.get("TOPO_HIER_NOISE_EPS", cfg.get("reward_noise_eps", self.NOISE_EPS)))
+        self.MIN_STD = float(os.environ.get("TOPO_HIER_MIN_STD", cfg.get("min_reward_std", self.MIN_STD)))
+        self.REWARD_TEMP = float(os.environ.get("TOPO_HIER_REWARD_TEMP", cfg.get("reward_temperature", self.REWARD_TEMP)))
 
     @staticmethod
     def _batch_rescale(scores: list[float]) -> list[float]:

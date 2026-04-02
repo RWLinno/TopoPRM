@@ -1,44 +1,97 @@
 #!/bin/bash
+set -euo pipefail
+
 ###############################################################################
-# Monitor training: GPU usage, system memory, shared memory
+# Monitor training progress — periodically check reward stats, loss, and
+# detect reward collapse.
+#
 # Usage: bash scripts/monitor_training.sh [interval_seconds]
-#   interval: polling interval in seconds (default: 60)
-# Output: prints to stdout, also appends to output/monitor.log
 ###############################################################################
 
 INTERVAL="${1:-60}"
-LOG="output/monitor.log"
-mkdir -p output
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$PROJECT_ROOT"
 
-echo "Monitoring started (interval=${INTERVAL}s). Ctrl+C to stop."
-echo "Log: $LOG"
+echo "Training monitor started (interval=${INTERVAL}s). Ctrl+C to stop."
+echo ""
 
 while true; do
-    TS=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "═══ $(date '+%Y-%m-%d %H:%M:%S') ═══"
 
-    # System memory
-    MEM_TOTAL=$(free -g | awk '/Mem:/{print $2}')
-    MEM_USED=$(free -g | awk '/Mem:/{print $3}')
-    MEM_FREE=$(free -g | awk '/Mem:/{print $4}')
-    SHM_USED=$(df -BG /dev/shm 2>/dev/null | awk 'NR==2{print $3}' || echo "?")
+    # Check all active GRPO experiments
+    for exp_dir in output/grpo_*/; do
+        [ ! -d "$exp_dir" ] && continue
+        exp_name=$(basename "$exp_dir")
 
-    # GPU summary
-    GPU_MEM=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits 2>/dev/null \
-        | tr '\n' '/' | sed 's/\/$//')
+        # Find latest trainer_state.json
+        state_file=$(find "$exp_dir" -name "trainer_state.json" -type f 2>/dev/null | sort | tail -1)
+        [ -z "$state_file" ] && continue
 
-    # Training process check
-    TRAIN_PID=$(pgrep -f "swift.*rlhf" 2>/dev/null | head -1 || echo "none")
+        python3 -c "
+import json, sys
+with open('$state_file') as f:
+    state = json.load(f)
+logs = state.get('log_history', [])
+if not logs:
+    sys.exit(0)
 
-    LINE="[$TS] RAM: ${MEM_USED}/${MEM_TOTAL}G (free:${MEM_FREE}G) SHM:${SHM_USED} GPU_MiB:${GPU_MEM} PID:${TRAIN_PID}"
-    echo "$LINE"
-    echo "$LINE" >> "$LOG"
+last = [e for e in logs if 'reward' in e]
+if not last:
+    sys.exit(0)
+last = last[-1]
 
-    # Warn if shared memory > 400GB
-    SHM_NUM=$(echo "$SHM_USED" | tr -dc '0-9')
-    if [ -n "$SHM_NUM" ] && [ "$SHM_NUM" -gt 400 ] 2>/dev/null; then
-        echo "[WARNING] Shared memory > 400GB! Risk of OOM!"
-        echo "[WARNING] $TS Shared memory > 400GB!" >> "$LOG"
+step = last.get('step', '?')
+reward = last.get('reward', 0)
+reward_std = last.get('reward_std', 0)
+frac_zero = last.get('frac_reward_zero_std', 0)
+loss = last.get('loss', 0)
+kl = last.get('kl', 0)
+
+# Collapse detection
+collapse_warn = ''
+if frac_zero > 0.8:
+    collapse_warn = ' ⚠️  COLLAPSE'
+elif frac_zero > 0.5:
+    collapse_warn = ' ⚡ HIGH'
+
+print(f'  {\"$exp_name\":30s} step={step:>4} reward={reward:.4f} std={reward_std:.6f} zero_frac={frac_zero:.2f} loss={loss:.4f} kl={kl:.3f}{collapse_warn}')
+" 2>/dev/null || true
+    done
+
+    # Check distillation
+    for exp_dir in output/distill_*/; do
+        [ ! -d "$exp_dir" ] && continue
+        exp_name=$(basename "$exp_dir")
+        state_file=$(find "$exp_dir" -name "trainer_state.json" -type f 2>/dev/null | sort | tail -1)
+        [ -z "$state_file" ] && continue
+
+        python3 -c "
+import json
+with open('$state_file') as f:
+    state = json.load(f)
+logs = state.get('log_history', [])
+if not logs:
+    exit(0)
+last = [e for e in logs if 'loss' in e]
+if not last:
+    exit(0)
+last = last[-1]
+step = last.get('step', '?')
+loss = last.get('loss', 0)
+print(f'  {\"$exp_name\":30s} step={step:>4} loss={loss:.4f}')
+" 2>/dev/null || true
+    done
+
+    # GPU utilization
+    if command -v nvidia-smi &>/dev/null; then
+        echo ""
+        echo "  GPU utilization:"
+        nvidia-smi --query-gpu=index,utilization.gpu,memory.used,memory.total --format=csv,noheader,nounits 2>/dev/null | \
+            while IFS=',' read -r idx util mem_used mem_total; do
+                printf "    GPU%s: %3s%% util, %s/%s MiB\n" "$idx" "$util" "$mem_used" "$mem_total"
+            done
     fi
 
+    echo ""
     sleep "$INTERVAL"
 done

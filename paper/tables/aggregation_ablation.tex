@@ -1,0 +1,28 @@
+% Table: Aggregation strategy ablation.
+\begin{table}[t]
+\centering
+\caption{Ablation on reward aggregation strategies.
+  All variants use the same reward components (outcome + topology + continuity + format + length)
+  but differ in how signals are combined.
+  Collapse\% reports the fraction of training batches with zero reward standard deviation
+  (measured over the last 50 steps).
+  All models start from the same SFT checkpoint.}
+\label{tab:aggregation_ablation}
+\vspace{2pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l cccc c@{}}
+\toprule
+\textbf{Aggregation Strategy}
+  & \textbf{Mid-Acc} & \textbf{High-Acc} & \textbf{Format\%} & \textbf{Avg-Len}
+  & \textbf{Collapse\%}$\downarrow$ \\
+\midrule
+Linear (weighted sum)          & TBD & TBD & TBD & TBD & $>$93\% \\
+Clipped linear                 & TBD & TBD & TBD & TBD & TBD \\
+Multiplicative gate            & TBD & TBD & TBD & TBD & TBD \\
+Confidence gate                & TBD & TBD & TBD & TBD & TBD \\
+\rowcolor{blue!5}
+Hierarchical (Eq.~\ref{eq:r_total}) & TBD & TBD & TBD & TBD & TBD \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

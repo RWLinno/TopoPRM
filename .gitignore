@@ -9,6 +9,7 @@ result/
 .env.local
 .env.development.local
 .env.test.local
+paper/
 
 # Python
 __pycache__/

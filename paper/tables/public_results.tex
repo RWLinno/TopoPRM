@@ -1,30 +1,29 @@
 % Table 2: Public benchmark results.
 \begin{table}[t]
 \centering
-\caption{Results on public math benchmarks.
-  All models are evaluated on the full test sets.
+\caption{Results on public math benchmarks (full test sets).
   $^*$Qwen3-32B MATH-500 score is anomalously low due to answer-extraction
-  mismatch with thinking-mode output; see \S\ref{sec:rq1}.}
+  mismatch with thinking-mode output; see \S\ref{sec:rq1}.
+  $^\ddagger$Qwen3-8B results are from the distilled student model.}
 \label{tab:main_public}
 \vspace{2pt}
-\resizebox{0.85\textwidth}{!}{%
+\resizebox{0.75\textwidth}{!}{%
 \begin{tabular}{@{}l cc cc@{}}
 \toprule
 & \multicolumn{2}{c}{\textbf{GSM8K}} & \multicolumn{2}{c}{\textbf{MATH-500}} \\
 \cmidrule(lr){2-3} \cmidrule(lr){4-5}
-\textbf{Model} & Acc & Avg-Len & Acc & Avg-Len \\
+\textbf{Model} & Acc & $n$ & Acc & $n$ \\
 \midrule
 \rowcolor{gray!8}
 \multicolumn{5}{@{}l}{\textit{TopoPRM Models}} \\
-Qwen3-32B + TopoPRM (teacher)  & 77.9 & TBD & 9.2$^*$ & TBD \\
+Qwen3-32B + TopoPRM (teacher)     & 77.9 & 1\,319 & 9.2$^*$ & 500 \\
 \rowcolor{blue!5}
-Qwen3-8B + RKL Distill (student) & \textbf{82.5} & TBD & 59.8 & TBD \\
+Qwen3-8B + RKL Distill$^\ddagger$ & 82.5 & 1\,319 & \underline{59.8} & 500 \\
 \midrule
 \rowcolor{gray!8}
-\multicolumn{5}{@{}l}{\textit{External References (no TopoPRM training)}} \\
-Qwen2.5-7B-Instruct           & 93.0 & TBD & \textbf{74.2} & TBD \\
-Llama-3.1-8B-Instruct         & 84.5 & TBD & 52.2 & TBD \\
-DeepSeek-R1-Distill-Qwen-7B   & TBD  & TBD & TBD  & TBD \\
+\multicolumn{5}{@{}l}{\textit{External References}} \\
+Qwen2.5-7B-Instruct              & \textbf{93.0} & 1\,319 & \textbf{74.2} & 500 \\
+Llama-3.1-8B-Instruct            & \underline{84.5} & 1\,319 & 52.2 & 500 \\
 \bottomrule
 \end{tabular}%
 }

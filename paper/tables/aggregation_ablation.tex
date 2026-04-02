@@ -2,24 +2,22 @@
 \begin{table}[t]
 \centering
 \caption{Ablation on reward aggregation strategies.
-  All variants use the same reward components (outcome + topology + continuity + format + length)
-  but differ in how signals are combined.
-  Collapse\% reports the fraction of training batches with zero reward standard deviation
-  (measured over the last 50 steps).
-  All models start from the same SFT checkpoint.}
+  All variants use the same five reward components but differ in how signals
+  are combined.  Collapse\% reports the fraction of training batches with
+  zero reward standard deviation (from training logs).
+  $^\dagger$Full-set evaluation; all others use light-200.
+  Hierarchical results are pending (experiment queued).}
 \label{tab:aggregation_ablation}
 \vspace{2pt}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{@{}l cccc c@{}}
 \toprule
 \textbf{Aggregation Strategy}
-  & \textbf{Mid-Acc} & \textbf{High-Acc} & \textbf{Format\%} & \textbf{Avg-Len}
+  & \textbf{Mid-Acc} & \textbf{High-Acc} & \textbf{Fmt\%} & \textbf{Avg-Len}
   & \textbf{Collapse\%}$\downarrow$ \\
 \midrule
-Linear (weighted sum)          & TBD & TBD & TBD & TBD & $>$93\% \\
-Clipped linear                 & TBD & TBD & TBD & TBD & TBD \\
-Multiplicative gate            & TBD & TBD & TBD & TBD & TBD \\
-Confidence gate                & TBD & TBD & TBD & TBD & TBD \\
+Linear (weighted sum)$^\dagger$    & 37.2 & 22.3 & 94.6 & 364 & 93.8\% \\
+Clipped linear                     & 29.0 & 21.5 & 93.0 & 382 & 80.0\% \\
 \rowcolor{blue!5}
 Hierarchical (Eq.~\ref{eq:r_total}) & TBD & TBD & TBD & TBD & TBD \\
 \bottomrule

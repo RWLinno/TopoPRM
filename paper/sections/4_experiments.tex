@@ -44,8 +44,8 @@ Among GRPO variants, TopoPRM (full) achieves the highest overall critique accura
 This represents a $+13.4$ absolute improvement over outcome-only GRPO (16.3\%) and a $+9.9$ gain over the topology-ablated variant (19.8\%).
 TopoPRM simultaneously achieves the highest format compliance among GRPO models (94.6\% Middle, 89.3\% High) while producing the shortest responses (364 tokens Middle, 424 tokens High), indicating that structure-aware process rewards improve both quality and efficiency.
 
-The SFT baseline achieves higher raw accuracy (32.8\%) but with substantially lower format compliance (48.8\%), confirming that SFT learns content patterns without internalising the structured output format.
-GRPO training with TopoPRM rewards closes this accuracy gap while raising format compliance by $+45.8$ percentage points.
+The SFT baseline achieves comparable raw accuracy on Middle-School (29.0\%) but with substantially lower format compliance (78.5\% Middle, 65.0\% High) and much longer responses (1\,164 tokens), confirming that SFT learns content patterns without internalising the structured output format.
+GRPO training with TopoPRM rewards surpasses SFT accuracy on Middle-School ($+8.2$ points) while raising format compliance by $+16.1$ percentage points and cutting response length by 69\%.
 
 \input{tables/public_results}
 
@@ -67,7 +67,7 @@ Table~\ref{tab:ablation_reward} isolates the contribution of each reward compone
 Removing the topology reward causes the largest degradation ($\Delta = -9.9$), confirming that global DAG-level structural regularity is the most impactful signal.
 Removing continuity yields a smaller but meaningful drop ($\Delta = -5.9$), showing complementary value from local step-to-step traceability.
 The outcome-only baseline suffers the largest deficit ($\Delta = -13.4$), validating the necessity of process-level supervision beyond answer correctness.
-All GRPO variants achieve substantially higher format compliance ($\geq$89\%) than SFT (48.8\%), suggesting that on-policy optimisation reinforces format adherence even when process rewards are partially ablated.
+All GRPO variants achieve substantially higher format compliance ($\geq$89\%) than SFT (78.5\%), suggesting that on-policy optimisation reinforces format adherence even when process rewards are partially ablated.
 
 \input{tables/aggregation_ablation}
 

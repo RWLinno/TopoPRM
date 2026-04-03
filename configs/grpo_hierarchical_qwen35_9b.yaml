@@ -9,15 +9,15 @@ external_plugins:
 reward_funcs:
   - topo_hierarchical
 
-num_generations: 8
+num_generations: 4
 temperature: 0.8
-max_completion_length: 2048
+max_completion_length: 1536
 top_p: 0.95
 
 use_vllm: true
 vllm_mode: colocate
-vllm_gpu_memory_utilization: 0.45
-vllm_max_model_len: 3072
+vllm_gpu_memory_utilization: 0.9
+vllm_max_model_len: 2048
 vllm_enable_prefix_caching: false
 sleep_level: 1
 offload_model: true
@@ -36,7 +36,7 @@ num_train_epochs: 1
 lr_scheduler_type: cosine
 warmup_ratio: 0.05
 weight_decay: 0.01
-max_length: 8192
+max_length: 6144
 bf16: true
 gradient_checkpointing: true
 

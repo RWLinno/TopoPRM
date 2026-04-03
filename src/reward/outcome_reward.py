@@ -5,6 +5,7 @@ import re
 from typing import Any, Optional
 
 from swift.rewards import ORM, orms
+from src.reward.utils import completion_to_text
 
 
 class OutcomeReward(ORM):
@@ -106,7 +107,7 @@ class OutcomeReward(ORM):
 
         rewards: list[float] = []
         for i, completion in enumerate(completions):
-            text = completion if isinstance(completion, str) else (completion[-1].get("content", "") if completion else "")
+            text = completion_to_text(completion)
             sol_i = solutions[i] if i < len(solutions) else None
             gt_score, gt_conclusion = self._parse_solution(sol_i)
             ans = self._extract_answer_json(text)

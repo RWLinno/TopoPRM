@@ -1,21 +1,14 @@
-"""Build a ReasoningDAG from a textual math answer.
-
-Covers step extraction, expression / claim mining, step-type classification,
-and rule-based (with LLM-fallback placeholder) dependency detection.
-
-Usage::
-
-    python -m src.data.build_dag \\
-        --input_path data/processed/parsed.jsonl \\
-        --output_dir  data/dag
-"""
+"""Build a ReasoningDAG from textual math answers."""
 
 from __future__ import annotations
 
 import argparse
 import json
 import logging
+import os
 import re
+import unicodedata
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -24,10 +17,6 @@ from src.dag.node import LocalVerdict, Node, StepType
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Sub-question marker patterns
-# ---------------------------------------------------------------------------
-
 _SUB_Q_PATTERNS: List[re.Pattern] = [
     re.compile(r"【小题(\d+)】"),
     re.compile(r"^\s*\((\d+)\)\s*"),
@@ -35,94 +24,47 @@ _SUB_Q_PATTERNS: List[re.Pattern] = [
     re.compile(r"^\s*第\s*(\d+)\s*[小题问]"),
 ]
 
+_STEP_MARKER_RE = re.compile(
+    r"^\s*(?:"
+    r"(?:step|步骤)\s*\d+[:：.\-、]?"
+    r"|"
+    r"[（(]?\d+[)）][、.．:]?"
+    r"|"
+    r"(?:第\s*\d+\s*步)[:：]?"
+    r"|"
+    r"[一二三四五六七八九十]+[、.．:]"
+    r")\s*",
+    re.IGNORECASE,
+)
+_INLINE_STEP_SPLIT_RE = re.compile(
+    r"(?=(?:^|[\s。；;])(?:step\s*\d+|步骤\s*\d+|[（(]?\d+[)）][、.．:]?|第\s*\d+\s*步[:：]?))",
+    re.IGNORECASE,
+)
 
-def _detect_sub_question(text: str) -> Optional[int]:
-    for pat in _SUB_Q_PATTERNS:
-        m = pat.search(text)
-        if m:
-            return int(m.group(1))
-    return None
+_LATEX_CMD_RE = re.compile(r"\\[A-Za-z]+")
+_MATH_WS_RE = re.compile(r"\s+")
+_NON_TEXT_TOKEN = re.compile(r"[^\w\u4e00-\u9fff]+")
+_TOKEN_VAR_RE = re.compile(r"[A-Za-z\u03b1-\u03c9\u0391-\u03a9][A-Za-z0-9_]*")
 
-
-# ---------------------------------------------------------------------------
-# Step extraction
-# ---------------------------------------------------------------------------
-
-def extract_steps_from_answer(standard_answer: str) -> List[Dict[str, Any]]:
-    """Split *standard_answer* into individual steps.
-
-    Each step is a dict with ``step_id``, ``raw_text``, and an optional
-    ``sub_question_id``.
-    """
-    lines = [l.strip() for l in standard_answer.splitlines() if l.strip()]
-    if not lines:
-        return []
-
-    steps: List[Dict[str, Any]] = []
-    current_sub_q: Optional[int] = None
-
-    for idx, line in enumerate(lines):
-        sq = _detect_sub_question(line)
-        if sq is not None:
-            current_sub_q = sq
-
-        steps.append(
-            {
-                "step_id": idx,
-                "raw_text": line,
-                "sub_question_id": current_sub_q,
-            }
-        )
-
-    return steps
-
-
-# ---------------------------------------------------------------------------
-# Expression extraction
-# ---------------------------------------------------------------------------
+_VAR_STOPWORDS = {
+    "step", "steps", "let", "given", "thus", "therefore", "hence", "then",
+    "answer", "proof", "case", "assume", "suppose", "show",
+}
 
 _INLINE_MATH_RE = re.compile(
     r"\$([^$]+)\$"
     r"|"
     r"\\\((.+?)\\\)"
 )
-
 _EQUATION_RE = re.compile(
     r"[a-zA-Z\u03b1-\u03c9\u0391-\u03a9\d][a-zA-Z\u03b1-\u03c9\u0391-\u03a9\d\s+\-*/^(){}]*"
     r"[=\u2260<>\u2264\u2265\u2248]"
     r"[a-zA-Z\u03b1-\u03c9\u0391-\u03a9\d\s+\-*/^(){}]+"
 )
-
 _VAR_ASSIGN_RE = re.compile(
-    r"(?:\u8bbe|\u4ee4)\s*([a-zA-Z\u03b1-\u03c9\u0391-\u03a9]\w*)\s*[=\uff1d]\s*(.+?)(?:[,\uff0c;\uff1b\u3002]|$)"
+    r"(?:\u8bbe|\u4ee4|let)\s*([a-zA-Z\u03b1-\u03c9\u0391-\u03a9]\w*)\s*[=\uff1d]\s*(.+?)(?:[,\uff0c;\uff1b\u3002]|$)",
+    re.IGNORECASE,
 )
-
-
-def extract_expressions(text: str) -> List[str]:
-    """Extract mathematical expressions from *text*."""
-    exprs: List[str] = []
-
-    for m in _INLINE_MATH_RE.finditer(text):
-        expr = m.group(1) or m.group(2)
-        if expr:
-            exprs.append(expr.strip())
-
-    for m in _EQUATION_RE.finditer(text):
-        candidate = m.group(0).strip()
-        if len(candidate) >= 3 and candidate not in exprs:
-            exprs.append(candidate)
-
-    for m in _VAR_ASSIGN_RE.finditer(text):
-        assign = f"{m.group(1)}={m.group(2).strip()}"
-        if assign not in exprs:
-            exprs.append(assign)
-
-    return exprs
-
-
-# ---------------------------------------------------------------------------
-# Claim extraction
-# ---------------------------------------------------------------------------
 
 _CLAIM_PATTERNS: List[re.Pattern] = [
     re.compile(r"[A-Za-z\u03b1-\u03c9\u0391-\u03a9]+\s*[=\u2260<>\u2264\u2265\u2248]\s*\d*[A-Za-z\u03b1-\u03c9\u0391-\u03a9]+"),
@@ -130,22 +72,6 @@ _CLAIM_PATTERNS: List[re.Pattern] = [
     re.compile(r"\u2220[A-Za-z]+\s*=\s*\d+\u00b0?"),
     re.compile(r"[\u2235\u2234]\s*(.+?)(?:[,\uff0c;\uff1b\u3002]|$)"),
 ]
-
-
-def extract_claims(text: str) -> List[str]:
-    """Extract mathematical claims / relations from *text*."""
-    claims: List[str] = []
-    for pat in _CLAIM_PATTERNS:
-        for m in pat.finditer(text):
-            claim = m.group(0).strip()
-            if claim and claim not in claims:
-                claims.append(claim)
-    return claims
-
-
-# ---------------------------------------------------------------------------
-# Step-type classification
-# ---------------------------------------------------------------------------
 
 _TYPE_RULES: List[Tuple[List[str], StepType]] = [
     (["\u2235", "\u5df2\u77e5", "\u7531\u9898\u610f", "\u6839\u636e\u9898\u610f", "\u9898\u76ee\u7ed9\u51fa"], StepType.DEFINITION),
@@ -157,162 +83,336 @@ _TYPE_RULES: List[Tuple[List[str], StepType]] = [
     (["\u5206\u7c7b\u8ba8\u8bba", "\u5f53.*\u65f6", "\u5206\u4e24\u79cd\u60c5\u51b5", "\u60c5\u51b5\u4e00", "\u60c5\u51b5\u4e8c"], StepType.CASE_ANALYSIS),
 ]
 
+_ENABLE_SEQ_WEAK_EDGE = (os.environ.get("TOPO_ENABLE_SEQUENTIAL_WEAK_EDGE", "1") or "1") != "0"
+
+
+@dataclass
+class ParsedStep:
+    step_id: int
+    raw_text: str
+    normalized_text: str
+    sub_question_id: Optional[int]
+    exprs: List[str]
+    claims: List[str]
+    variables: List[str]
+    step_type: StepType
+
+
+@dataclass
+class EdgeEvidence:
+    source: int
+    target: int
+    edge_type: str
+    dep_type: str
+    evidence: str
+
+
+def _detect_sub_question(text: str) -> Optional[int]:
+    for pat in _SUB_Q_PATTERNS:
+        m = pat.search(text)
+        if m:
+            return int(m.group(1))
+    return None
+
+
+def _normalize_answer_text(text: str) -> str:
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = text.replace("<br>", "\n").replace("<br/>", "\n").replace("<br />", "\n")
+    return text
+
+
+def _split_inline_steps(line: str) -> List[str]:
+    line = line.strip()
+    if not line:
+        return []
+    parts = [p.strip(" \t;；") for p in _INLINE_STEP_SPLIT_RE.split(line) if p and p.strip(" \t;；")]
+    if len(parts) == 1 and len(line) > 140 and ("；" in line or ";" in line):
+        punct_parts = [p.strip() for p in re.split(r"[；;]+", line) if p.strip()]
+        if len(punct_parts) > 1:
+            return punct_parts
+    return parts
+
+
+def extract_steps_from_answer(standard_answer: str) -> List[Dict[str, Any]]:
+    normalized = _normalize_answer_text(standard_answer)
+    raw_lines = [l.strip() for l in normalized.splitlines() if l.strip()]
+    if not raw_lines:
+        return []
+
+    lines: List[str] = []
+    for line in raw_lines:
+        lines.extend(_split_inline_steps(line))
+
+    steps: List[Dict[str, Any]] = []
+    current_sub_q: Optional[int] = None
+    for line in lines:
+        line = _STEP_MARKER_RE.sub("", line).strip()
+        if not line:
+            continue
+        sq = _detect_sub_question(line)
+        if sq is not None:
+            current_sub_q = sq
+        steps.append(
+            {
+                "step_id": len(steps),
+                "raw_text": line,
+                "sub_question_id": current_sub_q,
+            }
+        )
+    return steps
+
+
+def canonicalize_expression(expr: str) -> str:
+    expr = unicodedata.normalize("NFKC", expr).strip()
+    expr = _LATEX_CMD_RE.sub("", expr)
+    expr = expr.replace("×", "*").replace("÷", "/").replace("−", "-")
+    expr = expr.replace("＝", "=").replace("≤", "<=").replace("≥", ">=")
+    expr = _MATH_WS_RE.sub("", expr)
+    expr = expr.strip("，,。.;；:：")
+    if expr.startswith("(") and expr.endswith(")") and len(expr) > 2:
+        expr = expr[1:-1]
+    return expr.lower()
+
+
+def extract_variables(text: str) -> List[str]:
+    normalized = unicodedata.normalize("NFKC", text)
+    vars_found: List[str] = []
+    for tok in _TOKEN_VAR_RE.findall(normalized):
+        t = tok.lower()
+        if t in _VAR_STOPWORDS:
+            continue
+        if len(t) > 1 and t.isalpha() and t not in {"xy", "yz", "ab", "bc", "cd", "sin", "cos", "tan", "log"}:
+            continue
+        vars_found.append(t)
+    return sorted(set(vars_found))
+
+
+def extract_expressions(text: str) -> List[str]:
+    exprs_raw: List[str] = []
+    for m in _INLINE_MATH_RE.finditer(text):
+        expr = m.group(1) or m.group(2)
+        if expr:
+            exprs_raw.append(expr.strip())
+    for m in _EQUATION_RE.finditer(text):
+        candidate = m.group(0).strip()
+        if len(candidate) >= 3:
+            exprs_raw.append(candidate)
+    for m in _VAR_ASSIGN_RE.finditer(text):
+        exprs_raw.append(f"{m.group(1)}={m.group(2).strip()}")
+
+    exprs: List[str] = []
+    for item in exprs_raw:
+        canonical = canonicalize_expression(item)
+        if len(canonical) >= 2 and canonical not in exprs:
+            exprs.append(canonical)
+    return exprs
+
+
+def extract_claims(text: str) -> List[str]:
+    claims: List[str] = []
+    for pat in _CLAIM_PATTERNS:
+        for m in pat.finditer(text):
+            claim = canonicalize_expression(m.group(0).strip())
+            if claim and claim not in claims:
+                claims.append(claim)
+    return claims
+
 
 def classify_step_type(text: str) -> StepType:
-    """Return the most likely :class:`StepType` for *text*."""
     for keywords, stype in _TYPE_RULES:
         for kw in keywords:
             if re.search(kw, text):
                 return stype
-
     if re.search(r"[=\uff1d]", text) and not re.search(r"[\u2235\u2234]", text):
         return StepType.COMPUTATION
-
     return StepType.UNKNOWN
 
 
-# ---------------------------------------------------------------------------
-# Dependency-edge building
-# ---------------------------------------------------------------------------
+def _overlap_ratio(a: str, b: str) -> float:
+    if not a or not b:
+        return 0.0
+    ta = set(filter(None, _NON_TEXT_TOKEN.split(a)))
+    tb = set(filter(None, _NON_TEXT_TOKEN.split(b)))
+    if not ta or not tb:
+        return 0.0
+    return len(ta & tb) / max(len(ta), len(tb))
+
 
 def build_dependency_edges_by_rules(
-    nodes: List[Node],
-) -> List[Tuple[int, int, str, str]]:
-    """Generate strong virtual edges and no-reward implicit barrier edges.
-
-    Strong (virtual) edges are added when an expression/claim in node_j first
-    appeared in an earlier node_i. If a derivation/conclusion step has no strong
-    source, we add a double-barrier implicit edge to preserve graph connectivity
-    without adding reward credit.
-    """
+    steps: List[ParsedStep],
+) -> Tuple[List[Tuple[int, int, str, str]], List[EdgeEvidence]]:
     edges: List[Tuple[int, int, str, str]] = []
+    evidences: List[EdgeEvidence] = []
+
     expr_origin: Dict[str, int] = {}
     claim_origin: Dict[str, int] = {}
+    var_origin: Dict[str, int] = {}
 
-    for node in sorted(nodes, key=lambda n: n.step_id):
-        for expr in node.exprs:
-            if expr not in expr_origin:
-                expr_origin[expr] = node.step_id
+    for step in sorted(steps, key=lambda n: n.step_id):
+        for expr in step.exprs:
+            expr_origin.setdefault(expr, step.step_id)
+        for claim in step.claims:
+            claim_origin.setdefault(claim, step.step_id)
+        for var in step.variables:
+            var_origin.setdefault(var, step.step_id)
 
-        for claim in node.claims:
-            if claim not in claim_origin:
-                claim_origin[claim] = node.step_id
-
-    for node in sorted(nodes, key=lambda n: n.step_id):
+    for step in sorted(steps, key=lambda n: n.step_id):
         seen_sources: set[int] = set()
-        for expr in node.exprs:
+
+        for expr in step.exprs:
             src = expr_origin.get(expr)
-            if src is not None and src < node.step_id and src not in seen_sources:
-                edges.append((src, node.step_id, VIRTUAL_EDGE, "expr_ref"))
+            if src is not None and src < step.step_id and src not in seen_sources:
+                edges.append((src, step.step_id, VIRTUAL_EDGE, "expr_ref"))
+                evidences.append(EdgeEvidence(src, step.step_id, VIRTUAL_EDGE, "expr_ref", f"expr={expr}"))
                 seen_sources.add(src)
+                continue
+            for prev_expr, prev_src in expr_origin.items():
+                if prev_src >= step.step_id or prev_src in seen_sources:
+                    continue
+                if _overlap_ratio(expr, prev_expr) >= 0.8:
+                    edges.append((prev_src, step.step_id, VIRTUAL_EDGE, "expr_overlap"))
+                    evidences.append(
+                        EdgeEvidence(prev_src, step.step_id, VIRTUAL_EDGE, "expr_overlap", f"{prev_expr}->{expr}")
+                    )
+                    seen_sources.add(prev_src)
+                    break
 
-        for claim in node.claims:
+        for claim in step.claims:
             src = claim_origin.get(claim)
-            if src is not None and src < node.step_id and src not in seen_sources:
-                edges.append((src, node.step_id, VIRTUAL_EDGE, "claim_ref"))
+            if src is not None and src < step.step_id and src not in seen_sources:
+                edges.append((src, step.step_id, VIRTUAL_EDGE, "claim_ref"))
+                evidences.append(EdgeEvidence(src, step.step_id, VIRTUAL_EDGE, "claim_ref", f"claim={claim}"))
                 seen_sources.add(src)
 
-        if not seen_sources and node.step_id > 0:
-            if node.step_type in (StepType.DERIVATION, StepType.CONCLUSION):
-                edges.append((node.step_id - 1, node.step_id, DOUBLE_BARRIER_EDGE, "implicit_block"))
+        for var in step.variables:
+            src = var_origin.get(var)
+            if src is not None and src < step.step_id and src not in seen_sources:
+                edges.append((src, step.step_id, VIRTUAL_EDGE, "var_ref"))
+                evidences.append(EdgeEvidence(src, step.step_id, VIRTUAL_EDGE, "var_ref", f"var={var}"))
+                seen_sources.add(src)
 
-    return edges
+        if not seen_sources and step.step_id > 0 and step.step_type in (StepType.DERIVATION, StepType.CONCLUSION):
+            edges.append((step.step_id - 1, step.step_id, DOUBLE_BARRIER_EDGE, "implicit_block"))
+            evidences.append(
+                EdgeEvidence(step.step_id - 1, step.step_id, DOUBLE_BARRIER_EDGE, "implicit_block", "fallback")
+            )
+
+    return edges, evidences
 
 
 def build_dependency_edges_by_llm(
-    nodes: List[Node],
+    nodes: List[ParsedStep],
     llm_client: Any = None,
-) -> List[Tuple[int, int, str, str]]:
-    """LLM-based dependency detection (placeholder).
-
-    Falls back to rule-based detection when no *llm_client* is provided.
-    """
+) -> Tuple[List[Tuple[int, int, str, str]], List[EdgeEvidence]]:
     if llm_client is None:
         logger.debug("No LLM client -- falling back to rule-based edges")
         return build_dependency_edges_by_rules(nodes)
-
     logger.warning("LLM dependency detection not yet implemented; using rules")
     return build_dependency_edges_by_rules(nodes)
 
 
-# ---------------------------------------------------------------------------
-# Full pipeline
-# ---------------------------------------------------------------------------
-
-def build_dag_from_answer(
+def parse_answer_to_dag_debug(
     answer: str,
     problem_id: str = "",
-) -> ReasoningDAG:
-    """Build a complete :class:`ReasoningDAG` from a textual answer.
-
-    Steps
-    -----
-    1. Split into individual steps.
-    2. Extract expressions and claims per step.
-    3. Classify each step's type.
-    4. Add solid sequential-order edges (weak-signal scaffold).
-    5. Add virtual conditional dependency edges and implicit barrier edges.
-    """
+) -> Tuple[ReasoningDAG, Dict[str, Any]]:
     dag = ReasoningDAG(problem_id=problem_id)
-
+    debug: Dict[str, Any] = {
+        "problem_id": problem_id,
+        "raw_answer": answer,
+        "steps": [],
+        "edges": [],
+    }
     raw_steps = extract_steps_from_answer(answer)
     if not raw_steps:
-        return dag
+        return dag, debug
 
-    nodes: List[Node] = []
+    parsed_steps: List[ParsedStep] = []
     for s in raw_steps:
         text = s["raw_text"]
-        node = Node(
+        norm = unicodedata.normalize("NFKC", text).strip()
+        exprs = extract_expressions(text)
+        claims = extract_claims(text)
+        variables = extract_variables(f"{norm} {' '.join(exprs)}")
+        stype = classify_step_type(text)
+
+        parsed = ParsedStep(
             step_id=s["step_id"],
             raw_text=text,
-            normalized_text=text.strip(),
-            exprs=extract_expressions(text),
-            claims=extract_claims(text),
-            step_type=classify_step_type(text),
-            local_verdict=LocalVerdict.UNVERIFIABLE,
+            normalized_text=norm,
             sub_question_id=s.get("sub_question_id"),
+            exprs=exprs,
+            claims=claims,
+            variables=variables,
+            step_type=stype,
         )
-        nodes.append(node)
-        dag.add_node(node)
+        parsed_steps.append(parsed)
 
-    dag.add_sequential_edges()
+        dag.add_node(
+            Node(
+                step_id=parsed.step_id,
+                raw_text=parsed.raw_text,
+                normalized_text=parsed.normalized_text,
+                exprs=parsed.exprs,
+                claims=parsed.claims,
+                step_type=parsed.step_type,
+                local_verdict=LocalVerdict.UNVERIFIABLE,
+                sub_question_id=parsed.sub_question_id,
+            )
+        )
+        debug["steps"].append(
+            {
+                "step_id": parsed.step_id,
+                "raw_text": parsed.raw_text,
+                "normalized_text": parsed.normalized_text,
+                "exprs": parsed.exprs,
+                "claims": parsed.claims,
+                "variables": parsed.variables,
+                "step_type": parsed.step_type.value,
+                "sub_question_id": parsed.sub_question_id,
+            }
+        )
 
-    dep_edges = build_dependency_edges_by_rules(nodes)
+    if _ENABLE_SEQ_WEAK_EDGE:
+        dag.add_sequential_edges()
+    dep_edges, evidences = build_dependency_edges_by_rules(parsed_steps)
     for src_id, tgt_id, edge_type, dep_type in dep_edges:
         if edge_type == VIRTUAL_EDGE:
             dag.add_dependency_edge(src_id, tgt_id, dep_type)
         else:
             dag.add_implicit_barrier_edge(src_id, tgt_id)
 
+    debug["edges"] = [
+        {
+            "source": e.source,
+            "target": e.target,
+            "edge_type": e.edge_type,
+            "dep_type": e.dep_type,
+            "evidence": e.evidence,
+        }
+        for e in evidences
+    ]
+    debug["summary"] = {
+        "num_steps": len(parsed_steps),
+        "num_nodes": dag.num_nodes,
+        "num_edges": dag.num_edges,
+        "enable_sequential_weak_edge": _ENABLE_SEQ_WEAK_EDGE,
+    }
+    return dag, debug
+
+
+def build_dag_from_answer(
+    answer: str,
+    problem_id: str = "",
+) -> ReasoningDAG:
+    dag, _ = parse_answer_to_dag_debug(answer=answer, problem_id=problem_id)
     return dag
 
 
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
-
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Build DAGs from parsed math-answer records."
-    )
-    parser.add_argument(
-        "--input_path",
-        type=str,
-        default="data/processed/parsed.jsonl",
-        help="JSONL file produced by parse_raw.",
-    )
-    parser.add_argument(
-        "--output_dir",
-        type=str,
-        default="data/dag",
-        help="Directory to write per-record DAG JSON files.",
-    )
-    parser.add_argument(
-        "--log_level",
-        type=str,
-        default="INFO",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-    )
+    parser = argparse.ArgumentParser(description="Build DAGs from parsed math-answer records.")
+    parser.add_argument("--input_path", type=str, default="data/processed/parsed.jsonl")
+    parser.add_argument("--output_dir", type=str, default="data/dag")
+    parser.add_argument("--log_level", type=str, default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -338,7 +438,6 @@ def main() -> None:
             answer = record.get("standard_answer", "")
             rid = record.get("record_id", f"record_{line_no}")
             dag = build_dag_from_answer(answer, problem_id=rid)
-
             out_file = out_dir / f"{rid}.json"
             out_file.write_text(dag.to_json(), encoding="utf-8")
             count += 1

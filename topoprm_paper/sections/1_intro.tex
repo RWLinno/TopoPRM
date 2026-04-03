@@ -1,0 +1,70 @@
+\section{Introduction}
+\label{sec:introduction}
+
+Mathematical reasoning requires language models to produce not merely
+correct final answers but logically sound, step-by-step derivations in
+which each conclusion follows from its
+premises~\citep{ElKishky2024OpenAIOS,Chen2025TowardsRE}. Reinforcement
+learning with verifiable rewards
+(RLVR)~\citep{deepseekr1,shao2024deepseekmath} has become a standard
+approach for improving such reasoning: a programmatic check verifies
+whether the model's answer matches the ground truth, and the resulting
+binary signal drives policy optimization through Group Relative Policy
+Optimization (GRPO). Because the reward depends only on the final answer,
+however, RLVR provides no gradient for improving the quality of the
+reasoning trace itself.
+
+This outcome-only supervision creates three systematic failure modes.
+First, models can reach correct answers without constructing logically
+sound derivations, a phenomenon sometimes called outcome
+hacking~\citep{Denison2024SycophancyTS}. Second, reasoning traces often
+contain orphan conclusions that lack supporting premises, circular
+references between steps, and inconsistent logical direction, because
+inter-step dependencies are never supervised. Third, without any length
+or coherence signal, models tend to produce verbose, repetitive chains
+that waste inference budget and occasionally introduce
+self-contradictions~\citep{reasoning_compression_2025}.
+
+Process reward models (PRMs)~\citep{lightman2023lets,wang2024math}
+address some of these issues by assigning per-step scores, but they
+require either expensive human annotations or learned verifiers whose
+accuracy is itself uncertain. We observe that a complementary source of
+process supervision is already present in the reasoning trace: the
+\emph{topological structure} of inter-step dependencies. Mathematical
+derivations form a directed acyclic graph (DAG) in which each step
+depends on a subset of previous steps. Structural properties of this
+graph, such as acyclicity, connectivity, and directional consistency, are
+checkable by simple algorithms and provide verifiable process rewards
+without any learned component.
+
+We propose \textbf{TopoPRM}, a composite reward framework that
+supplements the outcome reward with two topology-aware process signals.
+Given a model-generated reasoning trace, a rule-based parser segments it
+into steps and detects inter-step dependencies through shared
+mathematical expressions, producing the implicit reasoning DAG. A
+\emph{topological structure reward} evaluates whether this DAG satisfies
+structural soundness properties. A \emph{continuity reward} checks
+whether each step can be derived from preceding context, penalizing
+unsupported jumps. Both rewards are computed by deterministic programs
+and stay within the RLVR paradigm.
+
+Combining multiple reward components introduces a new risk: the model
+may optimize auxiliary process rewards at the expense of answer
+correctness. To prevent this, we introduce \emph{Stratified Clipping
+Advantage Estimation} (SCAE), which partitions each group of sampled
+completions into correct and incorrect sets before computing advantages.
+SCAE ensures that correct completions always receive positive advantages
+regardless of their structural scores, while incorrect completions
+receive negative advantages regardless of how well-structured they are.
+After GRPO training, a reverse-KL distillation stage compresses the
+improved reasoning behavior from the 32B teacher into smaller student
+models. In summary, our contributions are threefold:
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+\item \textbf{Verifiable process objective.} We formulate process supervision for RLVR as two deterministic and complementary signals over an implicit reasoning structure: global DAG topology and local step continuity. This formulation provides process-level feedback without requiring human step annotations or learned reward models.
+
+\item \textbf{Accuracy-first optimization mechanism.} We introduce SCAE, a stratified reward-shaping strategy that enforces correctness priority when mixing outcome and process reward channels, thereby mitigating reward hacking risk in practical GRPO training.
+
+\item \textbf{Code-aligned training recipe.} We instantiate TopoPRM as MS-Swift-compatible reward plugins that preserve the stock GRPO optimizer while incorporating deterministic DAG extraction, composite reward aggregation, and reverse-KL reasoning compression.
+
+\item \textbf{Empirical validation on mathematical critique.} On 7{,}595 Chinese mathematical critique problems, TopoPRM yields improvements in structural coherence and reasoning conciseness over outcome-only GRPO, with gains that transfer to 14B and 7B student models.
+\end{enumerate}

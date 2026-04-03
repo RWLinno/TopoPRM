@@ -1,11 +1,14 @@
 import pytest
 
 from src.data.build_dag import (
+    canonicalize_expression,
     extract_steps_from_answer,
     extract_expressions,
     extract_claims,
+    extract_variables,
     classify_step_type,
     build_dag_from_answer,
+    parse_answer_to_dag_debug,
 )
 from src.dag.node import StepType
 
@@ -40,6 +43,11 @@ class TestExtractSteps:
         assert steps[0]["sub_question_id"] == 1
         assert steps[1]["sub_question_id"] == 2
 
+    def test_inline_step_markers(self):
+        answer = "Step 1: let x=1; Step 2: therefore y=x+1; Step 3: answer y=2"
+        steps = extract_steps_from_answer(answer)
+        assert len(steps) >= 3
+
 
 # ---------------------------------------------------------------------------
 # extract_expressions
@@ -57,11 +65,14 @@ class TestExtractExpressions:
 
     def test_equation_pattern(self):
         exprs = extract_expressions("因此 a = b + 1")
-        assert any("a = b" in e for e in exprs)
+        assert any("a=b" in e for e in exprs)
 
     def test_var_assignment(self):
         exprs = extract_expressions("设 k＝2")
         assert any("k" in e for e in exprs)
+
+    def test_canonicalize_expression(self):
+        assert canonicalize_expression(" A ＝ B ") == "a=b"
 
     def test_no_expressions(self):
         assert extract_expressions("这是一段普通文字没有数学") == []
@@ -78,15 +89,21 @@ class TestExtractClaims:
 
     def test_geometric_parallel(self):
         claims = extract_claims("AB∥CD")
-        assert any("AB∥CD" in c for c in claims)
+        assert any("ab∥cd" in c for c in claims)
 
     def test_angle_equality(self):
         claims = extract_claims("∠ABC = 90°")
-        assert any("∠ABC" in c for c in claims)
+        assert any("∠abc" in c for c in claims)
 
     def test_because_therefore(self):
         claims = extract_claims("∵ x>0，∴ x²>0")
         assert len(claims) >= 1
+
+
+class TestExtractVariables:
+    def test_extract_basic_vars(self):
+        vars_found = extract_variables("Let x=1, then y=x+2")
+        assert "x" in vars_found and "y" in vars_found
 
 
 # ---------------------------------------------------------------------------
@@ -168,3 +185,9 @@ class TestBuildDagFromAnswer:
         edge_pairs = {(e.source, e.target) for e in dag.edges}
         assert (0, 1) in edge_pairs
         assert (1, 2) in edge_pairs
+
+    def test_debug_payload_contains_evidence(self):
+        answer = "设 x=1\n因此 y=x+1\n故 y=2"
+        _, debug = parse_answer_to_dag_debug(answer)
+        assert "steps" in debug and debug["steps"]
+        assert "edges" in debug

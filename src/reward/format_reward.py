@@ -5,6 +5,7 @@ import re
 from typing import Any
 
 from swift.rewards import ORM, orms
+from src.reward.utils import completion_to_text
 
 
 class FormatReward(ORM):
@@ -44,7 +45,7 @@ class FormatReward(ORM):
         """Return a format-compliance reward in {0.0, 0.3, 1.0} per completion."""
         rewards: list[float] = []
         for completion in completions:
-            text = completion if isinstance(completion, str) else (completion[-1].get("content", "") if completion else "")
+            text = completion_to_text(completion)
             has_answer = self._has_answer_json(text)
             if not has_answer:
                 rewards.append(0.0)

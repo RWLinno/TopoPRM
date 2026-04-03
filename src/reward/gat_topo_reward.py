@@ -23,6 +23,7 @@ import numpy as np
 from src.dag.graph import ReasoningDAG
 from src.data.build_dag import build_dag_from_answer, extract_steps_from_answer
 from src.reward.topo_position_encoding import compute_topo_position_encoding
+from src.reward.utils import completion_to_text, extract_think_block
 
 # Optional torch import — module degrades gracefully if torch unavailable
 try:
@@ -182,6 +183,7 @@ class GATTopoReward:
         self._rule_based: Optional[Any] = None
         self._gat_model: Optional[Any] = None
         self._mode = os.environ.get("TOPO_SCORER", "rule_based")
+        self._has_checkpoint = False
 
         # Always initialise rule-based as fallback
         from src.reward.topo_reward import TopoReward
@@ -199,16 +201,22 @@ class GATTopoReward:
             if self.config.checkpoint_path and os.path.exists(self.config.checkpoint_path):
                 state = torch.load(self.config.checkpoint_path, map_location=self.config.device)
                 self._gat_model.load_state_dict(state)
+                self._has_checkpoint = True
             self._gat_model.to(self.config.device)
             self._gat_model.eval()
+            # Prevent random untrained model from injecting noisy reward.
+            if self._mode in ("gat", "hybrid") and not self._has_checkpoint:
+                self._mode = "rule_based"
 
     def _score_dag_gat(self, trace: str) -> float:
         """Score a single trace using the GAT model."""
         if self._gat_model is None or not _HAS_TORCH:
             return 0.5  # neutral fallback
 
-        steps = extract_steps_from_answer(trace)
-        dag = build_dag_from_answer(trace)
+        think_text = extract_think_block(trace)
+        trace_text = think_text if think_text else trace
+        steps = extract_steps_from_answer(trace_text)
+        dag = build_dag_from_answer(trace_text)
 
         if dag.num_nodes == 0:
             return 0.0
@@ -219,8 +227,8 @@ class GATTopoReward:
             dag.num_nodes, edges, k=self.config.pe_k
         )
         step_feats = np.stack([
-            _step_features(s.content if hasattr(s, 'content') else str(s), self.config.step_embed_dim)
-            for s in (dag.nodes if dag.nodes else steps[:dag.num_nodes])
+            _step_features(s.raw_text if hasattr(s, 'raw_text') else str(s), self.config.step_embed_dim)
+            for s in (list(dag.nodes.values()) if dag.nodes else steps[:dag.num_nodes])
         ])
 
         # Pad/truncate to match
@@ -256,9 +264,7 @@ class GATTopoReward:
         if self._mode == "gat":
             rewards = []
             for completion in completions:
-                text = completion if isinstance(completion, str) else (
-                    completion[-1].get("content", "") if completion else ""
-                )
+                text = completion_to_text(completion)
                 rewards.append(self._score_dag_gat(text))
             return rewards
 
@@ -266,9 +272,7 @@ class GATTopoReward:
         rule_scores = self._rule_based(completions, solution=solution, reference_dag=reference_dag, **kwargs)
         gat_scores = []
         for completion in completions:
-            text = completion if isinstance(completion, str) else (
-                completion[-1].get("content", "") if completion else ""
-            )
+            text = completion_to_text(completion)
             gat_scores.append(self._score_dag_gat(text))
 
         hybrid_weight = float(os.environ.get("TOPO_HYBRID_WEIGHT", "0.5"))

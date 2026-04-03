@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-import re
 from dataclasses import dataclass
 from typing import Any, Optional
 
@@ -9,6 +7,8 @@ from swift.rewards import ORM, orms
 
 from src.dag.graph import ReasoningDAG
 from src.data.build_dag import build_dag_from_answer, extract_steps_from_answer
+from src.reward.reward_config import RewardConfig
+from src.reward.utils import completion_to_text, extract_think_block
 
 
 @dataclass
@@ -45,24 +45,19 @@ class TopoReward(ORM):
     reward point traceable to graph properties rather than opaque heuristics.
     """
 
-    W_VALID: float = float(os.environ.get('TOPO_W_VALID', '0.20') or 0.20)
-    W_ACYCLIC: float = float(os.environ.get('TOPO_W_ACYCLIC', '0.15') or 0.15)
-    W_NO_ORPHAN: float = float(os.environ.get('TOPO_W_NO_ORPHAN', '0.15') or 0.15)
-    W_DIRECTION: float = float(os.environ.get('TOPO_W_DIRECTION', '0.15') or 0.15)
-    W_STEP_ALIGN: float = float(os.environ.get('TOPO_W_STEP_ALIGN', '0.10') or 0.10)
-    W_REF_EDGE_F1: float = float(os.environ.get('TOPO_W_REF_EDGE_F1', '0.25') or 0.25)
+    W_VALID: float = RewardConfig.TOPO_W_VALID
+    W_ACYCLIC: float = RewardConfig.TOPO_W_ACYCLIC
+    W_NO_ORPHAN: float = RewardConfig.TOPO_W_NO_ORPHAN
+    W_DIRECTION: float = RewardConfig.TOPO_W_DIRECTION
+    W_STEP_ALIGN: float = RewardConfig.TOPO_W_STEP_ALIGN
+    W_REF_EDGE_F1: float = RewardConfig.TOPO_W_REF_EDGE_F1
 
-    REQUIRE_VALID_DAG: bool = (os.environ.get('TOPO_REQUIRE_VALID_DAG', '1') or '1') != '0'
-    LOG_EVERY: int = int(os.environ.get('TOPO_VERIFY_LOG_EVERY', '0') or 0)
+    REQUIRE_VALID_DAG: bool = RewardConfig.TOPO_REQUIRE_VALID_DAG
+    LOG_EVERY: int = RewardConfig.TOPO_VERIFY_LOG_EVERY
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__()
         self._num_calls = 0
-
-    @staticmethod
-    def _extract_think(text: str) -> str:
-        m = re.search(r'<think>(.*?)</think>', text, re.DOTALL)
-        return m.group(1).strip() if m else ''
 
     @staticmethod
     def _safe_clip01(v: float) -> float:
@@ -196,8 +191,8 @@ class TopoReward(ORM):
         rewards: list[float] = []
         diag_rows: list[dict[str, float]] = []
         for idx, completion in enumerate(completions):
-            text = completion if isinstance(completion, str) else (completion[-1].get('content', '') if completion else '')
-            think_text = self._extract_think(text)
+            text = completion_to_text(completion)
+            think_text = extract_think_block(text)
             steps = extract_steps_from_answer(think_text)
             if not steps:
                 rewards.append(0.0)

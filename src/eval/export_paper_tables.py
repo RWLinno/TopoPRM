@@ -34,6 +34,15 @@ def _fmt(v: Any, decimals: int = 1) -> str:
         return str(v)
 
 
+def _metric_num(report: dict[str, Any]) -> Any:
+    metrics = report.get("metrics")
+    if isinstance(metrics, list) and metrics:
+        first = metrics[0]
+        if isinstance(first, dict):
+            return first.get("num", "TBD")
+    return "TBD"
+
+
 def _collect_private(eval_dir: Path) -> list[dict[str, str]]:
     """Collect private critique benchmark results."""
     rows = []
@@ -64,10 +73,12 @@ def _collect_private(eval_dir: Path) -> list[dict[str, str]]:
 def _collect_public(eval_dir: Path) -> list[dict[str, str]]:
     """Collect public benchmark results (GSM8K, MATH-500)."""
     rows = []
+    seen: set[str] = set()
     for f in sorted(eval_dir.glob("*_gsm8k_metrics.json")):
         name = f.name.replace("_gsm8k_metrics.json", "")
         gsm = _read_json(f)
         math = _read_json(eval_dir / f"{name}_math500_metrics.json")
+        seen.add(name)
         rows.append({
             "model": name,
             "gsm8k_acc": _fmt(_pick(gsm, "accuracy", "acc")),
@@ -77,6 +88,43 @@ def _collect_public(eval_dir: Path) -> list[dict[str, str]]:
             "math500_len": _fmt(_pick(math, "avg_length", "mean_length"), 0),
             "math500_n": _fmt(_pick(math, "num_samples", "n"), 0),
         })
+
+    # Fallback: parse swift benchmark_light reports when *_metrics.json is absent.
+    benchmark_root = eval_dir / "benchmark_light"
+    if benchmark_root.exists():
+        grouped: dict[str, dict[str, Any]] = {}
+        for run_dir in sorted(benchmark_root.glob("*")):
+            if not run_dir.is_dir():
+                continue
+            run_name = run_dir.name
+            base = run_name
+            if "_gsm8k" in base:
+                base = base.split("_gsm8k")[0]
+            if "_math500" in base:
+                base = base.split("_math500")[0]
+            grouped.setdefault(base, {})
+            gsm_report = next(iter(run_dir.glob("**/reports/**/gsm8k.json")), None)
+            math_report = next(iter(run_dir.glob("**/reports/**/math_500.json")), None)
+            if gsm_report is not None:
+                grouped[base]["gsm"] = _read_json(gsm_report)
+            if math_report is not None:
+                grouped[base]["math"] = _read_json(math_report)
+
+        for base, pair in grouped.items():
+            if base in seen:
+                continue
+            gsm = pair.get("gsm", {})
+            math = pair.get("math", {})
+            rows.append({
+                "model": base,
+                "gsm8k_acc": _fmt(_pick(gsm, "score", "accuracy", "acc")) if gsm else "TBD",
+                "gsm8k_len": "TBD",
+                "gsm8k_n": _fmt(_pick(gsm, "num_samples", "n", default=_metric_num(gsm)), 0) if gsm else "TBD",
+                "math500_acc": _fmt(_pick(math, "score", "accuracy", "acc")) if math else "TBD",
+                "math500_len": "TBD",
+                "math500_n": _fmt(_pick(math, "num_samples", "n", default=_metric_num(math)), 0) if math else "TBD",
+            })
+            seen.add(base)
     return rows
 
 

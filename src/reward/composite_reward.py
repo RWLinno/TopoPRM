@@ -9,7 +9,9 @@ from swift.rewards import ORM, orms
 from src.reward.continuity_reward import ContinuityReward
 from src.reward.format_reward import FormatReward
 from src.reward.outcome_reward import OutcomeReward
+from src.reward.reward_config import RewardConfig
 from src.reward.topo_reward import TopoReward
+from src.reward.utils import completion_to_text
 
 
 def _load_ablation_config(path: Optional[str] = None) -> dict:
@@ -43,8 +45,8 @@ class LengthReward(ORM):
     * > 4000 characters -> 0.0
     """
 
-    LOW: int = 2000
-    HIGH: int = 4000
+    LOW: int = RewardConfig.LENGTH_LOW
+    HIGH: int = RewardConfig.LENGTH_HIGH
 
     def __call__(
         self,
@@ -53,7 +55,7 @@ class LengthReward(ORM):
     ) -> list[float]:
         rewards: list[float] = []
         for completion in completions:
-            text = completion if isinstance(completion, str) else (completion[-1].get("content", "") if completion else "")
+            text = completion_to_text(completion)
             length = len(text)
             if length <= self.LOW:
                 rewards.append(1.0)
@@ -74,11 +76,11 @@ class _ZeroReward(ORM):
 class _SafeCompositeBase(ORM):
     """Shared utility for robust composite rewards."""
 
-    LOG_EVERY: int = int(os.environ.get("TOPO_REWARD_LOG_EVERY", "10") or 0)
-    DYNAMIC_REWARD: bool = (os.environ.get("TOPO_DYNAMIC_REWARD", "1") or "1") != "0"
-    DYNAMIC_ETA: float = float(os.environ.get("TOPO_DYNAMIC_ETA", "0.50") or 0.50)
-    MIN_WEIGHT: float = float(os.environ.get("TOPO_DYNAMIC_MIN_WEIGHT", "0.05") or 0.05)
-    OUTCOME_FLOOR: float = float(os.environ.get("TOPO_DYNAMIC_OUTCOME_FLOOR", "0.35") or 0.35)
+    LOG_EVERY: int = RewardConfig.TOPO_REWARD_LOG_EVERY
+    DYNAMIC_REWARD: bool = RewardConfig.TOPO_DYNAMIC_REWARD
+    DYNAMIC_ETA: float = RewardConfig.TOPO_DYNAMIC_ETA
+    MIN_WEIGHT: float = RewardConfig.TOPO_DYNAMIC_MIN_WEIGHT
+    OUTCOME_FLOOR: float = RewardConfig.TOPO_DYNAMIC_OUTCOME_FLOOR
 
     def __init__(self, ablation_config: Optional[str] = None, **kwargs: Any) -> None:
         super().__init__()
@@ -357,10 +359,10 @@ class TopoHierarchicalReward(_SafeCompositeBase):
         "length": 0.15,
     }
     # Defaults; overridden by YAML ablation config or env vars
-    ALPHA: float = 0.60
-    NOISE_EPS: float = 0.01
-    MIN_STD: float = 0.005
-    REWARD_TEMP: float = 2.0
+    ALPHA: float = RewardConfig.TOPO_HIER_ALPHA
+    NOISE_EPS: float = RewardConfig.TOPO_HIER_NOISE_EPS
+    MIN_STD: float = RewardConfig.TOPO_HIER_MIN_STD
+    REWARD_TEMP: float = RewardConfig.TOPO_HIER_REWARD_TEMP
 
     def __init__(self, ablation_config: Optional[str] = None, **kwargs: Any) -> None:
         super().__init__(ablation_config=ablation_config, **kwargs)

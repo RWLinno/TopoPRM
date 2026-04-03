@@ -1,26 +1,31 @@
 \section{Experiments}
 \label{sec:experiments}
 
-\subsection{Experimental Setup}
+\subsection{Setup}
 \label{sec:setup}
 
-\paragraph{Base model and training.}
+\paragraph{Implementation Details.}
 We use Qwen3-32B as the base model and MS-Swift~\citep{msswift} for both SFT and GRPO training.
-We choose GRPO over DPO because our supervision takes the form of deterministic process scores rather than pairwise preference labels, and GRPO directly optimises sampled trajectories under such reward signals~\citep{shao2024deepseekmath,mroueh2025grpo}.
-The teacher is trained with the full TopoPRM composite reward (topology + continuity + hierarchical aggregation).
-Distillation experiments compress the teacher into a Qwen3-8B student via process-filtered reverse-KL training.
+Our supervision takes the form of deterministic process scores, and GRPO directly optimises sampled trajectories under such reward signals~\citep{shao2024deepseekmath,mroueh2025grpo}.
+The teacher is trained with the full TopoPRM.
+% 得加上一些训练参数和显卡信息等等。
+Distillation experiments compress the teacher into a 8B student mode via process-filtered reverse-KL training.
 Full hyperparameter details are provided in Appendix~\ref{app:details}.
 
 \paragraph{Benchmarks.}
-We evaluate on two complementary benchmark families.
-\emph{Private critique benchmarks}: a Chinese mathematical critique dataset comprising Middle-School (2\,181 problems) and High-School (5\,414 problems) subsets, totalling 7\,595 samples.
-These require the model to score student solutions and identify error steps, testing process-level reasoning.
-\emph{Public math benchmarks}: GSM8K~\citep{cobbe2021gsm8k} (1\,319 problems) and MATH-500~\citep{hendrycks2021math} (500 problems), used for broad positioning on final-answer accuracy.
+For the private in-domain setting, we evaluate on two Chinese critique
+sets: a \emph{Middle School} set (2{,}181 samples) and a \emph{High
+School} set (5{,}414 samples), totalling 7{,}595 evaluation samples.
+For the public benchmark suite, we follow our local benchmark inventory
+(\texttt{data/benchmarks}) and evaluate across 13 datasets:
+\texttt{GSM8K}~\citep{cobbe2021gsm8k}, \texttt{MATH-500}~\citep{hendrycks2021math}, \texttt{MATH}, \texttt{AIME2024},
+\texttt{AIME2025}, \texttt{AMC23}, \texttt{Olympiad}, \texttt{IMO2024},
+\texttt{IMO2025}, \texttt{MMLU}, \texttt{CMath}, \texttt{GaoKao}, and
+\texttt{CN Middle}. We use a unified reporting protocol with
+\emph{Acc} / \emph{\#Tok.} / \emph{AES} for public tables and report
+\emph{Critique Accuracy}, \emph{Format Compliance}, and
+\emph{Average Length} for private critique tables.
 
-\paragraph{Metrics.}
-On private sets we report Score-Acc (critique scoring accuracy), Error-F1 (F1 for error step identification), Format\% (structural compliance with the required \texttt{<think>}$\cdots$\texttt{<answer>} format), and Avg-Len (mean prediction length in tokens).
-On public benchmarks we report standard accuracy and Avg-Len.
-For structural analysis we additionally report DAG-derived diagnostics (acyclicity, orphan-conclusion ratio, directional consistency).
 
 \paragraph{Baselines.}
 We compare against the following systems:
@@ -29,6 +34,22 @@ We compare against the following systems:
 \emph{(iii)}~Qwen3-32B + GRPO with outcome-only reward;
 \emph{(iv)}~two ablation variants that remove the topology or continuity reward channel;
 \emph{(v)}~external references including Qwen2.5-7B-Instruct, Llama-3.1-8B-Instruct, and DeepSeek-R1-Distill-Qwen-7B~\citep{guo2025deepseekr1} for public benchmark positioning.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.98\linewidth]{figures/Fig4.Training_Curve.png}
+    \caption{GRPO training dynamics. (Top) Composite reward convergence
+    for TopoPRM and ablation variants. (Middle) Mean completion length
+    during training, showing progressive reasoning compression without
+    accuracy loss. (Bottom) Self-supervised dynamic reward weights over
+    training steps.}
+    \label{fig:training_dynamics}
+\end{figure}
+
+\paragraph{Metrics.}
+On private sets we report Score-Acc (critique scoring accuracy), Error-F1 (F1 for error step identification), Format\% (structural compliance with the required \texttt{<think>}$\cdots$\texttt{<answer>} format), and Avg-Len (mean prediction length in tokens).
+On public benchmarks we report standard accuracy and Avg-Len.
+For structural analysis we additionally report DAG-derived diagnostics (acyclicity, orphan-conclusion ratio, directional consistency).
 
 %% ─────────────────────────────────────────────────────────────
 %% RQ1: How effective is TopoPRM?
@@ -50,7 +71,7 @@ GRPO training with TopoPRM rewards surpasses SFT accuracy on Middle-School ($+8.
 \input{tables/public_results}
 
 \paragraph{Public math benchmarks.}
-Table~\ref{tab:main_public} reports results on GSM8K and MATH-500.
+Table~\ref{tab:public_benchmark} reports results on GSM8K and MATH-500.
 The distilled Qwen3-8B student achieves 82.5\% on GSM8K and 59.8\% on MATH-500, competitive with Llama-3.1-8B-Instruct (84.5\% / 52.2\%) and approaching DeepSeek-R1-Distill-Qwen-7B despite being trained exclusively on Chinese critique data.
 The teacher's anomalously low MATH-500 score (9.2\%) is likely an artefact of answer-extraction mismatch with Qwen3-32B's thinking-mode output format rather than a genuine capability deficit.
 

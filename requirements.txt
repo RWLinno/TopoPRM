@@ -11,3 +11,4 @@ jsonlines
 regex
 pytest
 wandb
+streamlit

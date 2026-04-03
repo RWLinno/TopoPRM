@@ -10,17 +10,18 @@
 # 0a) 创建目录
 mkdir -p ./logs ./output/eval ./output/analysis ./output/distill_data ./output/distill_logs
 
-# 0b) 数据流水线
-nohup bash scripts/run_data_pipeline.sh > ./logs/run_data_pipeline.log 2>&1 &
+# 0b) 数据流水线 [DONE 2026-04-03]
+# nohup bash scripts/run_data_pipeline.sh > ./logs/run_data_pipeline.log 2>&1 &
 
-# 0c) 下载公开 benchmark
-nohup bash scripts/download_benchmarks.sh > ./logs/run_download_benchmarks.log 2>&1 &
+# 0c) 下载公开 benchmark [DONE 2026-04-03]
+# nohup bash scripts/download_benchmarks.sh > ./logs/run_download_benchmarks.log 2>&1 &
 
 # ═══════════════════════════════════════════════════════════════
 # Phase 1: SFT 冷启动
 # ═══════════════════════════════════════════════════════════════
 
-nohup bash scripts/run_sft.sh > ./logs/run_sft.log 2>&1 &
+# [DONE 2026-04-03] 32B SFT
+# nohup bash scripts/run_sft.sh > ./logs/run_sft.log 2>&1 &
 
 # ═══════════════════════════════════════════════════════════════
 # Phase 2: GRPO 训练（主实验 + 消融）
@@ -29,17 +30,21 @@ nohup bash scripts/run_sft.sh > ./logs/run_sft.log 2>&1 &
 # 2a) 主实验：层次化聚合（推荐，解决 reward collapse）
 nohup bash scripts/run_grpo.sh grpo_hierarchical > ./logs/run_grpo_hierarchical.log 2>&1 &
 
-# 2b) 消融：仅答案奖励
-nohup bash scripts/run_grpo.sh grpo_outcome_only > ./logs/run_grpo_outcome_only.log 2>&1 &
+# 2b) 消融：仅答案奖励 [DONE 2026-04-03]
+# nohup bash scripts/run_grpo.sh grpo_outcome_only > ./logs/run_grpo_outcome_only.log 2>&1 &
 
-# 2c) 消融：去掉拓扑奖励
-nohup bash scripts/run_grpo.sh grpo_no_topo > ./logs/run_grpo_no_topo.log 2>&1 &
+# 2c) 消融：去掉拓扑奖励 [DONE 2026-04-03]
+# nohup bash scripts/run_grpo.sh grpo_no_topo > ./logs/run_grpo_no_topo.log 2>&1 &
 
-# 2d) 消融：去掉连续性奖励
-nohup bash scripts/run_grpo.sh grpo_no_continuity > ./logs/run_grpo_no_continuity.log 2>&1 &
+# 2d) 消融：去掉连续性奖励 [DONE 2026-04-03]
+# nohup bash scripts/run_grpo.sh grpo_no_continuity > ./logs/run_grpo_no_continuity.log 2>&1 &
 
-# 2e) 对比：线性聚合（用于展示 reward collapse）
-nohup bash scripts/run_grpo.sh grpo_main > ./logs/run_grpo_main.log 2>&1 &
+# 2e) 对比：线性聚合（用于展示 reward collapse）[DONE 2026-04-03]
+# nohup bash scripts/run_grpo.sh grpo_main > ./logs/run_grpo_main.log 2>&1 &
+
+# 2h) 新主实验：Qwen3.5-9B base + TopoPRM hierarchical（GPU 0-3）
+nohup env CUDA_VISIBLE_DEVICES=0,1,2,3 NPROC_PER_NODE=4 SFT_ADAPTER=/tmp/no_adapter \
+  bash scripts/run_grpo.sh grpo_hierarchical_qwen35_9b > ./logs/run_grpo_hierarchical_qwen35_9b.log 2>&1 &
 
 # 2f) [可选] 其他聚合策略消融
 # nohup bash scripts/run_grpo.sh grpo_clipped > ./logs/run_grpo_clipped.log 2>&1 &
@@ -71,10 +76,10 @@ nohup bash scripts/run_public_benchmarks.sh meta-llama/Llama-3.1-8B-Instruct "" 
 nohup bash scripts/run_public_benchmarks.sh Qwen/Qwen3-32B "" base_qwen3_32b > ./logs/benchmark_base_32b.log 2>&1 &
 
 # ═══════════════════════════════════════════════════════════════
-# Phase 5: DAG 结构质量评估
+# Phase 5: DAG 结构质量评估 [DONE 2026-04-03]
 # ═══════════════════════════════════════════════════════════════
 
-nohup bash scripts/run_dag_metrics.sh > ./logs/run_dag_metrics.log 2>&1 &
+# nohup bash scripts/run_dag_metrics.sh > ./logs/run_dag_metrics.log 2>&1 &
 
 # ═══════════════════════════════════════════════════════════════
 # Phase 6: 蒸馏
@@ -91,7 +96,8 @@ nohup bash scripts/run_distill.sh distill_7b_compact > ./logs/run_distill.log 2>
 # Phase 7: 导出论文表格
 # ═══════════════════════════════════════════════════════════════
 
-python3 -m src.eval.export_paper_tables --eval_dir output/eval --output output/eval/paper_table_summary.csv
+# [DONE 2026-04-03]
+# python3 -m src.eval.export_paper_tables --eval_dir output/eval --output output/eval/paper_table_summary.csv
 
 # ═══════════════════════════════════════════════════════════════
 # Phase 8: 清理（可选，先 dry-run）

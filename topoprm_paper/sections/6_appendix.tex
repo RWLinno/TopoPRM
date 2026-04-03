@@ -1,5 +1,3 @@
-\newpage
-\appendix
 \section{Training Details}
 \label{app:details}
 
@@ -13,9 +11,11 @@ warmup, batch size 2, gradient accumulation 8, and max sequence length
 8{,}192. Final SFT loss: 0.311, token accuracy: 89.7\%.
 
 \paragraph{GRPO stage.}
-We train with the TopoPRM composite reward on 637 Chinese mathematical
-critique prompts. Each prompt generates 8 completions with temperature
-0.7, top-$p$ 0.95, and max completion length 2{,}048. We adopt the
+We train with TopoPRM rewards on 637 Chinese mathematical critique
+prompts. Generation hyperparameters are configuration-dependent; in the
+released runs we use temperatures in $[0.7, 0.9]$, top-$p=0.95$, and
+max completion length 2{,}048, with 6--16 completions per prompt
+depending on the reward-aggregation variant. We adopt the
 MS-Swift \emph{server mode} architecture, where a dedicated vLLM rollout
 server (4 GPUs, tensor-parallel) handles high-throughput generation while
 4 separate GPUs perform LoRA gradient updates. After each optimisation
@@ -25,8 +25,11 @@ runs for 1 epoch with learning rate $5 \times 10^{-6}$, cosine decay,
 per-device batch size 2, and gradient accumulation 4.
 
 \paragraph{Reward weights.}
-Default weights: $w_o = 0.4$ (outcome), $w_t = 0.2$ (topology),
-$w_c = 0.15$ (continuity), $w_f = 0.15$ (format), $w_l = 0.1$ (length).
+For linear aggregation (\texttt{topo\_composite}), we use
+$w_o = 0.4$, $w_t = 0.2$, $w_c = 0.15$, $w_f = 0.15$, $w_l = 0.1$.
+For hierarchical aggregation (\texttt{topo\_hierarchical}), the base term
+uses $(w_o, w_f, w_l) = (0.70, 0.15, 0.15)$ and topology/continuity
+act as multiplicative gain factors (Section~\ref{sec:method}).
 
 \paragraph{Hardware.}
 All experiments run on 8$\times$ NVIDIA L20X GPUs (143\,GB VRAM each).
@@ -113,30 +116,15 @@ Linear decay from 1.0 (at $\leq$ 2{,}000 characters) to 0.0 (at
 $\geq$ 4{,}000 characters).
 
 \paragraph{Topological structure reward.}
-Defined in \S\ref{sec:method}.
-The topology reward decomposes into six auditable components with default weights:
-valid DAG ($\lambda_b{=}0.20$), acyclicity ($\lambda_a{=}0.15$),
-no-orphan conclusions ($\lambda_o{=}0.15$), directional consistency
-($\lambda_d{=}0.15$), step alignment ($0.10$), and reference-edge F1
-($\lambda_k{=}0.25$, redistributed when no reference graph is available).
-A hard gate zeros the topology score when the extracted graph is invalid.
-
-\paragraph{Dynamic weight adaptation.}
-The composite reward supports optional dynamic weight adaptation.
-At each batch, per-component correlation with outcome correctness and
-spread (standard deviation) are computed.
-A reliability score $\rho_m = 0.5 \cdot \mathrm{corr}(r_m, r_o) + 0.5 \cdot \min(1, 2\sigma_m)$
-modulates each weight, blended with the static baseline via
-$\eta{=}0.50$.
-An outcome-floor constraint ($w_o \geq 0.35$) is enforced after
-renormalisation to prevent correctness signal erosion.
+Defined in \S\ref{sec:r_topo}. The DAG extraction uses rule-based step
+segmentation (numbered steps, mathematical delimiters, logical
+connectives) and dependency detection (shared mathematical expressions,
+variable references).
 
 \paragraph{Continuity reward.}
-Defined in \S\ref{sec:method}. Uses regex-based expression matching
+Defined in \S\ref{sec:r_cont}. Uses regex-based expression matching
 to verify that each step references expressions or claims from prior
 steps or the problem statement.
-Full coverage ($\eta{=}1.0$) yields reward 1.0; partial coverage yields
-$0.8\,\eta$.
 
 \section{Limitations}
 \label{app:limitations}
@@ -198,15 +186,12 @@ trace is 23\% shorter than the SFT output while maintaining correctness.
 \section{Distillation Details}
 \label{app:distill}
 
-For reasoning compression, we use the TopoPRM-trained Qwen3-32B
-(GRPO checkpoint-79) as the teacher model to generate high-quality
-reasoning traces. We filter teacher outputs to retain only those with
-composite reward $R_\mathrm{total} > 0.7$. The student model (Qwen3-8B)
-is trained using reverse-KL distillation with LoRA (rank 32, alpha 64)
-for 2 epochs, max sequence length 2{,}048, learning rate
-$3 \times 10^{-5}$, and a maximum of 4{,}000 training samples.
-On public benchmarks, the distilled student achieves 82.5\% on GSM8K
-(1{,}319 problems) and 59.8\% on MATH-500.
+For reasoning compression, we use the TopoPRM-trained Qwen3-32B as the
+teacher model to generate high-quality reasoning traces. We filter
+teacher outputs to retain only those with composite reward
+$R_\mathrm{total} > 0.7$. The student models (Qwen3-14B, Qwen3-7B) are
+then trained using reverse-KL distillation with LoRA (rank 32, alpha 64)
+for 3 epochs.
 
 \section{Additional Results}
 \label{app:additional}

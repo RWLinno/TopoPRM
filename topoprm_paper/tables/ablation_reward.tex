@@ -1,0 +1,52 @@
+% \begin{table}[t]
+% \centering
+% \caption{Reward-aggregation ablation snapshot. Only completed runs with valid private benchmark outputs are filled; current numeric entries are from the light-200 subset, and other entries remain TBD.}
+% \label{tab:ablation_reward}
+% \resizebox{\textwidth}{!}{%
+% \begin{tabular}{l ccccc}
+% \toprule
+% \textbf{Reward Configuration} & \textbf{Middle-Acc} & \textbf{High-Acc} & \textbf{Format\%} & \textbf{Train Reward} & \textbf{Avg-Len} \\
+% \midrule
+% Outcome Only               & 0.195 & 0.130 & 0.873 & 0.00000 & 1839.74 \\
+% TopoPRM (linear)           & 0.330 & 0.255 & 0.910 & 0.10048 & 664.57 \\
+% TopoPRM (mulgate)          & TBD & TBD & TBD & TBD & TBD \\
+% TopoPRM (confgate)         & TBD & TBD & TBD & TBD & TBD \\
+% TopoPRM (clipped)          & TBD & TBD & TBD & TBD & TBD \\
+% \rowcolor{blue!5}
+% TopoPRM (SCAE-style)       & TBD & TBD & TBD & TBD & TBD \\
+% \quad w/o Topo            & TBD & TBD & TBD & 0.30000 (train) & 785.25 (train) \\
+% \quad w/o Continuity      & TBD & TBD & TBD & TBD & TBD \\
+% \midrule
+% SFT Baseline               & 0.390 & 0.265 & 0.473 & TBD & TBD \\
+% \bottomrule
+% \end{tabular}
+% }
+% \end{table}
+
+% Table 2: Ablation study on reward components.
+\begin{table}[t]
+\centering
+\caption{Ablation study on reward components.  Each row removes one signal
+  from the full TopoPRM composite reward.  All GRPO models start from the
+  same Qwen3-32B + SFT checkpoint.  $\Delta$ denotes the absolute change in
+  Overall-Acc relative to TopoPRM (full).}
+\label{tab:ablation_reward}
+\vspace{2pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l cccc c@{}}
+\toprule
+\textbf{Reward Configuration}
+  & \textbf{Middle-Acc} & \textbf{High-Acc} & \textbf{Format\%} & \textbf{Avg-Len}
+  & $\boldsymbol{\Delta}$ \\
+\midrule
+\rowcolor{blue!5}
+TopoPRM (full)       & \textbf{37.2} & \textbf{22.3} & \textbf{94.6} & 364  & --- \\
+\quad w/o Topology   & 23.0 & 16.5 & 91.0 & 397  & $-9.9$ \\
+\quad w/o Continuity & 27.5 & 20.0 & 90.5 & 379  & $-5.9$ \\
+Outcome Only         & 19.5 & 13.0 & 89.0 & 410  & $-13.4$ \\
+\midrule
+SFT Baseline         & 39.0 & 26.5 & 48.8 & ---  & $+3.1$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

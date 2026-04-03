@@ -1,8 +1,0 @@
-\section{Conclusion}
-\label{sec:conclusion}
-
-We presented TopoPRM, a framework that adds deterministic, auditable process supervision to RLVR-based mathematical reasoning training.
-By extracting dependency DAGs from reasoning traces and computing topology and continuity rewards through rule-based programs, TopoPRM improves critique accuracy by $+13.4$ points over outcome-only GRPO while reducing response length by 11\%, without requiring learned reward models or human step-level annotations.
-Reverse-KL distillation further compresses these gains into a Qwen3-8B student that achieves 82.5\% on GSM8K and 59.8\% on MATH-500.
-The entire pipeline operates as a plugin-compatible extension to standard GRPO stacks.
-Limitations and future directions are discussed in Appendix~\ref{app:limitations}.

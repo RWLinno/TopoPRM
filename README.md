@@ -40,6 +40,61 @@ conda activate topoprm
 pip install -r requirements.txt
 ```
 
+### GUI: DAG 可视化启动（重点）
+
+TopoPRM 提供了一个 Streamlit 可视化界面，用于查看：
+- 线性推理文本如何被解析成层次化 DAG；
+- 各 reward 分量（outcome/format/topology/continuity/length）如何计算；
+- DAG 结构标注、层次压缩映射（layer -> compressed chain）、导出 JSON 与图片。
+
+启动方式（推荐）：
+
+```bash
+cd /mnt/users/rwl/topoprm
+conda activate topoprm
+
+# 默认端口 8765，默认关闭 watcher（避免 inotify 上限问题）
+bash scripts/run_dag_gui.sh
+
+# 指定端口和数据集
+bash scripts/run_dag_gui.sh 8765 data/grpo_ready/train.jsonl none
+
+# 指定最多向后扫描多少个端口（默认 30）
+bash scripts/run_dag_gui.sh 8765 data/grpo_ready/train.jsonl none 100
+```
+
+成功后可访问：
+- `http://localhost:8765`
+- `http://<你的机器IP>:8765`
+
+单视图展示说明（默认）：
+- 一个图中同时显示顺序边（solid）和依赖边（virtual/barrier）；
+- 每一层节点由虚线框包裹（layer boxes）；
+- 箭头终点对齐节点边缘（非圆心），并对不同边型做曲率分离，避免重叠；
+- 右侧文本显示 `Lk -> Ck`，表示第 `k` 层压缩后映射到第 `k` 个链节点。
+
+如果页面打不开，优先排查：
+1. `logs/dag_gui.log` 是否有报错；
+2. 端口是否被占用（换端口重启）；
+3. 是否激活了正确环境（`conda activate topoprm`）。
+
+端口占用提示：
+- 当前脚本已支持自动端口回退：当 `8765` 被占用，会自动尝试 `8766`、`8767`...（可通过第四个参数控制扫描范围）。
+- 启动后终端会打印最终 URL（例如 `http://localhost:8766`），按打印地址访问即可。
+
+常见问题：
+- `ModuleNotFoundError: No module named 'src'`  
+  已在脚本中通过 `PYTHONPATH` 注入解决。若你手工运行 `streamlit`，请确保 `PYTHONPATH` 包含项目根目录。
+- `inotify watch limit reached`  
+  默认脚本已设置 `STREAMLIT_SERVER_FILE_WATCHER_TYPE=none` 规避。若需要热更新 watcher，请自行调高系统 `fs.inotify.max_user_watches`。
+
+提取/构图相关可选环境变量：
+- `TOPO_SEQ_WEAK_EDGE_MODE=adaptive|full|off`  
+  - `adaptive`（默认）：只在缺少强依赖时补顺序弱边，减少“全链化”退化；
+  - `full`：强制保留完整顺序链；
+  - `off`：关闭顺序弱边，仅看依赖/屏障关系。
+- `TOPO_ENABLE_SEQUENTIAL_WEAK_EDGE=0|1`：总开关。
+
 ### Recommended Repro Order
 
 ```bash
@@ -110,6 +165,21 @@ Set `TOPO_ABLATION_CONFIG` env var to point to your config file.
 - **rule_based** (default): Deterministic DAG quality metrics (acyclicity, orphan ratio, etc.)
 - **gat**: Lightweight GAT (2-layer, 64-dim, 4 heads) with Laplacian position encoding
 - **hybrid**: Average of rule-based and GAT scores
+
+### Formula-Level Topology Diagnostics
+
+`r_topo` 按如下分项计算并保留逐样本诊断（可在 GUI 里查看 `topology_terms`）：
+
+```text
+r_topo = λ_b*I[|V|>0] + λ_a*I[acyclic] + λ_o*I[rho_orphan=0] + λ_d*delta + λ_k*kappa
+```
+
+诊断字段包含：
+- 原始指标：`rho_orphan`, `delta`, `kappa`
+- 逐项贡献：`term_base`, `term_acyclic`, `term_orphan`, `term_delta`, `term_kappa`
+- 系数与归一化：`lambda_*`, `denom`, `r_topo`
+
+当没有参考图时，`kappa` 项自动置零并从归一化分母移除（不惩罚无参考数据）。
 
 ## Distillation Design
 

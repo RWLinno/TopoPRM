@@ -10,6 +10,8 @@ from src.data.build_dag import (
     build_dag_from_answer,
     parse_answer_to_dag_debug,
 )
+from src.dag.graph import ReasoningDAG
+from src.dag.node import LocalVerdict, Node
 from src.dag.node import StepType
 
 
@@ -98,6 +100,10 @@ class TestExtractClaims:
     def test_because_therefore(self):
         claims = extract_claims("∵ x>0，∴ x²>0")
         assert len(claims) >= 1
+
+    def test_incomplete_fragment_filtered(self):
+        claims = extract_claims("所有有两种运输方案：")
+        assert claims == []
 
 
 class TestExtractVariables:
@@ -191,3 +197,21 @@ class TestBuildDagFromAnswer:
         _, debug = parse_answer_to_dag_debug(answer)
         assert "steps" in debug and debug["steps"]
         assert "edges" in debug
+
+    def test_hybrid_verdict_prefers_reference(self):
+        answer = "设 x=1\n因此 y=x+1\n故 y=2"
+        ref = ReasoningDAG("ref")
+        ref.add_node(Node(step_id=0, raw_text="设 x=1", local_verdict=LocalVerdict.CORRECT))
+        ref.add_node(Node(step_id=1, raw_text="因此 y=x+1", local_verdict=LocalVerdict.INCORRECT))
+        ref.add_node(Node(step_id=2, raw_text="故 y=2", local_verdict=LocalVerdict.CORRECT))
+        dag, _ = parse_answer_to_dag_debug(answer, reference_dag=ref.to_dict())
+        assert dag.nodes[1].local_verdict == LocalVerdict.INCORRECT
+
+    def test_non_chain_dependency_edge_exists(self):
+        answer = "设 x=1\n由 x=1 得 y=2\n由 x=1 得 z=3\n故 y+z=5"
+        dag, debug = parse_answer_to_dag_debug(answer)
+        assert dag.num_nodes >= 4
+        # Expect at least one dependency edge that is not simple order.
+        dep_types = [d.get("dep_type", "") for _, _, d in dag.graph.edges(data=True)]
+        assert any(t in {"expr_ref", "claim_ref", "var_ref", "expr_overlap"} for t in dep_types)
+        assert "edge_source_stats" in debug["summary"]

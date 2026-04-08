@@ -4,7 +4,12 @@ import pytest
 
 from src.dag.node import Node, Edge, StepType, LocalVerdict
 from src.dag.graph import ReasoningDAG
-from src.dag.compress import merge_sequential_same_type, remove_transitive_edges, compress_dag
+from src.dag.compress import (
+    merge_sequential_same_type,
+    remove_transitive_edges,
+    compress_dag,
+    compress_dag_by_layers,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -275,3 +280,20 @@ class TestCompression:
         compressed = compress_dag(dag)
         assert compressed.num_nodes == 0
         assert compressed.num_edges == 0
+
+    def test_compress_by_layers(self):
+        dag = ReasoningDAG("layers")
+        for i in range(5):
+            dag.add_node(Node(step_id=i, raw_text=f"s{i}", step_type=StepType.DERIVATION))
+        dag.graph.add_edge(0, 1, edge_type="virtual_edge", dep_type="expr_ref", weight=1.0)
+        dag.graph.add_edge(0, 2, edge_type="virtual_edge", dep_type="expr_ref", weight=1.0)
+        dag.graph.add_edge(1, 3, edge_type="virtual_edge", dep_type="expr_ref", weight=1.0)
+        dag.graph.add_edge(2, 3, edge_type="virtual_edge", dep_type="expr_ref", weight=1.0)
+        dag.graph.add_edge(3, 4, edge_type="virtual_edge", dep_type="expr_ref", weight=1.0)
+
+        compressed, layer_to_nodes, node_to_layer = compress_dag_by_layers(dag)
+        assert compressed.num_nodes == len(layer_to_nodes)
+        assert compressed.num_edges == max(0, compressed.num_nodes - 1)
+        assert layer_to_nodes[0] == [0]
+        assert set(layer_to_nodes[1]) == {1, 2}
+        assert node_to_layer[4] == max(layer_to_nodes.keys())

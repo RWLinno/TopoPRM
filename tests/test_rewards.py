@@ -109,6 +109,29 @@ class TestTopoReward:
         scores = self.reward(_wrap(text))
         assert scores[0] >= 0.6  # base 0.4 + acyclic 0.2
 
+    def test_formula_terms_consistency(self):
+        think = "设 x=1\n由 x=1 得 y=2\n故 y=2"
+        text = f"<think>{think}</think><answer>ok</answer>"
+        scores = self.reward(_wrap(text))
+        assert len(scores) == 1
+        assert self.reward.last_diagnostics
+        diag = self.reward.last_diagnostics[0]
+        required = {
+            "lambda_base", "lambda_acyclic", "lambda_orphan", "lambda_delta", "lambda_kappa",
+            "rho_orphan", "delta", "kappa",
+            "term_base", "term_acyclic", "term_orphan", "term_delta", "term_kappa",
+            "denom", "r_topo",
+        }
+        assert required.issubset(set(diag.keys()))
+        recomputed = (
+            diag["term_base"]
+            + diag["term_acyclic"]
+            + diag["term_orphan"]
+            + diag["term_delta"]
+            + diag["term_kappa"]
+        ) / max(diag["denom"], 1e-12)
+        assert diag["r_topo"] == pytest.approx(recomputed, abs=1e-9)
+
 
 # ---------------------------------------------------------------------------
 # ContinuityReward

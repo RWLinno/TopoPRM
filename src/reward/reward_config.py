@@ -45,6 +45,13 @@ class RewardConfig:
     TOPO_W_DIRECTION = env_float("TOPO_W_DIRECTION", 0.15)
     TOPO_W_STEP_ALIGN = env_float("TOPO_W_STEP_ALIGN", 0.10)
     TOPO_W_REF_EDGE_F1 = env_float("TOPO_W_REF_EDGE_F1", 0.25)
+    # Formula-aligned lambda terms for:
+    # r_topo = λ_b*I[|V|>0] + λ_a*I[acyclic] + λ_o*I[rho_orphan=0] + λ_d*delta + λ_k*kappa
+    TOPO_LAMBDA_BASE = env_float("TOPO_LAMBDA_BASE", TOPO_W_VALID)
+    TOPO_LAMBDA_ACYCLIC = env_float("TOPO_LAMBDA_ACYCLIC", TOPO_W_ACYCLIC)
+    TOPO_LAMBDA_ORPHAN = env_float("TOPO_LAMBDA_ORPHAN", TOPO_W_NO_ORPHAN)
+    TOPO_LAMBDA_DELTA = env_float("TOPO_LAMBDA_DELTA", TOPO_W_DIRECTION)
+    TOPO_LAMBDA_KAPPA = env_float("TOPO_LAMBDA_KAPPA", TOPO_W_REF_EDGE_F1)
     TOPO_REQUIRE_VALID_DAG = env_bool("TOPO_REQUIRE_VALID_DAG", True)
     TOPO_VERIFY_LOG_EVERY = env_int("TOPO_VERIFY_LOG_EVERY", 0)
 

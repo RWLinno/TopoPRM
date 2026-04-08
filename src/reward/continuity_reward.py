@@ -7,7 +7,7 @@ from swift.rewards import ORM, orms
 
 from src.data.build_dag import (
     canonicalize_expression,
-    extract_claims,
+    extract_claim_keys,
     extract_expressions,
     extract_steps_from_answer,
 )
@@ -64,7 +64,9 @@ class ContinuityReward(ORM):
             for step in steps:
                 step_text = step["raw_text"] if isinstance(step, dict) else str(step)
                 cur_exprs = {canonicalize_expression(e) for e in extract_expressions(step_text)}
-                cur_claims = {canonicalize_expression(c) for c in extract_claims(step_text)}
+                # Use canonical claim keys for continuity matching.
+                # Sentence-level claims are kept for display/debug, not matching.
+                cur_claims = set(extract_claim_keys(step_text))
 
                 if self._is_given_step(step_text):
                     continuous_count += 1

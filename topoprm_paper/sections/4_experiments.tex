@@ -11,6 +11,7 @@ The teacher is trained with the full TopoPRM.
 % 得加上一些训练参数和显卡信息等等。
 Distillation experiments compress the teacher into a 8B student mode via process-filtered reverse-KL training.
 Full hyperparameter details are provided in Appendix~\ref{app:details}.
+We additionally launch a Qwen3.5-9B rerun with the same reward framework and run matched ablations (outcome-only / no-topology / no-continuity) to validate method transferability across base models.
 
 \paragraph{Benchmarks.}
 For the private in-domain setting, we evaluate on two Chinese critique
@@ -104,6 +105,42 @@ Clipped linear aggregation partially mitigates collapse but underperforms the hi
 Table~\ref{tab:structural_metrics} reports DAG-level structural diagnostics.
 Models trained with the full TopoPRM reward produce traces with higher acyclicity rates, fewer orphan conclusions, and stronger directional consistency.
 Improvements in these metrics reflect enhanced structural traceability under the extracted-graph proxy, not proof-level semantic verification---an important scope distinction discussed in \S\ref{sec:reward_module}.
+After introducing sentence-level claim filtering and hybrid verdict assignment, structural diagnostics become substantially more informative:
+the fraction of samples with all-\texttt{unverifiable} nodes drops sharply, and edge-source statistics show reduced sequential-edge domination.
+This confirms that the observed gains are not artifacts of a chain-like fallback graph, but are driven by richer dependency structures.
+
+\input{tables/ablation_cross_scale}
+
+\paragraph{Cross-scale transferability.}
+\label{sec:analysis}
+Table~\ref{tab:ablation_cross_scale} extends the ablation to Qwen3.5-9B and Qwen2.5-7B.
+On 32B, every reward component contributes positively: removing topology costs $-9.5$ points and removing continuity costs $-5.5$.
+However, the pattern \emph{reverses} on smaller models: on 9B, removing topology \emph{improves} accuracy by $+2.3$; on 7B, outcome-only GRPO outperforms the full TopoPRM by $+5.8$.
+
+Training-dynamics diagnostics reveal three failure modes.
+\emph{(i)~Truncation noise}: on 9B, 100\% of generations are truncated at \texttt{max\_completion\_length}, producing incomplete DAGs whose topology scores inject noise rather than signal.
+\emph{(ii)~Reward-variance collapse}: on 7B, ablation rewards yield zero within-batch reward standard deviation (ZeroStd$\approx$1.0) for 99\% of batches, preventing GRPO from computing meaningful advantages.
+Only the hierarchical multiplicative formulation maintains non-zero variance (ZeroStd$=$0.017) via batch-level min-max rescaling.
+\emph{(iii)~Format collapse}: 7B format compliance drops to 19--52\% (vs.\ 83--91\% on 9B/32B), breaking the outcome reward's ability to parse answers.
+
+\paragraph{Extended context mitigates truncation noise.}
+To address failure mode~(i), we increase \texttt{max\_completion\_length} from 1024 to 4096 on 9B.
+Table~\ref{tab:ablation_cross_scale} (bottom block) shows that extended context narrows the gap between reward variants: no-topology achieves 30.5\% overall (vs.\ 31.0\% at mcl=1024), while gated and outcome-only both reach 29.0\%.
+Critically, the hierarchical variant drops to 27.5\%, suggesting that the multiplicative formulation amplifies noise from longer but still imperfect DAGs.
+The gated reward---which applies topology scoring only when the base format+outcome signal exceeds a threshold---achieves parity with outcome-only (29.0\%), confirming that selective topology application avoids the noise injection problem.
+
+\paragraph{SFT initialisation matters.}
+We observe that 9B models initialised from a 32B-distilled SFT adapter versus a native 9B SFT adapter exhibit different GRPO dynamics.
+The 9B SFT baseline achieves 40.5\% Middle accuracy with 98.0\% format compliance, substantially outperforming all GRPO variants (29.5--33.0\% Middle).
+This suggests that for smaller models, supervised fine-tuning on high-quality critique data may be more effective than reinforcement learning with process rewards, particularly when the model lacks sufficient capacity to simultaneously learn format, content, and structural reasoning.
+
+Increasing the number of generations from 2 to 4 (ng4) recovers $+2.3$ points on 9B, matching the no-topology ablation, suggesting that richer exploration partially compensates for noisy topology signals.
+These results indicate that topology-aware process rewards require sufficient model capacity and generation budget to be effective, and motivate future work on truncation-robust topology scoring and adaptive reward curricula.
+
+\paragraph{Layer-compression closure.}
+To verify the end-to-end topology-to-compression pipeline, we additionally evaluate layer-wise DAG compression, where each topological layer is collapsed into one chain node.
+Compared with direct sequential-chain baselines, this produces a shorter reasoning backbone while preserving inter-layer ordering constraints.
+In practice, the layer-compressed chain offers a stable interface for distillation data filtering and visual auditing, linking process reward diagnostics directly to reasoning compression behavior.
 
 %% ─────────────────────────────────────────────────────────────
 %% RQ3: Efficiency analysis
@@ -136,6 +173,18 @@ The reward computation overhead from DAG extraction and topology scoring adds $<
 Table~\ref{tab:compression} evaluates reasoning compression via reverse-KL distillation.
 The Qwen3-8B student not only retains but substantially exceeds the teacher's critique accuracy (59.0\% vs.\ 29.7\%), while maintaining high format compliance (94--97\%).
 We attribute this to the process-aware filtering in distillation data construction, which selects only teacher traces with composite reward $R_{\mathrm{total}} > 0.7$, effectively removing noisy training signal.
+
+\paragraph{Compression-oriented RLVR narrative.}
+Our results support a two-stage view of efficient reasoning alignment.
+Stage~I (RLVR with deterministic process rewards) improves structural
+quality and produces high-quality trajectories; Stage~II (reverse-KL
+compression) converts these trajectories into a compact student policy.
+This decomposition is important empirically: on 9B, direct GRPO variants
+are sensitive to reward design and model capacity, whereas the distilled
+8B student remains strong and stable. In other words, RLVR mainly
+provides a high-fidelity \emph{signal generator}, and distillation is the
+main \emph{capacity transfer} mechanism that turns verbose structured
+reasoning into deployable compact behaviour.
 
 \input{tables/case_study}
 

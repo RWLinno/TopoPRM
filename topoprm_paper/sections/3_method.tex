@@ -30,6 +30,14 @@ For reasoning traces $y=(s_1,\ldots,s_T)$ from the \texttt{<think>} block, we ap
 \end{equation}
 where each node $v_i\in\mathcal{V}$ corresponds to reasoning step $s_i$, and each directed edge $(u,v)\in\mathcal{A}$ indicates a rule-defined dependency (expression reuse, claim reference, or structural connector).
 The extractor segments the trace by numbered steps, mathematical delimiters, and logical connectives, then detects dependencies through shared mathematical expressions and variable references.
+To reduce parser artifacts, claim extraction is sentence-level rather than phrase-level:
+heading fragments and unfinished prefixes (e.g., ``all cases are:'' without a predicate) are filtered out before graph construction.
+This prevents malformed claim nodes from dominating dependency matching.
+
+Node-level verdicts use a hybrid policy.
+If reference DAG verdicts are available, they are copied directly.
+Otherwise, we apply deterministic fallback rules based on support evidence, conclusion support status, and explicit contradiction markers to assign \texttt{correct}/\texttt{incorrect}/\texttt{unverifiable}.
+This avoids the degenerate all-\texttt{unverifiable} regime during diagnostics.
 
 % 这个地方不像是方法正文应该写的，可以在附录详细说明
 % We emphasise an important scope distinction: the extracted graph is an inferred dependency DAG induced by deterministic rules, not a ground-truth proof graph.
@@ -49,6 +57,9 @@ r_{\mathrm{topo}}(\mathcal{G}) =
 where $\rho_{\mathrm{orphan}}$ measures the fraction of unsupported conclusion nodes, $\delta$ measures dependency direction consistency, and $\kappa$ is optional reference-edge coverage against a weak reference graph $\mathcal{G}^{*}$ when available.
 A hard gate zeros the entire score when the extracted graph is invalid.
 When no reference graph is available, $\lambda_k$ is redistributed proportionally among the remaining terms.
+For auditability, we log all raw indicators ($\rho_{\mathrm{orphan}},\delta,\kappa$), per-term contributions
+($\lambda_b\mathbb{1}[|\mathcal{V}|>0]$, $\lambda_a\mathbb{1}[\mathrm{acyclic}]$, $\lambda_o\mathbb{1}[\rho_{\mathrm{orphan}}=0]$, $\lambda_d\delta$, $\lambda_k\kappa$),
+and the final normalized $r_{\mathrm{topo}}$ for each sample.
 
 \subsubsection{Continuity Reward}
 The continuity reward captures local support traceability between adjacent reasoning steps:
@@ -147,6 +158,15 @@ In our setting, this compresses graph-enriched teacher reasoning into compact ch
 
 The distillation stage also incorporates length-aware reward shaping during data selection: correct answers receive higher weight as reasoning length decreases (rewarding conciseness), incorrect answers are penalised more heavily as length increases (discouraging verbose but wrong reasoning), and traces exceeding a maximum length threshold are excluded entirely.
 These criteria ensure that the student inherits both structural quality and reasoning efficiency from the teacher.
+
+From an RLVR perspective, this design follows a simple separation
+principle. The training \emph{direction} is determined in Stage~II by
+verifiable task/process rewards (outcome, topology, continuity, format),
+while Stage~III distillation primarily improves \emph{token-level
+efficiency} by concentrating student probability mass on high-quality
+teacher modes. This keeps the optimisation target anchored to
+deterministic verifiable signals, while still benefiting from dense
+token-level compression in the final student model.
 
 \begin{algorithm}[t]
 \caption{TopoPRM Training Pipeline}

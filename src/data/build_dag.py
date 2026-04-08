@@ -40,6 +40,7 @@ _INLINE_STEP_SPLIT_RE = re.compile(
     r"(?=(?:^|[\s。；;])(?:step\s*\d+|步骤\s*\d+|[（(]?\d+[)）][、.．:]?|第\s*\d+\s*步[:：]?))",
     re.IGNORECASE,
 )
+_SENTENCE_SPLIT_RE = re.compile(r"(?<=[。！？!?;；])\s+")
 
 _LATEX_CMD_RE = re.compile(r"\\[A-Za-z]+")
 _MATH_WS_RE = re.compile(r"\s+")
@@ -73,6 +74,11 @@ _CLAIM_PATTERNS: List[re.Pattern] = [
     re.compile(r"[\u2235\u2234]\s*(.+?)(?:[,\uff0c;\uff1b\u3002]|$)"),
 ]
 
+_CLAIM_VERB_HINTS = (
+    "是", "为", "等于", "得到", "可得", "推出", "所以", "因此", "故", "则", "说明", "成立", "不成立",
+    "平行", "垂直", "相等", "同余", "大于", "小于", "不少于", "不大于",
+)
+
 _TYPE_RULES: List[Tuple[List[str], StepType]] = [
     (["\u2235", "\u5df2\u77e5", "\u7531\u9898\u610f", "\u6839\u636e\u9898\u610f", "\u9898\u76ee\u7ed9\u51fa"], StepType.DEFINITION),
     (["\u2234", "\u63a8\u5f97", "\u6240\u4ee5", "\u56e0\u6b64", "\u7531\u6b64\u53ef\u5f97", "\u5219"], StepType.DERIVATION),
@@ -84,6 +90,7 @@ _TYPE_RULES: List[Tuple[List[str], StepType]] = [
 ]
 
 _ENABLE_SEQ_WEAK_EDGE = (os.environ.get("TOPO_ENABLE_SEQUENTIAL_WEAK_EDGE", "1") or "1") != "0"
+_SEQ_WEAK_EDGE_MODE = (os.environ.get("TOPO_SEQ_WEAK_EDGE_MODE", "adaptive") or "adaptive").lower()
 
 
 @dataclass
@@ -94,6 +101,7 @@ class ParsedStep:
     sub_question_id: Optional[int]
     exprs: List[str]
     claims: List[str]
+    claim_keys: List[str]
     variables: List[str]
     step_type: StepType
 
@@ -133,6 +141,50 @@ def _split_inline_steps(line: str) -> List[str]:
     return parts
 
 
+def _looks_incomplete_fragment(text: str) -> bool:
+    t = text.strip()
+    if not t:
+        return True
+    if t.endswith((":", "：", ",", "，", ";", "；")):
+        return True
+    # Typical heading-like fragments that should not become standalone nodes.
+    if re.match(r"^(思路|分析|解题思路|设|已知|证明|结论)\s*[:：]?$", t, re.IGNORECASE):
+        return True
+    return False
+
+
+def _split_sentences(text: str) -> List[str]:
+    raw = [s.strip() for s in _SENTENCE_SPLIT_RE.split(text) if s.strip()]
+    if not raw:
+        return []
+    out: List[str] = []
+    for seg in raw:
+        parts = [p.strip() for p in re.split(r"[。！？!?；;]+", seg) if p.strip()]
+        if parts:
+            out.extend(parts)
+        else:
+            out.append(seg)
+    return out
+
+
+def _is_complete_claim_sentence(text: str) -> bool:
+    t = text.strip()
+    if re.search(r"[=\u2260<>\u2264\u2265\u2248\u2225\u22a5\u2245\u223d]", t) and len(t) >= 3:
+        return True
+    if _looks_incomplete_fragment(t):
+        return False
+    if len(t) < 6:
+        return False
+    if re.search(r"[=\u2260<>\u2264\u2265\u2248]", t):
+        return True
+    return any(hint in t for hint in _CLAIM_VERB_HINTS)
+
+
+def _normalize_claim_sentence(text: str) -> str:
+    t = unicodedata.normalize("NFKC", text).strip()
+    return t.lower()
+
+
 def extract_steps_from_answer(standard_answer: str) -> List[Dict[str, Any]]:
     normalized = _normalize_answer_text(standard_answer)
     raw_lines = [l.strip() for l in normalized.splitlines() if l.strip()]
@@ -148,6 +200,8 @@ def extract_steps_from_answer(standard_answer: str) -> List[Dict[str, Any]]:
     for line in lines:
         line = _STEP_MARKER_RE.sub("", line).strip()
         if not line:
+            continue
+        if _looks_incomplete_fragment(line):
             continue
         sq = _detect_sub_question(line)
         if sq is not None:
@@ -209,6 +263,21 @@ def extract_expressions(text: str) -> List[str]:
 
 
 def extract_claims(text: str) -> List[str]:
+    """Extract sentence-level claims for node display and structural reasoning.
+
+    We intentionally keep full claim sentences (instead of atom-level snippets)
+    to avoid incomplete fragments such as '所有有两种运输方案：'.
+    """
+    claims: List[str] = []
+    for sent in _split_sentences(unicodedata.normalize("NFKC", text)):
+        normalized = _normalize_claim_sentence(sent)
+        if _is_complete_claim_sentence(normalized) and normalized not in claims:
+            claims.append(normalized)
+    return claims
+
+
+def extract_claim_keys(text: str) -> List[str]:
+    """Extract canonical claim keys for dependency matching."""
     claims: List[str] = []
     for pat in _CLAIM_PATTERNS:
         for m in pat.finditer(text):
@@ -251,7 +320,7 @@ def build_dependency_edges_by_rules(
     for step in sorted(steps, key=lambda n: n.step_id):
         for expr in step.exprs:
             expr_origin.setdefault(expr, step.step_id)
-        for claim in step.claims:
+        for claim in step.claim_keys:
             claim_origin.setdefault(claim, step.step_id)
         for var in step.variables:
             var_origin.setdefault(var, step.step_id)
@@ -277,7 +346,7 @@ def build_dependency_edges_by_rules(
                     seen_sources.add(prev_src)
                     break
 
-        for claim in step.claims:
+        for claim in step.claim_keys:
             src = claim_origin.get(claim)
             if src is not None and src < step.step_id and src not in seen_sources:
                 edges.append((src, step.step_id, VIRTUAL_EDGE, "claim_ref"))
@@ -311,9 +380,104 @@ def build_dependency_edges_by_llm(
     return build_dependency_edges_by_rules(nodes)
 
 
+def _should_add_seq_edge(dag: ReasoningDAG, src_id: int, tgt_id: int) -> bool:
+    mode = _SEQ_WEAK_EDGE_MODE
+    if mode == "off":
+        return False
+    if mode == "full":
+        return True
+    # adaptive (default): only add weak sequential edge when target has
+    # no incoming dependency/barrier edge yet, reducing chain-like domination.
+    for u, v, data in dag.graph.in_edges(tgt_id, data=True):
+        _ = (u, v)
+        et = data.get("edge_type", "")
+        if dag.is_virtual_edge(et) or et == DOUBLE_BARRIER_EDGE:
+            return False
+    # Also avoid clutter when src already has a strong outgoing edge.
+    for u, v, data in dag.graph.out_edges(src_id, data=True):
+        _ = (u, v)
+        et = data.get("edge_type", "")
+        if dag.is_virtual_edge(et):
+            return False
+    return True
+
+
+def _add_sequential_weak_edges(dag: ReasoningDAG) -> int:
+    ids = sorted(dag.nodes)
+    added = 0
+    for a, b in zip(ids, ids[1:]):
+        if _should_add_seq_edge(dag, a, b) and not dag.graph.has_edge(a, b):
+            dag.graph.add_edge(
+                a,
+                b,
+                weight=0.3,
+                edge_type="solid_edge",
+                dep_type="order",
+            )
+            added += 1
+    return added
+
+
+def _parse_reference_dag(raw_ref: Any) -> Optional[ReasoningDAG]:
+    if raw_ref is None:
+        return None
+    try:
+        if isinstance(raw_ref, ReasoningDAG):
+            return raw_ref
+        if isinstance(raw_ref, dict):
+            return ReasoningDAG.from_dict(raw_ref)
+        if isinstance(raw_ref, str) and raw_ref.strip():
+            return ReasoningDAG.from_json(raw_ref)
+    except Exception:
+        return None
+    return None
+
+
+def _fallback_verdict(step: ParsedStep, has_virtual_in: bool, has_virtual_out: bool) -> LocalVerdict:
+    text = step.normalized_text
+    if re.search(r"错误|不成立|矛盾|有误|invalid|wrong", text, re.IGNORECASE):
+        return LocalVerdict.INCORRECT
+    if step.step_type == StepType.CONCLUSION and not has_virtual_in:
+        return LocalVerdict.INCORRECT
+    if step.exprs or step.claims or has_virtual_in or has_virtual_out:
+        return LocalVerdict.CORRECT
+    return LocalVerdict.UNVERIFIABLE
+
+
+def _assign_hybrid_verdicts(
+    dag: ReasoningDAG,
+    parsed_steps: List[ParsedStep],
+    ref_dag: Optional[ReasoningDAG],
+) -> None:
+    ref_map: Dict[int, LocalVerdict] = {}
+    if ref_dag is not None:
+        for sid, node in ref_dag.nodes.items():
+            ref_map[sid] = node.local_verdict
+
+    by_sid = {s.step_id: s for s in parsed_steps}
+    for sid, node in dag.nodes.items():
+        if sid in ref_map:
+            node.local_verdict = ref_map[sid]
+            continue
+        has_virtual_in = any(
+            dag.is_virtual_edge(data.get("edge_type", ""))
+            for _, _, data in dag.graph.in_edges(sid, data=True)
+        )
+        has_virtual_out = any(
+            dag.is_virtual_edge(data.get("edge_type", ""))
+            for _, _, data in dag.graph.out_edges(sid, data=True)
+        )
+        step = by_sid.get(sid)
+        if step is None:
+            node.local_verdict = LocalVerdict.UNVERIFIABLE
+        else:
+            node.local_verdict = _fallback_verdict(step, has_virtual_in, has_virtual_out)
+
+
 def parse_answer_to_dag_debug(
     answer: str,
     problem_id: str = "",
+    reference_dag: Optional[Any] = None,
 ) -> Tuple[ReasoningDAG, Dict[str, Any]]:
     dag = ReasoningDAG(problem_id=problem_id)
     debug: Dict[str, Any] = {
@@ -327,11 +491,13 @@ def parse_answer_to_dag_debug(
         return dag, debug
 
     parsed_steps: List[ParsedStep] = []
+    parsed_ref_dag = _parse_reference_dag(reference_dag)
     for s in raw_steps:
         text = s["raw_text"]
         norm = unicodedata.normalize("NFKC", text).strip()
         exprs = extract_expressions(text)
         claims = extract_claims(text)
+        claim_keys = extract_claim_keys(text)
         variables = extract_variables(f"{norm} {' '.join(exprs)}")
         stype = classify_step_type(text)
 
@@ -342,6 +508,7 @@ def parse_answer_to_dag_debug(
             sub_question_id=s.get("sub_question_id"),
             exprs=exprs,
             claims=claims,
+            claim_keys=claim_keys,
             variables=variables,
             step_type=stype,
         )
@@ -366,20 +533,25 @@ def parse_answer_to_dag_debug(
                 "normalized_text": parsed.normalized_text,
                 "exprs": parsed.exprs,
                 "claims": parsed.claims,
+                "claim_keys": parsed.claim_keys,
                 "variables": parsed.variables,
                 "step_type": parsed.step_type.value,
                 "sub_question_id": parsed.sub_question_id,
             }
         )
 
-    if _ENABLE_SEQ_WEAK_EDGE:
-        dag.add_sequential_edges()
     dep_edges, evidences = build_dependency_edges_by_rules(parsed_steps)
     for src_id, tgt_id, edge_type, dep_type in dep_edges:
         if edge_type == VIRTUAL_EDGE:
             dag.add_dependency_edge(src_id, tgt_id, dep_type)
         else:
             dag.add_implicit_barrier_edge(src_id, tgt_id)
+
+    seq_edges_added = 0
+    if _ENABLE_SEQ_WEAK_EDGE:
+        seq_edges_added = _add_sequential_weak_edges(dag)
+
+    _assign_hybrid_verdicts(dag, parsed_steps, parsed_ref_dag)
 
     debug["edges"] = [
         {
@@ -391,11 +563,24 @@ def parse_answer_to_dag_debug(
         }
         for e in evidences
     ]
+    edge_source_stats: Dict[str, int] = {}
+    for _, _, d in dag.graph.edges(data=True):
+        dep_type = d.get("dep_type", "unknown")
+        edge_source_stats[dep_type] = edge_source_stats.get(dep_type, 0) + 1
+    verdict_stats: Dict[str, int] = {}
+    for n in dag.nodes.values():
+        k = n.local_verdict.value
+        verdict_stats[k] = verdict_stats.get(k, 0) + 1
+
     debug["summary"] = {
         "num_steps": len(parsed_steps),
         "num_nodes": dag.num_nodes,
         "num_edges": dag.num_edges,
         "enable_sequential_weak_edge": _ENABLE_SEQ_WEAK_EDGE,
+        "sequential_mode": _SEQ_WEAK_EDGE_MODE,
+        "seq_edges_added": seq_edges_added,
+        "edge_source_stats": edge_source_stats,
+        "verdict_stats": verdict_stats,
     }
     return dag, debug
 
@@ -403,8 +588,13 @@ def parse_answer_to_dag_debug(
 def build_dag_from_answer(
     answer: str,
     problem_id: str = "",
+    reference_dag: Optional[Any] = None,
 ) -> ReasoningDAG:
-    dag, _ = parse_answer_to_dag_debug(answer=answer, problem_id=problem_id)
+    dag, _ = parse_answer_to_dag_debug(
+        answer=answer,
+        problem_id=problem_id,
+        reference_dag=reference_dag,
+    )
     return dag
 
 

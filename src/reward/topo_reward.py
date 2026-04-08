@@ -37,6 +37,50 @@ class TopoVerification:
         }
 
 
+@dataclass
+class TopoFormulaTerms:
+    lambda_base: float
+    lambda_acyclic: float
+    lambda_orphan: float
+    lambda_delta: float
+    lambda_kappa: float
+    indicator_non_empty: float
+    indicator_acyclic: float
+    indicator_no_orphan: float
+    rho_orphan: float
+    delta: float
+    kappa: float
+    term_base: float
+    term_acyclic: float
+    term_orphan: float
+    term_delta: float
+    term_kappa: float
+    denom: float
+    r_topo: float
+
+    def as_dict(self) -> dict[str, float]:
+        return {
+            "lambda_base": self.lambda_base,
+            "lambda_acyclic": self.lambda_acyclic,
+            "lambda_orphan": self.lambda_orphan,
+            "lambda_delta": self.lambda_delta,
+            "lambda_kappa": self.lambda_kappa,
+            "indicator_non_empty": self.indicator_non_empty,
+            "indicator_acyclic": self.indicator_acyclic,
+            "indicator_no_orphan": self.indicator_no_orphan,
+            "rho_orphan": self.rho_orphan,
+            "delta": self.delta,
+            "kappa": self.kappa,
+            "term_base": self.term_base,
+            "term_acyclic": self.term_acyclic,
+            "term_orphan": self.term_orphan,
+            "term_delta": self.term_delta,
+            "term_kappa": self.term_kappa,
+            "denom": self.denom,
+            "r_topo": self.r_topo,
+        }
+
+
 class TopoReward(ORM):
     """Verifiable topology-aware reward for reasoning traces.
 
@@ -52,12 +96,20 @@ class TopoReward(ORM):
     W_STEP_ALIGN: float = RewardConfig.TOPO_W_STEP_ALIGN
     W_REF_EDGE_F1: float = RewardConfig.TOPO_W_REF_EDGE_F1
 
+    # Formula-aligned lambdas (Eq. r_topo)
+    LAMBDA_BASE: float = RewardConfig.TOPO_LAMBDA_BASE
+    LAMBDA_ACYCLIC: float = RewardConfig.TOPO_LAMBDA_ACYCLIC
+    LAMBDA_ORPHAN: float = RewardConfig.TOPO_LAMBDA_ORPHAN
+    LAMBDA_DELTA: float = RewardConfig.TOPO_LAMBDA_DELTA
+    LAMBDA_KAPPA: float = RewardConfig.TOPO_LAMBDA_KAPPA
+
     REQUIRE_VALID_DAG: bool = RewardConfig.TOPO_REQUIRE_VALID_DAG
     LOG_EVERY: int = RewardConfig.TOPO_VERIFY_LOG_EVERY
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__()
         self._num_calls = 0
+        self.last_diagnostics: list[dict[str, float]] = []
 
     @staticmethod
     def _safe_clip01(v: float) -> float:
@@ -139,6 +191,55 @@ class TopoReward(ORM):
             ref_edge_f1=self._safe_clip01(f1),
         )
 
+    def _compute_formula_terms(
+        self,
+        dag: ReasoningDAG,
+        v: TopoVerification,
+        has_ref: bool,
+    ) -> TopoFormulaTerms:
+        i_non_empty = 1.0 if dag.num_nodes > 0 else 0.0
+        i_acyclic = 1.0 if v.acyclic >= 1.0 else 0.0
+        rho_orphan = self._safe_clip01(1.0 - v.no_orphan)
+        i_no_orphan = 1.0 if rho_orphan <= 1e-12 else 0.0
+        delta = self._safe_clip01(v.direction_consistency)
+        kappa = self._safe_clip01(v.ref_edge_f1) if has_ref else 0.0
+
+        term_base = self.LAMBDA_BASE * i_non_empty
+        term_acyclic = self.LAMBDA_ACYCLIC * i_acyclic
+        term_orphan = self.LAMBDA_ORPHAN * i_no_orphan
+        term_delta = self.LAMBDA_DELTA * delta
+        lambda_kappa = self.LAMBDA_KAPPA if has_ref else 0.0
+        term_kappa = lambda_kappa * kappa
+        denom = max(
+            1e-12,
+            self.LAMBDA_BASE
+            + self.LAMBDA_ACYCLIC
+            + self.LAMBDA_ORPHAN
+            + self.LAMBDA_DELTA
+            + lambda_kappa,
+        )
+        r_topo = self._safe_clip01((term_base + term_acyclic + term_orphan + term_delta + term_kappa) / denom)
+        return TopoFormulaTerms(
+            lambda_base=self.LAMBDA_BASE,
+            lambda_acyclic=self.LAMBDA_ACYCLIC,
+            lambda_orphan=self.LAMBDA_ORPHAN,
+            lambda_delta=self.LAMBDA_DELTA,
+            lambda_kappa=lambda_kappa,
+            indicator_non_empty=i_non_empty,
+            indicator_acyclic=i_acyclic,
+            indicator_no_orphan=i_no_orphan,
+            rho_orphan=rho_orphan,
+            delta=delta,
+            kappa=kappa,
+            term_base=term_base,
+            term_acyclic=term_acyclic,
+            term_orphan=term_orphan,
+            term_delta=term_delta,
+            term_kappa=term_kappa,
+            denom=denom,
+            r_topo=r_topo,
+        )
+
     def _score(self, v: TopoVerification, has_ref: bool) -> float:
         weights = {
             'valid': self.W_VALID,
@@ -190,6 +291,7 @@ class TopoReward(ORM):
 
         rewards: list[float] = []
         diag_rows: list[dict[str, float]] = []
+        self.last_diagnostics = []
         for idx, completion in enumerate(completions):
             text = completion_to_text(completion)
             think_text = extract_think_block(text)
@@ -198,15 +300,21 @@ class TopoReward(ORM):
                 rewards.append(0.0)
                 continue
 
-            dag = build_dag_from_answer(think_text)
             ref = self._parse_ref(refs[idx] if idx < len(refs) else None)
+            dag = build_dag_from_answer(think_text, reference_dag=ref)
             verification = self._compute_verification(dag, len(steps), ref)
-            reward = self._score(verification, has_ref=(ref is not None))
+            has_ref = ref is not None
+            terms = self._compute_formula_terms(dag, verification, has_ref=has_ref)
+            reward = terms.r_topo
+            if self.REQUIRE_VALID_DAG and verification.valid_dag < 1.0:
+                reward = 0.0
             rewards.append(reward)
 
             row = verification.as_dict()
             row['r_topo'] = reward
+            row.update(terms.as_dict())
             diag_rows.append(row)
+            self.last_diagnostics.append(row)
 
         if self.LOG_EVERY:
             self._num_calls += 1

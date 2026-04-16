@@ -16,14 +16,24 @@ HIGH="${5:-data/test/light_high_200.jsonl}"
 
 mkdir -p output/eval
 
-MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-128}"
+MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-2048}"
+ENABLE_THINKING="${ENABLE_THINKING:-false}"
 COMMON_ARGS=(--model "$MODEL" --max_new_tokens "$MAX_NEW_TOKENS" --temperature 0.1)
+if [ "$ENABLE_THINKING" = "false" ]; then
+  COMMON_ARGS+=(--enable_thinking false)
+fi
 if [ "$ADAPTER" != "none" ]; then
   COMMON_ARGS+=(--adapters "$ADAPTER")
 fi
 
 echo "[light_eval] name=$NAME model=$MODEL adapter=$ADAPTER"
 echo "[light_eval] middle=$MIDDLE high=$HIGH"
+
+# Clean stale results to prevent append-contamination across reruns
+for stale in "output/eval/${NAME}_middle.jsonl" "output/eval/${NAME}_high.jsonl" \
+             "output/eval/${NAME}_middle_metrics.json" "output/eval/${NAME}_high_metrics.json"; do
+  [ -f "$stale" ] && rm -f "$stale" && echo "[light_eval] removed stale $stale"
+done
 
 swift infer "${COMMON_ARGS[@]}" \
   --val_dataset "$MIDDLE" \

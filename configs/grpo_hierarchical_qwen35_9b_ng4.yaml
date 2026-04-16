@@ -1,0 +1,49 @@
+model: /mnt/data/huggingface_downloads/models/qwen/Qwen3.5-9B
+
+dataset:
+  - data/grpo_ready/train.jsonl
+
+external_plugins:
+  - src/reward/composite_reward.py
+reward_funcs:
+  - topo_hierarchical
+
+num_generations: 4
+temperature: 0.8
+max_completion_length: 768
+top_p: 0.95
+
+use_vllm: true
+vllm_mode: colocate
+vllm_gpu_memory_utilization: 0.6
+vllm_max_model_len: 3072
+vllm_enable_prefix_caching: false
+sleep_level: 1
+offload_model: true
+offload_optimizer: true
+
+train_type: lora
+lora_rank: 64
+lora_alpha: 128
+target_modules: all-linear
+lora_dropout: 0.05
+
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 16
+learning_rate: 5e-6
+num_train_epochs: 1
+lr_scheduler_type: cosine
+warmup_ratio: 0.05
+weight_decay: 0.01
+max_length: 4096
+bf16: true
+gradient_checkpointing: true
+
+save_steps: 50
+save_total_limit: 3
+report_to:
+  - tensorboard
+  - wandb
+logging_steps: 5
+
+output_dir: output/grpo_hierarchical_qwen35_9b_ng4

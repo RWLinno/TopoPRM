@@ -1,10 +1,12 @@
 % Table: Case study — teacher vs student reasoning traces.
 \begin{table}[t]
 \centering
-\caption{Representative case study comparing teacher (Qwen3-32B + TopoPRM) and
-  student (Qwen3-8B + RKL) reasoning traces on a middle-school critique problem.
-  The student produces more concise reasoning while preserving key logical steps.
-  Full traces are provided in Appendix~\ref{app:case_study}.}
+\caption{Representative case study comparing teacher (Qwen3-32B + GRPO main,
+  checkpoint used for private eval) and student (Qwen3-8B + RKL distill) on the
+  \emph{same} middle-school prompt (aligned by hash of the user message in
+  \texttt{output/eval/*\_middle.jsonl}).  Both assign full credit; the student
+  uses finer step-block granularity (more blocks/tokens).  Full traces are in
+  Appendix~\ref{app:case_study}.}
 \label{tab:case_study}
 \vspace{2pt}
 \resizebox{\textwidth}{!}{%
@@ -12,13 +14,17 @@
 \toprule
 & \textbf{Teacher (32B)} & \textbf{Student (8B)} \\
 \midrule
-Problem & \multicolumn{2}{c}{\textit{(Example problem to be filled after experiment)}} \\
+Problem & \multicolumn{2}{p{11cm}}{%
+  Quadratic equation $x^2-6x-k^2=0$: (1) prove two distinct real roots;
+  (2) given roots $x_1,x_2$ with $x_1+2x_2=14$, find roots and $k$.} \\
 \midrule
-\# Steps & TBD & TBD \\
-\# Tokens & TBD & TBD \\
-Score-Acc & TBD & TBD \\
+\# Steps & 2 & 4 \\
+\# Tokens & 386 & 497 \\
+Score-Acc & 100\% & 100\% \\
 \midrule
-Key reasoning & TBD & TBD \\
+Key reasoning &
+  Coarse step blocks: discriminant proof then Vieta system for part (2). &
+  Same rubric, but splits work into smaller blocks (extra granularity in JSON). \\
 \bottomrule
 \end{tabular}%
 }

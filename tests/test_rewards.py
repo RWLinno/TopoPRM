@@ -70,7 +70,7 @@ class TestFormatReward:
 
     def test_partial_no_think(self):
         text = '<answer>{"score": 5}</answer>'
-        assert self.reward(_wrap(text)) == [0.3]
+        assert self.reward(_wrap(text)) == [0.5]
 
     def test_missing_tags(self):
         text = "这是一段普通文本，没有任何标签"
@@ -78,7 +78,7 @@ class TestFormatReward:
 
     def test_invalid_answer_json(self):
         text = "<think>ok</think><answer>NOT VALID JSON</answer>"
-        assert self.reward(_wrap(text)) == [0.0]
+        assert self.reward(_wrap(text)) == [0.1]
 
 
 # ---------------------------------------------------------------------------

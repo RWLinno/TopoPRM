@@ -4,6 +4,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.." && export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 
 RAW_INPUT_DIR="${1:-data/raw}"
+USE_AUGMENTED="${USE_AUGMENTED:-1}"
+VARIANTS="${VARIANTS:-original correct_short local_wrong}"
 
 echo "============================================"
 echo "  TopoPRM Data Pipeline"
@@ -35,27 +37,42 @@ python3 -m src.data.build_dag \
     --output_dir data/dag
 echo "  -> data/dag/"
 
-# Step 4: Prepare SFT data
+# Step 4: Optional augmented data generation
 echo ""
-echo "[4/6] Preparing SFT training data..."
-python3 -m src.data.prepare_sft \
+echo "[4/7] Generating augmented critique DAG data..."
+TRAIN_INPUT=data/processed/cleaned.jsonl
+if [ "$USE_AUGMENTED" = "1" ]; then
+python3 -m src.data.generate_critique_dag_data \
     --input_path data/processed/cleaned.jsonl \
+    --output_path data/processed/augmented.jsonl \
+    --variants $VARIANTS
+echo "  -> data/processed/augmented.jsonl"
+TRAIN_INPUT=data/processed/augmented.jsonl
+else
+echo "  -> skipped (USE_AUGMENTED=$USE_AUGMENTED)"
+fi
+
+# Step 5: Prepare SFT data
+echo ""
+echo "[5/7] Preparing SFT training data..."
+python3 -m src.data.prepare_sft \
+    --input_path "$TRAIN_INPUT" \
     --output_path data/sft_ready/train.jsonl
 echo "  -> data/sft_ready/train.jsonl"
 
-# Step 5: Merge datasets
+# Step 6: Merge datasets
 echo ""
-echo "[5/6] Merging datasets (ZH + EN mix)..."
+echo "[6/7] Merging datasets (ZH + EN mix)..."
 python3 -m src.data.merge_datasets \
     --zh_path data/sft_ready/train.jsonl \
     --output_path data/sft_ready/train_mixed.jsonl
 echo "  -> data/sft_ready/train_mixed.jsonl"
 
-# Step 6: Prepare GRPO data
+# Step 7: Prepare GRPO data
 echo ""
-echo "[6/6] Preparing GRPO training data..."
+echo "[7/7] Preparing GRPO training data..."
 python3 -m src.data.prepare_grpo \
-    --input_path data/processed/cleaned.jsonl \
+    --input_path "$TRAIN_INPUT" \
     --dag_dir data/dag \
     --output_path data/grpo_ready/train.jsonl
 echo "  -> data/grpo_ready/train.jsonl"

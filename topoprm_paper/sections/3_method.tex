@@ -23,7 +23,7 @@ Our goal is to add deterministic process supervision without introducing learned
 \label{sec:reward_module}
 
 \subsubsection{Trace-to-DAG Extraction}
-For reasoning traces $y=(s_1,\ldots,s_T)$ from the \texttt{<think>} block, we apply a deterministic extractor:
+For reasoning traces $y=(s_1,\ldots,s_T)$ in the \texttt{<think>} block, we apply a deterministic extractor:
 \begin{equation}
 \label{eq:extractor}
 \mathcal{G}=\mathcal{E}(y)=(\mathcal{V},\mathcal{A}),
@@ -39,7 +39,7 @@ If reference DAG verdicts are available, they are copied directly.
 Otherwise, we apply deterministic fallback rules based on support evidence, conclusion support status, and explicit contradiction markers to assign \texttt{correct}/\texttt{incorrect}/\texttt{unverifiable}.
 This avoids the degenerate all-\texttt{unverifiable} regime during diagnostics.
 
-% 这个地方不像是方法正文应该写的，可以在附录详细说明
+% See Appendix for detailed scope-of-verifiability discussion.
 % We emphasise an important scope distinction: the extracted graph is an inferred dependency DAG induced by deterministic rules, not a ground-truth proof graph.
 % Deterministic extraction ensures reproducible reward computation, not semantic completeness of dependency recovery.
 
@@ -54,15 +54,15 @@ r_{\mathrm{topo}}(\mathcal{G}) =
 +\lambda_d\,\delta(\mathcal{G})
 +\lambda_k\,\kappa(\mathcal{G},\mathcal{G}^{*}),
 \end{equation}
-where $\rho_{\mathrm{orphan}}$ measures the fraction of unsupported conclusion nodes, $\delta$ measures dependency direction consistency, and $\kappa$ is optional reference-edge coverage against a weak reference graph $\mathcal{G}^{*}$ when available.
-A hard gate zeros the entire score when the extracted graph is invalid.
-When no reference graph is available, $\lambda_k$ is redistributed proportionally among the remaining terms.
-For auditability, we log all raw indicators ($\rho_{\mathrm{orphan}},\delta,\kappa$), per-term contributions
+where $\rho_{\mathrm{orphan}}$ is the fraction of unsupported conclusion nodes, $\delta$ is dependency-direction consistency, and $\kappa$ is optional reference-edge coverage against a weak reference graph $\mathcal{G}^{*}$.
+A hard gate sets the score to zero when the extracted graph is invalid.
+When no reference graph is available, the $\kappa$ term is disabled and the score is normalized by the remaining active coefficients.
+For auditability, we log raw indicators ($\rho_{\mathrm{orphan}},\delta,\kappa$), per-term contributions
 ($\lambda_b\mathbb{1}[|\mathcal{V}|>0]$, $\lambda_a\mathbb{1}[\mathrm{acyclic}]$, $\lambda_o\mathbb{1}[\rho_{\mathrm{orphan}}=0]$, $\lambda_d\delta$, $\lambda_k\kappa$),
 and the final normalized $r_{\mathrm{topo}}$ for each sample.
 
 \subsubsection{Continuity Reward}
-The continuity reward captures local support traceability between adjacent reasoning steps:
+The continuity reward captures local support traceability across reasoning steps:
 \begin{equation}
 \label{eq:r_cont}
 r_{\mathrm{cont}}(y)=
@@ -73,11 +73,11 @@ r_{\mathrm{cont}}(y)=
 \qquad
 \eta(y)=\frac{1}{T}\sum_{i=1}^{T}\mathbb{1}[\mathrm{supported}(s_i,s_{<i},q)].
 \end{equation}
-A step is marked as supported if it reuses prior claims or expressions, or explicitly cites problem givens, as determined by deterministic regex-based matching.
+A step is marked as supported if it reuses prior claims or expressions, or explicitly cites problem givens, based on deterministic regex-based matching.
 Full coverage ($\eta{=}1$) yields the maximum reward; partial coverage is discounted by a factor of $0.8$.
 
 %\subsubsection{Scope of Verifiability}
-% 这里也不太像是方法正文应该写的内容，可以放附录并且改进表述。
+% See Appendix for extended discussion on reward aggregation strategies.
 % Our use of ``verifiable'' is operational: once a trace is produced, all reward values are computed by deterministic procedures and are therefore reproducible and auditable.
 % This is distinct from semantic proof verification; we do not claim step-correctness guarantees or logical completeness.
 
@@ -102,7 +102,7 @@ This produces a checkpoint $\pi_\theta$ that serves as the initialisation for re
 Each training step samples completions from $\pi_\theta$, extracts dependency DAGs, and computes five reward signals: outcome correctness $r_{\mathrm{out}}$, topology $r_{\mathrm{topo}}$, continuity $r_{\mathrm{cont}}$, format compliance $r_{\mathrm{fmt}}$, and length penalty $r_{\mathrm{len}}$.
 
 \paragraph{Hierarchical aggregation.}
-A naive weighted sum of these signals can mis-rank traces when high process scores compensate for incorrect answers, and empirically leads to reward collapse where batch-level reward variance approaches zero.
+A naive weighted sum can mis-rank traces when high process scores compensate for incorrect answers, and in practice causes reward collapse when batch-level reward variance approaches zero.
 We instead adopt a hierarchical formulation that separates base correctness from process-level gain:
 \begin{equation}
 \label{eq:r_base}
@@ -116,7 +116,7 @@ where $\tilde{r}_{\mathrm{topo}}$ and $\tilde{r}_{\mathrm{cont}}$ are batch-leve
 Process rewards act as a multiplicative gain on the base signal rather than an additive offset, preserving answer-correctness primacy while amplifying structural quality differences.
 
 \paragraph{Anti-collapse mechanisms.}
-To prevent reward collapse during GRPO training, we employ three complementary mechanisms:
+To prevent reward collapse during GRPO training, we use three complementary mechanisms:
 (i)~batch-level min-max rescaling ensures that process reward components retain sufficient spread;
 (ii)~reward temperature scaling ($\tau{=}2.0$) amplifies small differences via $r \leftarrow \mu + (r - \mu) \cdot \tau$;
 (iii)~a minimum-variance guard injects small Gaussian noise ($\epsilon{=}0.01$) when the batch reward standard deviation falls below a threshold ($\sigma_{\min}{=}0.005$).
@@ -189,211 +189,3 @@ token-level compression in the final student model.
 \end{algorithmic}
 \end{algorithm}
 
-
-% \textcolor{red}{OLD!!!!}
-% \subsection{Stage I: Supervised Fine-Tuning}
-% \label{sec:sft}
-
-% Given an input pair $(q,s)$, where $q$ denotes the problem and $s$ is the
-% optional student response context, the policy $\pi_\theta$ is trained to
-% produce structured completions of the form
-% \texttt{<think>$\cdots$</think>} and
-% \texttt{<answer>$\cdots$</answer>}:
-% \begin{equation}
-% \label{eq:gen}
-% c = \pi_\theta(q, s).
-% \end{equation}
-% LoRA adaptation~\citep{hu2022lora} is applied to establish this structured
-% output interface and to provide a stable warm start for the subsequent RL
-% stage.
-
-% \subsection{Stage II: Deterministic Process Signal Extraction}
-% \label{sec:topo_rewards}
-
-% For each completion, the content of the \texttt{<think>} block is parsed
-% into a reasoning DAG $\mathcal{G}=(\mathcal{V},\mathcal{E})$ by means of
-% a purely deterministic procedure. Each node $v \in \mathcal{V}$ represents
-% a reasoning step, and each directed edge $(u,v) \in \mathcal{E}$ encodes a
-% logical dependency of step $v$ on step $u$.
-
-% \subsubsection{DAG Extraction}
-% \label{sec:dag_extraction}
-
-% The extraction procedure consists of four sequential operations. First, the
-% trace is segmented into an ordered sequence of steps using textual markers
-% and line-level boundary heuristics. Second, mathematical expressions,
-% variable assignments, and propositional claims are mined from each step via
-% regular-expression templates. Third, each step is classified into one of
-% seven semantic types---definition, derivation, computation, conclusion,
-% auxiliary, substitution, or case analysis---through rule-based keyword
-% matching. Fourth, three edge types are instantiated: (i) \textbf{solid
-% edges} (sequential-order dependencies) are added between consecutive steps
-% as weak continuity carriers; (ii) \textbf{virtual edges} (conditional
-% dependencies) are added when later steps explicitly reuse prior
-% expressions/claims and form the main structural supervision signal;
-% (iii) \textbf{double-barrier edges} are inserted for derivation/conclusion
-% steps without explicit reusable evidence, acting as non-reward structural
-% connectors that prevent spurious credit assignment. The entire module is
-% non-parametric and introduces no learned component into the reward
-% computation pipeline.
-
-% \subsubsection{Topological Structure Reward}
-% \label{sec:r_topo}
-
-% The topological structure reward quantifies global validity of the
-% extracted DAG using configurable coefficients:
-% \begin{equation}
-% \label{eq:r_topo}
-% R_{\mathrm{topo}}(\mathcal{G})=
-% \lambda_b\,\mathbb{1}[|\mathcal{V}|>0]
-% +\lambda_a\,\mathbb{1}[\mathcal{G}\ \text{is acyclic}]
-% +\lambda_o\,\mathbb{1}[\rho_{\mathrm{orphan}}(\mathcal{G})=0] 
-% +\lambda_d\,\delta_{\mathrm{virtual}}(\mathcal{G})
-% +\lambda_s\,\sigma_{\mathrm{solid}}(\mathcal{G})
-% +\lambda_k\,\kappa_{\mathrm{virtual}}(\mathcal{G},\mathcal{G}^*),
-% \end{equation}
-% where $\rho_{\mathrm{orphan}}$ is computed over conclusion nodes lacking
-% \emph{virtual-edge} predecessors, $\delta_{\mathrm{virtual}}$ measures
-% directional consistency of virtual edges, and
-% $\sigma_{\mathrm{solid}}$ is a weak sequential-order support ratio from
-% solid edges. $\kappa_{\mathrm{virtual}}$ is optional strong-edge coverage
-% against a reference DAG. Double-barrier edges receive no direct reward
-% credit. Coefficients $(\lambda_b,\lambda_a,\lambda_o,\lambda_d,\lambda_s,\lambda_k)$
-% are configured at runtime rather than fixed in code.
-
-% \subsubsection{Continuity Reward}
-% \label{sec:r_cont}
-
-% The continuity reward evaluates local traceability across reasoning steps.
-% Formally,
-% \begin{equation}
-% \label{eq:r_cont}
-% R_{\mathrm{cont}}(c)=
-% \begin{cases}
-% 1.0, & \text{if } \eta(c)=1,\\
-% 0.8\,\eta(c), & \text{if } \eta(c)<1,
-% \end{cases}
-% \quad\text{where}\quad
-% \eta(c)=\frac{1}{T}\sum_{i=1}^{T}\mathbb{1}[\mathrm{supported}(r_i,r_{<i},q)].
-% \end{equation}
-% A step $r_i$ is considered supported if it references at least one
-% expression or claim introduced in a prior step $r_{<i}$, or if it
-% explicitly cites the given problem conditions.
-
-% \subsection{Stage III: Composite RLVR with Accuracy-First Shaping}
-% \label{sec:composite_rlvr}
-
-% \subsubsection{Composite Reward}
-% \label{sec:composite_reward}
-
-% The complete reward signal uses self-adaptive scalarization:
-% \begin{equation}
-% \label{eq:r_total}
-% R_{\mathrm{total}}^{(i,t)} =
-% \sum_{m\in\{o,t,c,f,l\}} w_m^{(t)}\,R_m^{(i,t)},
-% \quad\sum_m w_m^{(t)}=1,
-% \end{equation}
-% where $w_m^{(t)}$ is dynamically updated from batch-level self-supervision
-% signals (outcome correlation and component spread), with an explicit floor
-% on $w_o^{(t)}$ to preserve answer correctness priority.
-% The decomposition is deliberate: $R_{\mathrm{topo}}$ captures
-% \emph{global structural validity}, whereas $R_{\mathrm{cont}}$ captures
-% \emph{local step traceability}. Together, they provide structure-aware
-% supervision at two complementary granularities while remaining entirely
-% within the verifiable reward computation paradigm. Each component is
-% independently sanitised and clipped to $[0,1]$ before aggregation.
-% $R_{\mathrm{outcome}}$ is computed as a graded signal based on exact score
-% match, a near-match bonus, and a conclusion correctness indicator, then
-% normalised to $[0,1]$. $R_{\mathrm{format}}$ verifies the presence of the
-% required structural tags and the parseability of the answer JSON.
-% $R_{\mathrm{len}}$ applies a linear penalty for traces whose character
-% count exceeds 2{,}000, decaying to zero at 4{,}000 characters.
-
-% \subsubsection{SCAE: Accuracy-First Stratified Shaping}
-% \label{sec:scae}
-
-% A fundamental risk in mixed reward training is that process rewards may
-% assign positive signals to structurally coherent but factually incorrect
-% traces, thereby incentivising the model to sacrifice task accuracy in
-% favour of surface-level structural quality. To prevent this, we introduce
-% \emph{Stratified Clipping Advantage Estimation} (SCAE), which partitions
-% each completion group into a correct stratum $\mathcal{C}$ and an
-% incorrect stratum $\mathcal{W}$ based on a threshold $\tau$ on the outcome
-% reward:
-% \begin{equation}
-% \label{eq:scae_partition}
-% \mathcal{C}=\{i\mid R_{\mathrm{outcome}}^{(i)}\ge\tau\},\quad
-% \mathcal{W}=\{j\mid R_{\mathrm{outcome}}^{(j)}<\tau\},\quad
-% \tau=0.66.
-% \end{equation}
-% Within each stratum, the base composite rewards are standardised to
-% z-scores and asymmetrically clipped to preserve the sign of each stratum:
-% \begin{equation}
-% \label{eq:scae_shape}
-% \tilde{R}^{(k)}=
-% \begin{cases}
-% \mathrm{clip}(z^{(k)},\;0,\;1.5), & k\in\mathcal{C},\\
-% \mathrm{clip}(z^{(k)},\;{-1.5},\;0), & k\in\mathcal{W}.
-% \end{cases}
-% \end{equation}
-% This construction guarantees that correct completions always receive
-% non-negative shaped rewards and incorrect completions always receive
-% non-positive shaped rewards, regardless of their structural quality. Shaped
-% rewards are passed directly to the stock GRPO normalisation step,
-% preserving full compatibility with the MS-Swift training framework.
-
-% \begin{figure}[t]
-%     \centering
-%     \includegraphics[width=0.98\linewidth]{figures/Fig3.Comparison.png}
-%     \caption{Comparison of standard scalar reward mixing and SCAE. Without
-%     stratification, structurally plausible but incorrect traces may receive
-%     positive advantage estimates. SCAE eliminates this failure mode by
-%     partitioning completions by answer correctness prior to advantage
-%     computation.}
-%     \label{fig:scae}
-% \end{figure}
-
-% \subsubsection{GRPO Optimisation}
-% \label{sec:grpo}
-
-% Policy optimisation is performed using the GRPO implementation in the
-% MS-Swift framework (\texttt{swift rlhf --rlhf\_type grpo}) with standard
-% importance-ratio clipping and KL regularisation~\citep{shao2024deepseekmath}.
-% The contribution of TopoPRM is confined to the reward computation path; the
-% core optimiser logic is left unchanged.
-
-% \subsection{Stage IV: Reverse-KL Distillation}
-% \label{sec:compression}
-
-% Following GRPO training, the improved reasoning behaviour of teacher policy
-% $\pi_{\theta^*}$ is transferred to a smaller student policy $\pi_\phi$ by
-% minimising the reverse KL divergence:
-% \begin{equation}
-% \label{eq:distill}
-% \mathcal{L}_{\mathrm{distill}}=\mathbb{E}_{(q,s)\sim\mathcal{D}}
-% \Big[D_{\mathrm{KL}}\!\big(\pi_\phi(\cdot\mid q,s)\,\|\,\pi_{\theta^*}(\cdot\mid q,s)\big)\Big],
-% \end{equation}
-% where the distillation dataset $\mathcal{D}$ is filtered to retain only
-% teacher completions with composite quality $R_{\mathrm{total}}>\tau_d$.
-% The mode-seeking nature of the reverse KL divergence encourages the student
-% to concentrate probability mass on the highest-quality reasoning behaviours
-% of the teacher rather than averaging over all plausible outputs.
-
-% \begin{algorithm}[t]
-% \caption{TopoPRM Training Pipeline}
-% \label{alg:topoprm}
-% \begin{algorithmic}[1]
-% \Require Base model $\pi_0$, SFT data $\mathcal{D}_{\mathrm{sft}}$, GRPO prompts $\mathcal{D}_{\mathrm{grpo}}$, reward weights $\{w_o,w_t,w_c,w_f,w_l\}$
-% \Ensure Fine-tuned policy $\pi_{\theta^*}$
-% \State \textbf{Stage I.} Train $\pi_\theta \leftarrow \mathrm{LoRA\text{-}SFT}(\pi_0,\mathcal{D}_{\mathrm{sft}})$
-% \State \textbf{Stage II--III.} \textbf{for} each prompt batch $\{q_i\}\subset\mathcal{D}_{\mathrm{grpo}}$ \textbf{do}
-%     \State \quad Sample $G$ completions $\{c^{(g)}\}_{g=1}^{G}\sim\pi_\theta(\cdot\mid q_i)$
-%     \State \quad Compute reward components $R_{\mathrm{outcome}}^{(g)},R_{\mathrm{topo}}^{(g)},R_{\mathrm{cont}}^{(g)},R_{\mathrm{format}}^{(g)},R_{\mathrm{len}}^{(g)}$
-%     \State \quad Aggregate into $R_{\mathrm{total}}^{(g)}$ via Eq.~\ref{eq:r_total}
-%     \State \quad Apply SCAE shaping (Eq.~\ref{eq:scae_shape}) to obtain $\{\tilde{R}^{(g)}\}$
-%     \State \quad Update $\pi_\theta$ via stock GRPO with shaped rewards $\{\tilde{R}^{(g)}\}$
-% \State \textbf{end for}; set $\pi_{\theta^*}\leftarrow\pi_\theta$
-% \State \textbf{Stage IV (optional).} Distil $\pi_\phi$ from $\pi_{\theta^*}$ via Eq.~\ref{eq:distill}
-% \State \Return $\pi_{\theta^*}$ (or distilled $\pi_\phi$)
-% \end{algorithmic}
-% \end{algorithm}

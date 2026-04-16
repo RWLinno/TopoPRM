@@ -58,13 +58,13 @@ regardless of their structural scores, while incorrect completions
 receive negative advantages regardless of how well-structured they are.
 After GRPO training, a reverse-KL distillation stage compresses the
 improved reasoning behavior from the 32B teacher into smaller student
-models. In summary, our contributions are threefold:
+models. In summary, our contributions are fourfold:
 \begin{enumerate}[leftmargin=*,itemsep=2pt]
-\item \textbf{Verifiable process objective.} We formulate process supervision for RLVR as two deterministic and complementary signals over an implicit reasoning structure: global DAG topology and local step continuity. This formulation provides process-level feedback without requiring human step annotations or learned reward models.
+\item \textbf{Verifiable process rewards.} We formulate process supervision for RLVR as two deterministic, complementary signals over an implicit reasoning DAG: a topological structure reward for global graph validity and a continuity reward for local step traceability. Neither requires human step annotations nor learned reward models.
 
-\item \textbf{Accuracy-first optimization mechanism.} We introduce SCAE, a stratified reward-shaping strategy that enforces correctness priority when mixing outcome and process reward channels, thereby mitigating reward hacking risk in practical GRPO training.
+\item \textbf{Accuracy-first reward shaping.} We introduce Stratified Clipping Advantage Estimation (SCAE), which partitions sampled completions by correctness before computing advantages, preventing process rewards from favouring structurally valid but factually wrong traces.
 
-\item \textbf{Code-aligned training recipe.} We instantiate TopoPRM as MS-Swift-compatible reward plugins that preserve the stock GRPO optimizer while incorporating deterministic DAG extraction, composite reward aggregation, and reverse-KL reasoning compression.
+\item \textbf{End-to-end training recipe with distillation.} We instantiate TopoPRM as plug-in reward modules compatible with standard GRPO stacks, and add a reverse-KL distillation stage that compresses the improved reasoning behaviour into smaller student models.
 
-\item \textbf{Empirical validation on mathematical critique.} On 7{,}595 Chinese mathematical critique problems, TopoPRM yields improvements in structural coherence and reasoning conciseness over outcome-only GRPO, with gains that transfer to 14B and 7B student models.
+\item \textbf{Comprehensive empirical validation.} On 7{,}595 Chinese mathematical critique problems, TopoPRM improves critique accuracy by $+13.4$ points over outcome-only GRPO while reducing response length by 11\%. The distilled 8B student achieves 82.5\% on GSM8K and 59.8\% on MATH-500, competitive with models of comparable scale.
 \end{enumerate}

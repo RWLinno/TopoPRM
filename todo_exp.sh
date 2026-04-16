@@ -105,3 +105,47 @@ nohup bash scripts/run_distill.sh distill_7b_compact > ./logs/run_distill.log 2>
 
 # bash scripts/cleanup_experiments.sh          # dry-run
 # bash scripts/cleanup_experiments.sh --execute # 实际删除
+
+# ═══════════════════════════════════════════════════════════════
+# Phase 9: 公开 Benchmark 重跑（2026-04-11 更新）
+# 说明：`scripts/run_public_benchmarks.sh` 已改为直接调用 `swift eval` 并解析
+#       `reports/*/gsm8k.json` / `math_500.json`；不要使用无效的 `--timeout`。
+#       以下任务若在跑，见 logs/bench_*_public_retry.log；完成后把 JSON 里的 accuracy
+#       同步进 topoprm_paper/tables/public_results.tex 并 re-run export/sync。
+# ═══════════════════════════════════════════════════════════════
+
+# 9a) [RUNNING 2026-04-11] 9B SFT — GPU4 — logs/bench_sft_9b_public_retry.log
+# nohup env CUDA_VISIBLE_DEVICES=4 bash scripts/run_public_benchmarks.sh \
+#   /mnt/data/huggingface_downloads/models/qwen/Qwen3.5-9B \
+#   output/sft_qwen35_9b/v0-20260407-011328/checkpoint-626 sft_9b \
+#   > logs/bench_sft_9b_public_retry.log 2>&1 &
+
+# 9b) [RUNNING 2026-04-11] 9B no_topo mcl4096 — GPU5
+# nohup env CUDA_VISIBLE_DEVICES=5 bash scripts/run_public_benchmarks.sh \
+#   /mnt/data/huggingface_downloads/models/qwen/Qwen3.5-9B \
+#   output/grpo_no_topo_qwen35_9b_mcl4096/v0-20260407-015238/checkpoint-79 \
+#   grpo_no_topo_9b_mcl4096 > logs/bench_no_topo_9b_public_retry.log 2>&1 &
+
+# 9c) [RUNNING 2026-04-11] 蒸馏 8B RKL — GPU6
+# nohup env CUDA_VISIBLE_DEVICES=6 bash scripts/run_public_benchmarks.sh \
+#   /mnt/users/rwl/models/Qwen3-8B \
+#   output/distill_7b_compact_rkl/checkpoint-500 distill_rkl_8b_retry \
+#   > logs/bench_distill_8b_public_retry.log 2>&1 &
+
+# 9d) Qwen2.5-Math-7B 下载（conda hf CLI）— logs/hf_download_qwen25_math_7b.log
+# /mnt/users/conda_env/topoprm/bin/hf download Qwen/Qwen2.5-Math-7B-Instruct \
+#   --local-dir /mnt/data/huggingface_downloads/models/qwen/Qwen2.5-Math-7B-Instruct
+
+# 9e) 论文表格同步（表格已部分手填；可重复执行）
+# python3 scripts/export_benchmark_metric_json.py
+# python3 -m src.eval.collect_experiment_results --eval_dir output/eval --output_dir output/analysis
+# python3 -m src.eval.sync_paper_tables --summary output/analysis/experiment_summary.json --paper_dir topoprm_paper --eval_dir output/eval
+# python3 -m src.eval.export_paper_tables --eval_dir output/eval --output output/eval/paper_table_summary.csv
+
+# ═══════════════════════════════════════════════════════════════
+# Phase 10: 正在运行的实验（2026-04-08 状态）
+# ═══════════════════════════════════════════════════════════════
+# [RUNNING] 9B hier own-SFT 私有评估 — GPU 2 — ~48% done
+# [RUNNING] 9B no_topo own-SFT 私有评估 — GPU 1 — ~64% done
+# [RUNNING] 9B outcome own-SFT 私有评估 — GPU 6 — ~85% done
+# [RUNNING] MoRA EXP-01 训练 — GPU 0,1,2,6（另一个项目）

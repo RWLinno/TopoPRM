@@ -65,6 +65,20 @@ accumulating topology or continuity reward at the expense of accuracy.
 Our distillation stage then transfers both accuracy and structural
 conciseness from the TopoPRM-trained teacher to smaller student models.
 
+\paragraph{RLVR with self-distillation.}
+Recent RLVR studies further explore combining sparse verifiable rewards
+with dense token-level self-distillation signals. The key insight in
+this line is to separate \emph{update direction} (from reliable
+environment/verifier feedback) from \emph{update magnitude} (from richer
+token-level evidence), so that training remains stable while improving
+sample efficiency. We treat this as a complementary design principle:
+TopoPRM keeps deterministic process rewards as the primary optimisation
+signal, and uses reverse-KL distillation after RLVR to compress the
+teacher's structured reasoning behaviour. Unlike privileged-information
+distribution matching methods, our compression stage does not require a
+teacher with extra hidden inputs at training time, which makes it
+directly compatible with our verifiable trace-to-DAG reward pipeline.
+
 
 \paragraph{Attribution note.}
 Our SCAE-style stratified shaping follows the same high-level

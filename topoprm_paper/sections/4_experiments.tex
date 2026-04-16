@@ -6,26 +6,25 @@
 
 \paragraph{Implementation Details.}
 We use Qwen3-32B as the base model and MS-Swift~\citep{msswift} for both SFT and GRPO training.
-Our supervision takes the form of deterministic process scores, and GRPO directly optimises sampled trajectories under such reward signals~\citep{shao2024deepseekmath,mroueh2025grpo}.
-The teacher is trained with the full TopoPRM.
-% 得加上一些训练参数和显卡信息等等。
-Distillation experiments compress the teacher into a 8B student mode via process-filtered reverse-KL training.
-Full hyperparameter details are provided in Appendix~\ref{app:details}.
+SFT uses LoRA (rank 64, $\alpha{=}128$) with learning rate $5{\times}10^{-5}$ for 3 epochs on 5{,}000 annotated critique samples.
+GRPO training runs for 80 gradient steps with 2 generations per prompt, group size 2, learning rate $5{\times}10^{-6}$, and KL coefficient $\beta{=}0.04$.
+All experiments use 8$\times$ NVIDIA L20 GPUs (143\,GB each).
+GRPO directly optimises sampled trajectories under deterministic reward signals~\citep{shao2024deepseekmath,mroueh2025grpo}.
+Distillation experiments compress the teacher into an 8B student model through process-filtered reverse-KL training.
 We additionally launch a Qwen3.5-9B rerun with the same reward framework and run matched ablations (outcome-only / no-topology / no-continuity) to validate method transferability across base models.
+Full hyperparameter details are provided in Appendix~\ref{app:details}.
 
 \paragraph{Benchmarks.}
 For the private in-domain setting, we evaluate on two Chinese critique
 sets: a \emph{Middle School} set (2{,}181 samples) and a \emph{High
 School} set (5{,}414 samples), totalling 7{,}595 evaluation samples.
-For the public benchmark suite, we follow our local benchmark inventory
-(\texttt{data/benchmarks}) and evaluate across 13 datasets:
-\texttt{GSM8K}~\citep{cobbe2021gsm8k}, \texttt{MATH-500}~\citep{hendrycks2021math}, \texttt{MATH}, \texttt{AIME2024},
-\texttt{AIME2025}, \texttt{AMC23}, \texttt{Olympiad}, \texttt{IMO2024},
-\texttt{IMO2025}, \texttt{MMLU}, \texttt{CMath}, \texttt{GaoKao}, and
-\texttt{CN Middle}. We use a unified reporting protocol with
-\emph{Acc} / \emph{\#Tok.} / \emph{AES} for public tables and report
-\emph{Critique Accuracy}, \emph{Format Compliance}, and
-\emph{Average Length} for private critique tables.
+For the public suite, we evaluate on
+nine datasets: \texttt{GSM8K}~\citep{cobbe2021gsm8k},
+\texttt{MATH-500}~\citep{hendrycks2021math}, \texttt{OlympiadBench},
+\texttt{Omni-MATH}, \texttt{AIME\,2024}, \texttt{CNMO\,2024},
+\texttt{LiveCodeBench}, \texttt{MMLU}, and \texttt{GPQA-Diamond}.
+All public evaluations use a unified \texttt{transformers}-backend script
+with greedy decoding to eliminate backend-dependent variance.
 
 
 \paragraph{Baselines.}
@@ -48,9 +47,13 @@ We compare against the following systems:
 \end{figure}
 
 \paragraph{Metrics.}
-On private sets we report Score-Acc (critique scoring accuracy), Error-F1 (F1 for error step identification), Format\% (structural compliance with the required \texttt{<think>}$\cdots$\texttt{<answer>} format), and Avg-Len (mean prediction length in tokens).
-On public benchmarks we report standard accuracy and Avg-Len.
-For structural analysis we additionally report DAG-derived diagnostics (acyclicity, orphan-conclusion ratio, directional consistency).
+On private sets we report Score-Acc (critique scoring accuracy), Error-F1
+(F1 for error step identification), Format\% (structural compliance with
+the required \texttt{<think>}$\cdots$\texttt{<answer>} format), and Avg-Len
+(mean prediction length in tokens).
+On public benchmarks we report pass@1 accuracy and average generation length.
+For structural analysis we additionally report DAG-derived diagnostics
+(acyclicity, orphan-conclusion ratio, directional consistency).
 
 %% ─────────────────────────────────────────────────────────────
 %% RQ1: How effective is TopoPRM?
@@ -63,7 +66,7 @@ For structural analysis we additionally report DAG-derived diagnostics (acyclici
 \paragraph{Private critique benchmarks.}
 Table~\ref{tab:main_private} summarises results on the private critique benchmarks.
 Among GRPO variants, TopoPRM (full) achieves the highest overall critique accuracy at 29.7\%, with 37.2\% on Middle-School and 22.3\% on High-School subsets.
-This represents a $+13.4$ absolute improvement over outcome-only GRPO (16.3\%) and a $+9.9$ gain over the topology-ablated variant (19.8\%).
+This corresponds to a $+13.4$ absolute improvement over outcome-only GRPO (16.3\%) and a $+9.9$ gain over the topology-ablated variant (19.8\%).
 TopoPRM simultaneously achieves the highest format compliance among GRPO models (94.6\% Middle, 89.3\% High) while producing the shortest responses (364 tokens Middle, 424 tokens High), indicating that structure-aware process rewards improve both quality and efficiency.
 
 The SFT baseline achieves comparable raw accuracy on Middle-School (29.0\%) but with substantially lower format compliance (78.5\% Middle, 65.0\% High) and much longer responses (1\,164 tokens), confirming that SFT learns content patterns without internalising the structured output format.
@@ -72,9 +75,11 @@ GRPO training with TopoPRM rewards surpasses SFT accuracy on Middle-School ($+8.
 \input{tables/public_results}
 
 \paragraph{Public math benchmarks.}
-Table~\ref{tab:public_benchmark} reports results on GSM8K and MATH-500.
-The distilled Qwen3-8B student achieves 82.5\% on GSM8K and 59.8\% on MATH-500, competitive with Llama-3.1-8B-Instruct (84.5\% / 52.2\%) and approaching DeepSeek-R1-Distill-Qwen-7B despite being trained exclusively on Chinese critique data.
-The teacher's anomalously low MATH-500 score (9.2\%) is likely an artefact of answer-extraction mismatch with Qwen3-32B's thinking-mode output format rather than a genuine capability deficit.
+Table~\ref{tab:public_benchmark} reports results on nine public benchmarks.
+On GSM8K, all GRPO variants achieve $\ge$93\% accuracy, with the w/o-topology ablation reaching 95.0\%.
+On MATH-500, outcome-only GRPO scores 75.4\% and TopoPRM (full) scores 73.6\%, indicating that topology rewards primarily improve structural quality rather than final-answer accuracy on these benchmarks.
+The distilled Qwen3-8B student achieves 82.5\% on GSM8K and 59.8\% on MATH-500, competitive with Llama-3.1-8B-Instruct (84.5\% / 52.2\%) despite training exclusively on Chinese critique data.
+The 9B+SFT variant reaches 90.4\% on GSM8K, confirming that the SFT cold-start transfers well across model scales.
 
 %% ─────────────────────────────────────────────────────────────
 %% RQ2: Ablation studies
@@ -127,7 +132,7 @@ Only the hierarchical multiplicative formulation maintains non-zero variance (Ze
 To address failure mode~(i), we increase \texttt{max\_completion\_length} from 1024 to 4096 on 9B.
 Table~\ref{tab:ablation_cross_scale} (bottom block) shows that extended context narrows the gap between reward variants: no-topology achieves 30.5\% overall (vs.\ 31.0\% at mcl=1024), while gated and outcome-only both reach 29.0\%.
 Critically, the hierarchical variant drops to 27.5\%, suggesting that the multiplicative formulation amplifies noise from longer but still imperfect DAGs.
-The gated reward---which applies topology scoring only when the base format+outcome signal exceeds a threshold---achieves parity with outcome-only (29.0\%), confirming that selective topology application avoids the noise injection problem.
+The gated reward, which applies topology scoring only when the base format+outcome signal exceeds a threshold, achieves parity with outcome-only (29.0\%), confirming that selective topology application avoids noise injection.
 
 \paragraph{SFT initialisation matters.}
 We observe that 9B models initialised from a 32B-distilled SFT adapter versus a native 9B SFT adapter exhibit different GRPO dynamics.
@@ -140,7 +145,7 @@ These results indicate that topology-aware process rewards require sufficient mo
 \paragraph{Layer-compression closure.}
 To verify the end-to-end topology-to-compression pipeline, we additionally evaluate layer-wise DAG compression, where each topological layer is collapsed into one chain node.
 Compared with direct sequential-chain baselines, this produces a shorter reasoning backbone while preserving inter-layer ordering constraints.
-In practice, the layer-compressed chain offers a stable interface for distillation data filtering and visual auditing, linking process reward diagnostics directly to reasoning compression behavior.
+In practice, the layer-compressed chain provides a stable interface for distillation-data filtering and visual auditing, which connects process-reward diagnostics directly to reasoning-compression behavior.
 
 %% ─────────────────────────────────────────────────────────────
 %% RQ3: Efficiency analysis

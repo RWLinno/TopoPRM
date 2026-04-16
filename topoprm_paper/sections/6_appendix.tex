@@ -68,33 +68,44 @@ Clipping Advantage Estimation.
 \section{DAG Extraction Details}
 \label{app:dag}
 
-\paragraph{Step segmentation.}
-We identify reasoning step boundaries using the following markers:
-\begin{itemize}[leftmargin=*,itemsep=1pt]
-    \item Numbered steps: patterns such as ``Step 1:'', ``(1)'', and Chinese-style step markers   \item Mathematical delimiters: ``$\because$'', ``$\therefore$'',
-          ``$\Rightarrow$''
-    \item Logical connectives: ``hence'', ``therefore'', and their
-          Chinese equivalents
-    \item Line breaks with significant indentation changes
-\end{itemize}
-
-\paragraph{Dependency detection.}
-For each pair of steps $(r_i, r_j)$ with $i < j$, we check:
+\paragraph{Extraction pipeline.}
+Given a reasoning trace in \texttt{<think>}, we apply four deterministic stages:
 \begin{enumerate}[leftmargin=*,itemsep=1pt]
-    \item \textbf{Expression overlap}: whether $r_j$ contains
-    mathematical expressions (extracted via regex) that first appeared
-    in $r_i$.
-    \item \textbf{Variable reference}: whether $r_j$ uses variables or
-    intermediate results defined in $r_i$.
-    \item \textbf{Sequential proximity}: consecutive steps
-    $(r_i, r_{i+1})$ receive weak sequential edges (weight 0.3).
+    \item \textbf{Step segmentation}. We split the trace by numbered-step markers, mathematical discourse markers (for example ``$\because$'', ``$\therefore$''), and line-level boundaries.
+    \item \textbf{Sub-question partitioning}. Markers such as ``【小题$k$】'' define sub-question identifiers. Steps from different identifiers are treated as different connected components in the final graph; cross-sub-question edges are disallowed by construction.
+    \item \textbf{Information extraction}. For each step, we extract expressions, claims, and variables with rule-based patterns.
+    \item \textbf{Edge construction and verification}. We add dependency edges from explicit evidence and then add weak sequential edges only when strong evidence is absent.
 \end{enumerate}
 
-\paragraph{Step classification.}
-Each node is classified by keyword matching into one of seven types:
+\paragraph{Information-density constraints.}
+To avoid low-information nodes and noisy links, we use two filters:
+\begin{itemize}[leftmargin=*,itemsep=1pt]
+    \item \textbf{Claim completeness}. Claims are extracted at sentence level. Heading fragments and unfinished prefixes (for example, ``all cases are:'') are removed.
+    \item \textbf{Expression informativeness}. Trivial tokens (single symbols, pure numerals, and non-relational fragments) are excluded from dependency matching.
+\end{itemize}
+This design biases graph construction toward semantically informative units rather than formatting artifacts.
+
+\paragraph{Dependency rules.}
+For each pair of steps $(r_i, r_j)$ with $i<j$ and the same sub-question identifier, we add a \emph{virtual edge} if at least one of the following holds:
+\begin{enumerate}[leftmargin=*,itemsep=1pt]
+    \item \textbf{Expression reuse}: $r_j$ contains an informative expression first introduced in $r_i$.
+    \item \textbf{Claim-key reuse}: canonicalized claim keys overlap between $r_i$ and $r_j$.
+    \item \textbf{Variable reference}: $r_j$ reuses variables introduced in $r_i$.
+\end{enumerate}
+When a derivation/conclusion step has no explicit support, we insert a \emph{double-barrier edge} from the previous step within the same sub-question as a non-reward fallback connector.
+
+\paragraph{Adaptive sequential weak edges.}
+Consecutive-step weak edges (weight 0.3) are not added unconditionally.
+Under the adaptive mode, a weak sequential edge is added only when the target step does not already have strong incoming support and the source step does not already emit strong outgoing dependencies.
+This rule reduces chain-dominant artifacts and preserves branch structures in long traces.
+
+\paragraph{Node typing and local verdicts.}
+Each node is classified by deterministic keyword rules into
 \textsc{definition}, \textsc{derivation}, \textsc{computation},
-\textsc{conclusion}, \textsc{auxiliary}, \textsc{substitution}, and
+\textsc{conclusion}, \textsc{auxiliary}, \textsc{substitution}, or
 \textsc{case\_analysis}.
+Local verdict labels follow a hybrid strategy: reference labels are copied when available; otherwise fallback rules assign
+\texttt{correct}/\texttt{incorrect}/\texttt{unverifiable} from structural support and contradiction cues.
 
 \section{Reward Function Details}
 \label{app:rewards}
@@ -108,21 +119,20 @@ The total is capped and normalised to $[0, 1]$.
 \paragraph{Format reward.}
 Checks for \texttt{<think>$\cdots$</think>} and
 \texttt{<answer>$\cdots$</answer>} blocks with valid JSON:
-both present $\to$ 1.0; only valid \texttt{<answer>} $\to$ 0.3;
-otherwise $\to$ 0.0.
+both present $\to$ 1.0; only valid \texttt{<answer>} $\to$ 0.5; only valid \texttt{<think>} $\to$ 0.1; otherwise $\to$ 0.0.
 
 \paragraph{Length reward.}
 Linear decay from 1.0 (at $\leq$ 2{,}000 characters) to 0.0 (at
 $\geq$ 4{,}000 characters).
 
 \paragraph{Topological structure reward.}
-Defined in \S\ref{sec:r_topo}. The DAG extraction uses rule-based step
+Defined in \S\ref{sec:reward_module}. The DAG extraction uses rule-based step
 segmentation (numbered steps, mathematical delimiters, logical
 connectives) and dependency detection (shared mathematical expressions,
 variable references).
 
 \paragraph{Continuity reward.}
-Defined in \S\ref{sec:r_cont}. Uses regex-based expression matching
+Defined in \S\ref{sec:reward_module}. Uses regex-based expression matching
 to verify that each step references expressions or claims from prior
 steps or the problem statement.
 
@@ -195,5 +205,16 @@ for 3 epochs.
 
 \section{Additional Results}
 \label{app:additional}
-% Training curves, per-category breakdowns, and additional ablations
-% will be added after all experiments complete.
+
+\paragraph{Cross-scale ablation.}
+Table~\ref{tab:ablation_cross_scale} reports the effect of removing individual reward components across three model scales (Qwen3-32B, Qwen3.5-9B, Qwen2.5-7B).
+The topology reward contributes the largest marginal gain at 32B scale ($\Delta$Avg = $-9.9$ when removed), while the continuity reward becomes relatively more important at smaller scales.
+This suggests that larger models already produce more structurally coherent traces, making topology supervision more impactful for enforcing global DAG validity.
+
+\paragraph{Accuracy--length trade-off.}
+Table~\ref{tab:ablation_length} shows that TopoPRM achieves the best accuracy-per-token efficiency (75.5 Acc/kTok) among all GRPO variants, producing traces that are 11\% shorter than outcome-only GRPO while maintaining higher accuracy.
+The length reduction is primarily driven by the topology reward eliminating redundant exploration branches and circular derivations.
+
+\paragraph{Reward aggregation strategies.}
+We compare four aggregation strategies: linear weighted sum, clipped linear, hierarchical (multiplicative topology/continuity gain), and gated (lexicographic ordering with mathematical guarantee).
+The hierarchical strategy achieves the best balance between accuracy and structural quality on the light-200 protocol, while the gated strategy provides the strongest theoretical guarantee against outcome-rank reversal (Proposition~\ref{prop:gated}).

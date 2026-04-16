@@ -215,3 +215,17 @@ class TestBuildDagFromAnswer:
         dep_types = [d.get("dep_type", "") for _, _, d in dag.graph.edges(data=True)]
         assert any(t in {"expr_ref", "claim_ref", "var_ref", "expr_overlap"} for t in dep_types)
         assert "edge_source_stats" in debug["summary"]
+
+    def test_sub_question_blocks_become_separate_components(self):
+        answer = (
+            "【小题1】设 x=1，列方程 x+1=2\n"
+            "由 x+1=2 得 x=1\n"
+            "【小题2】设 y=3，列方程 y-1=2\n"
+            "由 y-1=2 得 y=3"
+        )
+        dag, debug = parse_answer_to_dag_debug(answer)
+        assert debug["summary"]["sub_questions"] == [1, 2]
+        # No edge should cross sub-question boundary.
+        node_subq = {s["step_id"]: s["sub_question_id"] for s in debug["steps"]}
+        for u, v, _ in dag.graph.edges(data=True):
+            assert node_subq[u] == node_subq[v]

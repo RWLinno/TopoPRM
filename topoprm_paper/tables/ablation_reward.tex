@@ -29,7 +29,8 @@
 \caption{Ablation study on reward components.  Each row removes one signal
   from the full TopoPRM composite reward.  All GRPO models start from the
   same Qwen3-32B + SFT checkpoint.  $\Delta$ denotes the absolute change in
-  Overall-Acc relative to TopoPRM (full).}
+  Overall-Acc relative to TopoPRM (full).
+  $^\dagger$Evaluated on the full test set; all other rows use the light-200 protocol.}
 \label{tab:ablation_reward}
 \vspace{2pt}
 \resizebox{\textwidth}{!}{%
@@ -45,8 +46,12 @@ TopoPRM (full)       & \textbf{37.2} & \textbf{22.3} & \textbf{94.6} & 364  & --
 \quad w/o Continuity & 27.5 & 20.0 & 90.5 & 379  & $-5.9$ \\
 Outcome Only         & 19.5 & 13.0 & 89.0 & 410  & $-13.4$ \\
 \midrule
-SFT Baseline         & 39.0 & 26.5 & 48.8 & ---  & $+3.1$ \\
+SFT Baseline$^\dagger$  & 39.0 & 26.5 & 48.8 & ---  & $-5.4$ \\
 \bottomrule
 \end{tabular}%
 }
 \end{table}
+
+% AUTO_SYNC_ABLATION_BEGIN
+% Auto-synced note: ablation deltas should be recomputed from experiment_summary before camera-ready.
+% AUTO_SYNC_ABLATION_END

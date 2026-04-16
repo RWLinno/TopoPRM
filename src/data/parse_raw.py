@@ -88,19 +88,88 @@ def parse_single_record(raw_json: dict) -> Optional[dict]:
     }
 
 
+def _extract_section(text: str, start_tag: str, end_tag: Optional[str] = None) -> str:
+    if not text:
+        return ""
+    start = text.find(start_tag)
+    if start < 0:
+        return ""
+    start += len(start_tag)
+    if end_tag is None:
+        return text[start:].strip()
+    end = text.find(end_tag, start)
+    if end < 0:
+        return text[start:].strip()
+    return text[start:end].strip()
+
+
+def _parse_infer_line(obj: dict[str, Any]) -> Optional[dict]:
+    """Parse infer-style JSONL records used in test/private dumps.
+
+    Expected keys include:
+      - messages (system/user)
+      - std_score / analyse_str / solution
+    """
+    messages = obj.get("messages", [])
+    if not isinstance(messages, list) or len(messages) < 2:
+        return None
+    user_msg = messages[1].get("content", "") if isinstance(messages[1], dict) else ""
+    if not user_msg:
+        return None
+
+    stem = _extract_section(user_msg, "【题目】", "【解答思路分析】")
+    if not stem:
+        stem = _extract_section(user_msg, "【题目】", "【标准答案】")
+    std_ans = _extract_section(user_msg, "【标准答案】", "【学生作答】")
+    stu_ans = _extract_section(user_msg, "【学生作答】")
+    # Remove trailing instruction-like prompts when present.
+    stu_ans = stu_ans.split("请分析学生的作答过程")[0].strip()
+
+    analyse = str(obj.get("analyse_str", "")).strip()
+    score = obj.get("std_score", obj.get("solution", ""))
+    try:
+        score_val = int(float(score))
+    except Exception:
+        score_val = -1
+    answer_json = {"学生得分": score_val, "结论批改": "正确" if score_val >= 0 else "未知"}
+    llm_result = f"<think>{analyse}</think><answer>{json.dumps(answer_json, ensure_ascii=False)}</answer>"
+
+    if not stem or not std_ans or not stu_ans:
+        return None
+
+    return {
+        "stem": stem,
+        "standard_answer": std_ans,
+        "student_answer": stu_ans,
+        "llm_result": llm_result,
+        "score": score_val,
+        "procedure_score": score_val,
+        "sub_correct_infos": obj.get("step_results", []),
+        "topic_id": obj.get("id", ""),
+        "topic_type": obj.get("question_type", ""),
+        "source_style": "infer_jsonl",
+    }
+
+
 # ---------------------------------------------------------------------------
 # File-level helpers
 # ---------------------------------------------------------------------------
 
-def _parse_file(filepath: str) -> Optional[dict]:
-    """Read a raw JSON file (two lines) and return the parsed record."""
+def _parse_file(filepath: str) -> List[dict]:
+    """Read one raw file and return parsed records.
+
+    Supports:
+      - old two-line payload format (status=2 record)
+      - infer-style JSONL format (one record per line)
+    """
     try:
         with open(filepath, "r", encoding="utf-8") as fh:
             lines = fh.readlines()
     except Exception as exc:
         logger.warning("Cannot read %s: %s", filepath, exc)
-        return None
+        return []
 
+    out: List[dict] = []
     payload_line: Optional[dict] = None
     for line in lines:
         line = line.strip()
@@ -110,19 +179,26 @@ def _parse_file(filepath: str) -> Optional[dict]:
             obj = json.loads(line)
         except json.JSONDecodeError:
             continue
+
+        infer_rec = _parse_infer_line(obj) if isinstance(obj, dict) else None
+        if infer_rec is not None:
+            infer_rec["source_file"] = os.path.basename(filepath)
+            out.append(infer_rec)
+            continue
+
         status = obj.get("header", {}).get("status")
         if status == 2:
             payload_line = obj
-            break
+            # do not break: infer-jsonl files may contain many lines.
 
     if payload_line is None:
-        logger.debug("No status=2 payload in %s", filepath)
-        return None
+        return out
 
     record = parse_single_record(payload_line)
     if record is not None:
         record["source_file"] = os.path.basename(filepath)
-    return record
+        out.append(record)
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -151,30 +227,30 @@ def parse_dataset(input_dir: str, output_path: str) -> int:
     with open(output_path, "w", encoding="utf-8") as fout, \
          open(dag_path, "w", encoding="utf-8") as fdag:
         for jf in json_files:
-            record = _parse_file(str(jf))
-            if record is None:
+            records = _parse_file(str(jf))
+            if not records:
                 continue
+            for record in records:
+                # Determine category from parent directory name
+                category = jf.parent.name
+                record["category"] = category
+                record["record_id"] = f"{category}_{count}"
 
-            # Determine category from parent directory name
-            category = jf.parent.name
-            record["category"] = category
-            record["record_id"] = f"{category}_{count}"
+                fout.write(json.dumps(record, ensure_ascii=False) + "\n")
 
-            fout.write(json.dumps(record, ensure_ascii=False) + "\n")
+                # Build DAG from standard answer
+                try:
+                    dag = build_dag_from_answer(
+                        record["standard_answer"],
+                        problem_id=record["record_id"],
+                    )
+                    fdag.write(dag.to_json().replace("\n", " ") + "\n")
+                except Exception as exc:
+                    logger.warning("DAG build failed for %s: %s", record["record_id"], exc)
 
-            # Build DAG from standard answer
-            try:
-                dag = build_dag_from_answer(
-                    record["standard_answer"],
-                    problem_id=record["record_id"],
-                )
-                fdag.write(dag.to_json().replace("\n", " ") + "\n")
-            except Exception as exc:
-                logger.warning("DAG build failed for %s: %s", record["record_id"], exc)
-
-            count += 1
-            if count % 500 == 0:
-                logger.info("Parsed %d records so far …", count)
+                count += 1
+                if count % 500 == 0:
+                    logger.info("Parsed %d records so far …", count)
 
     logger.info(
         "Finished – %d records written to %s (DAGs → %s)", count, output_path, dag_path

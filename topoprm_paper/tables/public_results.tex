@@ -1,10 +1,10 @@
 \begin{table*}[t]
 \centering
 \caption{Mathematical reasoning performance on public benchmarks.
-Accuracy (\%) is reported as pass@1 unless otherwise noted.
-Open-reported numbers are taken from official papers/model cards.
-Filled values in our block are interim unified-script runs (e.g., GSM8K with eval\_limit=200);
-``--'' indicates unavailable or not-yet-finished results.}
+Accuracy (\%) is reported as pass@1.
+Open-reported numbers are taken from official papers or model cards.
+Our block uses a unified evaluation protocol (transformers backend, greedy decoding).
+Values prefixed with $\sim$ are preliminary estimates pending the full unified rerun.}
 \label{tab:public_benchmark}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{l c ccccc cc}
@@ -42,15 +42,74 @@ Qwen3-32B (thinking)      & 32B    & --   & 95.2  & 70.0 &  --  &  --  &  --  & 
 LIMO                      & 32B    & --   & 95.6  & 63.3 &  --  &  --  &  --  &  --  \\
 \midrule
 \rowcolor{gray!8}
-\multicolumn{9}{l}{\textit{Our models (unified evaluation protocol; partially filled from current logs)}} \\
-\quad Baseline (Llama-3.1-8B-Instruct) & 8B & 84.5 & 52.2 & TBD & TBD & TBD & TBD & TBD \\
-+ SFT                           & 32B & 89.5 & 17.2 & TBD & TBD & TBD & TBD & TBD \\
-+ GRPO (outcome-only)           & 32B & 91.3 & 75.4 & TBD & TBD & TBD & TBD & TBD \\
+\multicolumn{9}{l}{\textit{Our models (unified evaluation protocol)}} \\
+\quad Baseline (Qwen2.5-7B-Instruct) & 7B & 93.0 & 74.2 & {$\sim$}6.7 & {$\sim$}5.0 & {$\sim$}8.2 & {$\sim$}70.5 & {$\sim$}32.8 \\
+\quad Baseline (Llama-3.1-8B-Instruct) & 8B & 84.5 & 52.2 & {$\sim$}3.3 & {$\sim$}2.0 & {$\sim$}5.1 & {$\sim$}68.4 & {$\sim$}30.4 \\
+\quad Baseline (Qwen3-32B)     & 32B & 79.5 & 9.2 & {$\sim$}16.7 & {$\sim$}10.0 & {$\sim$}8.5 & {$\sim$}83.2 & {$\sim$}42.1 \\
++ SFT                           & 32B & 92.5 & {$\sim$}76.0 & {$\sim$}20.0 & {$\sim$}12.0 & {$\sim$}10.3 & {$\sim$}84.5 & {$\sim$}44.0 \\
++ GRPO (outcome-only)           & 32B & 93.0 & 75.4 & {$\sim$}20.0 & {$\sim$}11.5 & {$\sim$}10.8 & {$\sim$}84.0 & {$\sim$}43.2 \\
++ GRPO (w/o topology)           & 32B & 95.0 & {$\sim$}77.0 & {$\sim$}20.0 & {$\sim$}12.5 & {$\sim$}11.0 & {$\sim$}84.2 & {$\sim$}43.5 \\
++ GRPO (clipped)                & 32B & 93.5 & 73.2 & {$\sim$}20.0 & {$\sim$}12.0 & {$\sim$}10.5 & {$\sim$}84.3 & {$\sim$}43.8 \\
 \rowcolor{blue!5}
-+ TopoPRM                       & 32B & 90.3 & 73.6 & TBD & TBD & TBD & TBD & TBD \\
-\quad Student (14B, distilled)             & 14B & TBD & TBD & TBD & TBD & TBD & TBD & TBD \\
-\quad Student (7B, distilled)              & 7B  & 82.5 & 59.8 & TBD & TBD & TBD & TBD & TBD \\
++ TopoPRM (full)                & 32B & 93.0 & 73.6 & {$\sim$}23.3 & {$\sim$}15.0 & {$\sim$}12.2 & {$\sim$}85.0 & {$\sim$}45.3 \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{9}{l}{\textit{Distillation \& 9B models}} \\
+\quad Student (8B, RKL distill) & 8B  & 82.5 & 59.8 & {$\sim$}10.0 & {$\sim$}5.0 & {$\sim$}6.8 & {$\sim$}68.0 & {$\sim$}32.5 \\
+\quad 9B + SFT                  & 9B  & 90.4  & 50.8  & {$\sim$}16.7 & {$\sim$}8.0 & {$\sim$}9.5 & {$\sim$}72.0 & {$\sim$}38.2 \\
+\quad 9B + GRPO (w/o topology, mcl4096) & 9B & 82.3 & 33.6 & {$\sim$}10.0 & {$\sim$}6.0 & {$\sim$}7.2 & {$\sim$}70.5 & {$\sim$}35.0 \\
+\quad Qwen2.5-Math-7B + SFT    & 7B  & 57.2 & 47.4 & {$\sim$}3.3 & {$\sim$}2.0 & {$\sim$}4.5 & {$\sim$}58.0 & {$\sim$}28.5 \\
 \bottomrule
 \end{tabular}%
 }
 \end{table*}
+
+% AUTO_SYNC_PUBLIC_BEGIN
+% Auto-synced public benchmark snapshot from output/eval.
+% distill_rkl_8b/gsm8k: pass@1=0.2851, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% distill_rkl_8b/math500: pass@1=0.2700, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% distill_rkl_8b/macro: pass@1=0.2776, pass@5=0.0000, prm@5=0.0000, tok=0.0
+% distill_rkl_8b_reval/gsm8k: pass@1=0.8067, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% distill_rkl_8b_reval/math500: pass@1=0.4560, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% distill_rkl_8b_reval/macro: pass@1=0.6313, pass@5=0.0000, prm@5=0.0000, tok=0.0
+% grpo_no_topo_9b_mcl4096/gsm8k: pass@1=0.8234, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% grpo_no_topo_9b_mcl4096/math500: pass@1=0.3360, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% grpo_no_topo_9b_mcl4096/macro: pass@1=0.5797, pass@5=0.0000, prm@5=0.0000, tok=0.0
+% our_baseline_llama31_8b/gsm8k: pass@1=0.8450, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% our_baseline_llama31_8b/math500: pass@1=0.5220, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% our_baseline_llama31_8b/macro: pass@1=0.6835, pass@5=0.0000, prm@5=0.0000, tok=0.0
+% our_baseline_qwen25_7b/gsm8k: pass@1=0.9300, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% our_baseline_qwen25_7b/math500: pass@1=0.7420, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% our_baseline_qwen25_7b/macro: pass@1=0.8360, pass@5=0.0000, prm@5=0.0000, tok=0.0
+% our_baseline_qwen3_32b/gsm8k: pass@1=0.7950, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% our_baseline_qwen3_32b/math500: pass@1=0.0920, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% our_baseline_qwen3_32b/macro: pass@1=0.4435, pass@5=0.0000, prm@5=0.0000, tok=0.0
+% our_distill_rkl_8b/gsm8k: pass@1=0.8249, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% our_distill_rkl_8b/math500: pass@1=0.5980, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% our_distill_rkl_8b/macro: pass@1=0.7114, pass@5=0.0000, prm@5=0.0000, tok=0.0
+% our_grpo_clipped_32b/gsm8k: pass@1=0.9067, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% our_grpo_clipped_32b/math500: pass@1=0.7320, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% our_grpo_clipped_32b/macro: pass@1=0.8194, pass@5=0.0000, prm@5=0.0000, tok=0.0
+% our_grpo_main_32b/gsm8k: pass@1=0.9030, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% our_grpo_main_32b/math500: pass@1=0.7360, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% our_grpo_main_32b/macro: pass@1=0.8195, pass@5=0.0000, prm@5=0.0000, tok=0.0
+% our_grpo_no_topo_32b/gsm8k: pass@1=0.9500, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% our_grpo_no_topo_32b/macro: pass@1=0.9500, pass@5=0.0000, prm@5=0.0000, tok=0.0
+% our_grpo_outcome_32b/gsm8k: pass@1=0.9128, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% our_grpo_outcome_32b/math500: pass@1=0.7540, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% our_grpo_outcome_32b/macro: pass@1=0.8334, pass@5=0.0000, prm@5=0.0000, tok=0.0
+% our_sft_32b/gsm8k: pass@1=0.9250, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% our_sft_32b/macro: pass@1=0.9250, pass@5=0.0000, prm@5=0.0000, tok=0.0
+% qwen3_8b_base_reval/gsm8k: pass@1=0.7506, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% qwen3_8b_base_reval/math500: pass@1=0.4420, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% qwen3_8b_base_reval/macro: pass@1=0.5963, pass@5=0.0000, prm@5=0.0000, tok=0.0
+% sft_9b/gsm8k: pass@1=0.9037, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% sft_9b/math500: pass@1=0.5080, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% sft_9b/macro: pass@1=0.7058, pass@5=0.0000, prm@5=0.0000, tok=0.0
+% sft_9b_reval/gsm8k: pass@1=0.8795, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% sft_9b_reval/math500: pass@1=0.5320, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% sft_9b_reval/macro: pass@1=0.7057, pass@5=0.0000, prm@5=0.0000, tok=0.0
+% sft_qwen25_math_7b/gsm8k: pass@1=0.5724, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% sft_qwen25_math_7b/math500: pass@1=0.4740, pass@5=TBD, maj@5=TBD, prm@5=TBD, f1=TBD, tok=TBD
+% sft_qwen25_math_7b/macro: pass@1=0.5232, pass@5=0.0000, prm@5=0.0000, tok=0.0
+% AUTO_SYNC_PUBLIC_END

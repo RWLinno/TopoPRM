@@ -9,7 +9,7 @@ from swift.rewards import ORM, orms
 from src.reward.continuity_reward import ContinuityReward
 from src.reward.format_reward import FormatReward
 from src.reward.outcome_reward import OutcomeReward
-from src.reward.reward_config import RewardConfig
+from src.reward.reward_config import RewardConfig, env_float, env_int
 from src.reward.topo_reward import TopoReward
 from src.reward.utils import completion_to_text
 
@@ -717,7 +717,135 @@ def get_reward_func(reward_type: str = "composite") -> ORM:
     return registry[reward_type]()
 
 
+class TopoGatedReward(_SafeCompositeBase):
+    r"""Outcome-gated process reward with principled lexicographic design.
+
+    Motivation (cross-scale failure analysis, 2026-04-06):
+      GRPO only cares about *relative ordering within a batch*.  The reward
+      must satisfy:
+
+      P1  **Outcome primacy** — a generation with higher outcome always
+          ranks above one with lower outcome, regardless of process quality.
+      P2  **Process as tiebreaker** — among generations with equal outcome,
+          better reasoning structure ranks higher.
+      P3  **Curriculum signal** — when outcome = 0 for all generations
+          (weak model regime), format compliance provides a warm-start
+          gradient so the model can learn to produce parseable outputs first.
+
+    Design (lexicographic reward):
+
+    .. math::
+        R = \text{outcome} + \delta \cdot \text{format} \cdot (1 + \varepsilon \cdot q)
+
+    where:
+      * ``outcome`` ∈ {0, 0.333, 0.5, 0.667, 1.0} — answer correctness
+      * ``format``  ∈ {0, 0.3, 1.0} — structural compliance
+      * ``q`` ∈ [0, 1] — batch-normalised process quality (mean of
+        rescaled topology and continuity scores)
+      * δ = 0.1 — **derived, not tuned**: the minimum gap between
+        adjacent outcome values is 0.167 (= 0.667 − 0.5); setting
+        δ < 0.167 guarantees that the format+process term can never
+        reverse the outcome ranking (see proof below).
+      * ε = 0.5 — influence bound for process within the format tier.
+
+    Ranking-preservation proof:
+      Max contribution of the second term = δ × 1.0 × (1 + ε × 1) = 0.15.
+      Min gap between distinct outcome values = 0.167.
+      Since 0.15 < 0.167, outcome ordering is strictly preserved.  ∎
+
+    Truncation handling (FM1):
+      When a generation hits ``max_completion_length``, its DAG is
+      incomplete.  We set q = 0.5 (batch-neutral) to avoid rewarding
+      or penalising based on a garbage topology signal.
+
+    Variance guarantee (FM2):
+      Batch-level min-max rescaling of topo and continuity ensures
+      that q always has spread, even when raw scores are near-constant.
+    """
+
+    # δ: derived from OutcomeReward's discrete gap structure.
+    # OutcomeReward values ∈ {0, 1/3, 1/2, 2/3, 1}; min adjacent gap = 1/6 ≈ 0.167.
+    # Any δ < 1/6 preserves outcome ranking.  We use 0.1 (< 0.167).
+    DELTA: float = env_float("TOPO_GATED_DELTA", 0.1)
+
+    # ε: influence bound for process quality within the format tier.
+    # Must satisfy δ × (1 + ε) < min_outcome_gap = 0.167.
+    # 0.1 × 1.5 = 0.15 < 0.167 ✓
+    EPSILON: float = env_float("TOPO_GATED_EPSILON", 0.5)
+
+    # Topo vs continuity mix: 0.0 = continuity-only, 0.5 = equal, 1.0 = topo-only.
+    # Set TOPO_GATED_TOPO_W=0 for ablation without topology signal.
+    TOPO_WEIGHT: float = env_float("TOPO_GATED_TOPO_W", 0.5)
+
+    @staticmethod
+    def _batch_rescale(scores: list[float]) -> list[float]:
+        """Min-max rescale to [0, 1]; constant batches map to 0.5."""
+        if not scores:
+            return []
+        lo, hi = min(scores), max(scores)
+        span = hi - lo
+        if span < 1e-8:
+            return [0.5] * len(scores)
+        return [(s - lo) / span for s in scores]
+
+    @staticmethod
+    def _is_truncated(completion) -> bool:
+        """A generation is truncated iff it lacks a closing </answer> tag.
+
+        This is model-agnostic and independent of max_completion_length:
+        a well-formed output always ends with </answer>.  If the tag is
+        missing, the generation was cut short before the model finished.
+        """
+        text = completion_to_text(completion)
+        return "</answer>" not in text
+
+    def __call__(
+        self,
+        completions: list,
+        solution: Any = None,
+        reference_dag: Any = None,
+        **kwargs: Any,
+    ) -> list[float]:
+        outcome_scores, fmt_scores, topo_scores, cont_scores, _len = (
+            self._components(
+                completions,
+                solution=solution,
+                reference_dag=reference_dag,
+                **kwargs,
+            )
+        )
+
+        n = len(outcome_scores)
+        delta = self.DELTA
+        eps = self.EPSILON
+
+        # Batch-rescale process signals to guarantee spread
+        topo_sc = self._batch_rescale(topo_scores)
+        cont_sc = self._batch_rescale(cont_scores)
+
+        # Topo weight: 0.0 = continuity-only, 1.0 = topo-only, 0.5 = equal mix
+        topo_w = self.TOPO_WEIGHT
+
+        rewards: list[float] = []
+        for i in range(n):
+            # Process quality: weighted mix of rescaled topo and continuity
+            if self._is_truncated(completions[i]):
+                q = 0.5          # neutral for truncated outputs
+            else:
+                q = topo_w * topo_sc[i] + (1.0 - topo_w) * cont_sc[i]
+
+            # Lexicographic reward:
+            #   high-order: outcome (primary signal)
+            #   low-order:  δ × format × (1 + ε × q)  (tiebreaker + curriculum)
+            r = outcome_scores[i] + delta * fmt_scores[i] * (1.0 + eps * q)
+            rewards.append(round(self._clip01(r), 6))
+
+        self._maybe_log_stats(rewards, "topo_gated")
+        return rewards
+
+
 # Register all reward classes in SWIFT's global ``orms`` dict.
+orms["topo_gated"] = TopoGatedReward
 orms["topo_composite"] = TopoCompositeReward
 orms["topo_composite_linear"] = TopoCompositeReward
 orms["topo_composite_mulgate"] = TopoMultiplicativeGateReward

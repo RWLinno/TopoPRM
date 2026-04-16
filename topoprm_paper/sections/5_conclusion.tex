@@ -1,11 +1,21 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-We have presented \methodname,  a topology-aware process reward framework that augments outcome-based RLVR with two verifiable structural signals. The topological structure reward evaluating DAG validity and the continuity reward enforcing inter-step referential coherence, both computed by deterministic programs without learned reward models or human annotations.
-Combined with Stratified Clipping Advantage Estimation to prevent reward hacking and reverse-KL distillation for model compression, \methodname improves mathematical reasoning accuracy while producing shorter, more structurally coherent chains compared to outcome-only GRPO baselines.
+We have presented \methodname, a topology-aware process reward framework that augments outcome-based RLVR with two verifiable structural signals: a topological structure reward evaluating DAG validity and a continuity reward enforcing inter-step referential coherence.
+Both signals are computed by deterministic programs without learned reward models or human annotations.
+Combined with Stratified Clipping Advantage Estimation (SCAE) to prevent reward hacking and reverse-KL distillation for model compression, \methodname improves mathematical reasoning accuracy while producing shorter, more structurally coherent chains compared to outcome-only GRPO baselines.
+On 7{,}595 private critique problems, TopoPRM improves overall accuracy by $+13.4$ points over outcome-only GRPO while reducing average response length by 11\%.
+The distilled 8B student achieves 82.5\% on GSM8K and 59.8\% on MATH-500, competitive with models of comparable scale.
 
-% We presented TopoPRM, a framework that adds deterministic, auditable process supervision to RLVR-based mathematical reasoning training.
-% By extracting dependency DAGs from reasoning traces and computing topology and continuity rewards through rule-based programs, TopoPRM improves critique accuracy by $+13.4$ points over outcome-only GRPO while reducing response length by 11\%, without requiring learned reward models or human step-level annotations.
-% Reverse-KL distillation further compresses these gains into a Qwen3-8B student that achieves 82.5\% on GSM8K and 59.8\% on MATH-500.
-% The entire pipeline operates as a plugin-compatible extension to standard GRPO stacks.
-% Limitations and future directions are discussed in Appendix~\ref{app:limitations}.
+\paragraph{Limitations.}
+Our DAG extraction relies on rule-based parsing of mathematical expressions and textual markers, which may miss implicit logical dependencies or fail on non-standard notation.
+The current reward design is tailored to structured mathematical critique tasks; extending it to free-form reasoning or non-mathematical domains would require domain-specific parsers.
+The topology and continuity rewards capture structural properties but do not verify the mathematical correctness of individual derivation steps, which remains the responsibility of the outcome reward.
+Finally, our evaluation focuses on Chinese mathematical critique and standard English benchmarks; cross-lingual generalisation has not been systematically studied.
+
+\paragraph{Future Work.}
+Several directions merit further investigation:
+(i)~integrating learned PRMs~\citep{lightman2023lets} as complementary signals alongside our deterministic rewards to capture semantic reasoning quality;
+(ii)~extending the DAG extraction to multi-modal reasoning traces that combine text, code, and diagrams;
+(iii)~applying TopoPRM to other structured reasoning tasks such as theorem proving and scientific problem solving;
+(iv)~exploring curriculum strategies that dynamically adjust the balance between topology and outcome rewards during training.

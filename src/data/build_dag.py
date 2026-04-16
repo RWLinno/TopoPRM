@@ -651,15 +651,15 @@ def build_dag_from_answer(
     return dag
 
 
-def _try_build_from_v2_dag(v2_dag: Dict[str, Any], problem_id: str) -> Optional[ReasoningDAG]:
-    """Build a ReasoningDAG from a v2 native DAG specification.
+def _try_build_from_native_dag(native_dag: Dict[str, Any], problem_id: str) -> Optional[ReasoningDAG]:
+    """Build a ReasoningDAG from a native DAG specification.
 
-    Returns None if the v2_dag is malformed or empty, allowing fallback
+    Returns None if the native_dag is malformed or empty, allowing fallback
     to rule-based construction. This preserves backward compatibility:
-    records without v2_dag use the original pipeline unchanged.
+    records without native dag use the original pipeline unchanged.
     """
-    nodes_raw = v2_dag.get("nodes")
-    edges_raw = v2_dag.get("edges")
+    nodes_raw = native_dag.get("nodes")
+    edges_raw = native_dag.get("edges")
     if not nodes_raw or not isinstance(nodes_raw, list):
         return None
 
@@ -735,7 +735,7 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     count = 0
-    v2_used = 0
+    native_used = 0
     with open(args.input_path, "r", encoding="utf-8") as fin:
         for line_no, line in enumerate(fin, 1):
             line = line.strip()
@@ -749,13 +749,14 @@ def main() -> None:
 
             rid = record.get("record_id", f"record_{line_no}")
 
-            # v2: try native DAG first, fallback to rule-based construction
-            v2_dag_raw = record.get("v2_dag")
+            # Native DAG first, fallback to rule-based construction.
+            # Keep `v2_dag` as backward-compatible alias.
+            native_dag_raw = record.get("native_dag") or record.get("v2_dag")
             dag = None
-            if isinstance(v2_dag_raw, dict) and v2_dag_raw:
-                dag = _try_build_from_v2_dag(v2_dag_raw, problem_id=rid)
+            if isinstance(native_dag_raw, dict) and native_dag_raw:
+                dag = _try_build_from_native_dag(native_dag_raw, problem_id=rid)
                 if dag is not None:
-                    v2_used += 1
+                    native_used += 1
 
             if dag is None:
                 answer = record.get("standard_answer", "")
@@ -765,8 +766,8 @@ def main() -> None:
             out_file.write_text(dag.to_json(), encoding="utf-8")
             count += 1
 
-    logger.info("Built %d DAGs -> %s (v2_native=%d, rule_fallback=%d)",
-                count, out_dir, v2_used, count - v2_used)
+    logger.info("Built %d DAGs -> %s (native=%d, rule_fallback=%d)",
+                count, out_dir, native_used, count - native_used)
 
 
 if __name__ == "__main__":

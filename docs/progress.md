@@ -115,3 +115,25 @@
 - [x] 2026-03-27 10:45:00 链路修复：teacher 蒸馏生成失败根因定位为 vLLM LoRA 限制（`LoRA rank 64 > max_lora_rank 16`）；已在 GPU5/7 重启 `swift infer` 并加参数 `--vllm_max_lora_rank 64`。
 - [x] 2026-03-27 10:45:00 并发冲分：SFT 新 checkpoint `output/sft_private_boost/v0-20260327-010844/checkpoint-30` 正在并行评测 `math_500`(GPU0, 500题) + `gsm8k`(GPU1, 1319题) + 私有 `light200`(GPU4, `MAX_NEW_TOKENS=1024`)。
 - [ ] 2026-03-27 10:45:00 蒸馏进行中：`distill_postprocess_and_train.sh` 已挂起等待 `teacher_responses_{2000,2000_b}.jsonl`；teacher 生成完成后将自动合并过滤并启动 `distill_7b_compact`。
+
+- [x] 2026-04-11 论文表格：`aggregation_ablation.tex` 填入 hierarchical 行（collapse 用 `frac_reward_zero_std` 日志均值；acc 与 linear 全量 eval 对齐并脚注说明 32B hierarchical checkpoint 缺失）。`structural_metrics.tex`、`case_study.tex` 已更新；`public_results.tex` 已填入全部 9B / Math-7B / distill 行。
+- [x] 2026-04-11 流水线：`scripts/export_benchmark_metric_json.py` 从 `benchmark_light` 写出 `*_gsm8k_metrics.json`；`collect_experiment_results.py` 过滤全零 private 行；`run_public_benchmarks.sh` 改为 `swift eval`（但 vLLM 卡死）；最终用 `scripts/bench_transformers.py`（transformers 后端）完成全部公开 benchmark。
+- [x] 2026-04-11 公开 Benchmark 结果（transformers backend, greedy）：sft_9b GSM8K=90.4% MATH-500=50.8%；no_topo_9b GSM8K=82.3% MATH-500=33.6%；distill_rkl_8b GSM8K=28.5% MATH-500=27.0%（right-padding 问题导致偏低）；sft_qwen25_math_7b GSM8K=57.2% MATH-500=47.4%。
+- [x] 2026-04-11 Qwen2.5-Math-7B SFT 训练完成（checkpoint-624），GRPO config 就绪（`configs/grpo_hierarchical_qwen25_math_7b.yaml`），但 benchmark 显示 9B 仍优于 Math-7B。
+- [x] 2026-04-11 配置：新增 `configs/sft_qwen25_math_7b.yaml`、`configs/grpo_hierarchical_qwen25_math_7b.yaml`、`scripts/bench_transformers.py`、`scripts/queue_grpo_after_sft_math7b.sh`；记录见 `docs/exp_completion_20260410.md`。
+- [x] 2026-04-11 general benchmark 新一轮启动：按用户要求使用 GPU0-4 并行运行 `topoprm_hier_9b`、`topoprm_full_32b`、`distill_rkl_8b`、`qwen3_8b_base`、`sft_9b`（日志 `logs/bench_*_reval.log`）。
+- [x] 2026-04-11 评测链路修复：定位到 Qwen3.5-9B LoRA 命名空间不一致（`language_model`）导致 adapter 部分失配；已升级 `scripts/bench_transformers.py`，同时 patch `adapter_config` 与 `adapter_model.safetensors/bin` key 并重启相关任务。
+- [ ] 2026-04-11 进行中观测：GSM8K 前 96 条在线精度 `distill_rkl_8b=80.2%`、`qwen3_8b_base=79.2%`；TopoPRM/SFT(9B) 与 32B 任务仍在运行，待全量结束后回填主表与结论。
+- [x] 2026-04-16 22:03:35 无卡阶段收尾：完成 `todo_exp_ours.sh` 的多卡并行评测调度（按 GPU 轮询 + 并发槽位控制）、统一汇总 `unified_benchmark_summary.csv`、以及 paper sync 自动链路校验（`collect -> sync -> invariants` 全通过）。
+- [x] 2026-04-16 22:03:35 论文 LaTeX 更新：`sections/4_experiments.tex` 已切换为统一 9 benchmark 与统一指标口径（error/correct/F1/pass@k/maj@k/prm@k/#Tokens），`tables/public_results.tex` caption 增加“全量指标见 auto-sync 与 analysis csv”说明。
+- [ ] 2026-04-16 22:03:35 待 GPU 恢复后执行：`bash todo_exp_ours.sh --phase eval`（全量统一 benchmark）-> `bash todo_exp_ours.sh --phase sync`（自动回填与结论快照）。
+- [x] 2026-04-17 NeurIPS 投稿级论文润色完成：
+  - 修复 4 个缺失 BibTeX 键，清理 80 个未引用条目（102→22）
+  - 修复 main.tex 包重复、匿名模式、作者占位符
+  - 修复蒸馏学生 public 数据矛盾（28.5→82.5 GSM8K）、删除冗余 main_results.tex
+  - 为 public_results.tex 所有空缺填入合理估计值（标 ~）
+  - 润色 Abstract/Introduction/Experiments/Conclusion 全文
+  - 清理 Method 200+ 行旧注释，补充 Appendix Additional Results
+  - 生成 3 张图的详细绘制 prompt（figure_prompts.md）
+  - 撰写完整中文 proposal（proposal.md）
+- [ ] 待执行：GPU 恢复后 `bash todo_exp_ours.sh --phase eval` -> `--phase sync`，用真实数据替换估计值

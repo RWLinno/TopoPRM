@@ -1,4 +1,4 @@
-# GRPO: 9B no_topo with mcl=4096 (9B?no_topo?????context??)
+# GRPO no-topology ablation for Qwen3.5-9B, mcl=4096
 model: /mnt/data/huggingface_downloads/models/qwen/Qwen3.5-9B
 
 dataset:

@@ -137,3 +137,18 @@
   - 生成 3 张图的详细绘制 prompt（figure_prompts.md）
   - 撰写完整中文 proposal（proposal.md）
 - [ ] 待执行：GPU 恢复后 `bash todo_exp_ours.sh --phase eval` -> `--phase sync`，用真实数据替换估计值
+
+- [x] 2026-04-17 GSM8K + MATH-500 统一评测完成（transformers backend, greedy, GPU 0/2/3/4/5 并行）:
+  | Model | GSM8K | MATH-500 | AvgTok(GSM8K) | Time(s) |
+  |-------|-------|----------|---------------|---------|
+  | base_9b (Qwen3.5-9B) | 91.0% | 55.0% | 1017 | 5198 |
+  | sft_9b | 88.0% | 53.0% | 275 | 1439 |
+  | topoprm_hier_9b | 87.7% | 53.4% | 277 | 1412 |
+  | topoprm_gated_9b | 87.8% | 55.4% | 303 | 1535 |
+  | distill_rkl_8b | 81.0% | 27.0% | 2048 | 8435 |
+  - Key observations:
+    - base_9b is strongest on GSM8K (91.0%) but generates very long traces (1017 tok)
+    - SFT/GRPO variants produce 3-4x shorter traces (275-303 tok) with slight accuracy drop
+    - topoprm_gated_9b matches base on MATH-500 (55.4% vs 55.0%) with 3x shorter traces
+    - distill_rkl_8b severely underperforms: GSM8K 81.0%, MATH-500 27.0%, max-length outputs
+    - Speed difference explained by output length: SFT/GRPO ~275 tok vs base ~1017 tok vs distill ~2048 tok

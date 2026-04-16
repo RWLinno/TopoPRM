@@ -23,6 +23,11 @@ _SUB_Q_PATTERNS: List[re.Pattern] = [
     re.compile(r"^\s*（(\d+)）\s*"),
     re.compile(r"^\s*第\s*(\d+)\s*[小题问]"),
 ]
+_SUB_Q_STRIP_PATTERNS: List[re.Pattern] = [
+    re.compile(r"^\s*【小题\d+】\s*"),
+    re.compile(r"^\s*[（(]?\d+[)）]\s*"),
+    re.compile(r"^\s*第\s*\d+\s*[小题问]\s*"),
+]
 
 _STEP_MARKER_RE = re.compile(
     r"^\s*(?:"
@@ -62,6 +67,7 @@ _EQUATION_RE = re.compile(
     r"[=\u2260<>\u2264\u2265\u2248]"
     r"[a-zA-Z\u03b1-\u03c9\u0391-\u03a9\d\s+\-*/^(){}]+"
 )
+_EXPR_OPERATOR_RE = re.compile(r"[=\u2260<>\u2264\u2265\u2248+\-*/^]|∥|⊥")
 _VAR_ASSIGN_RE = re.compile(
     r"(?:\u8bbe|\u4ee4|let)\s*([a-zA-Z\u03b1-\u03c9\u0391-\u03a9]\w*)\s*[=\uff1d]\s*(.+?)(?:[,\uff0c;\uff1b\u3002]|$)",
     re.IGNORECASE,
@@ -141,6 +147,13 @@ def _split_inline_steps(line: str) -> List[str]:
     return parts
 
 
+def _strip_sub_question_prefix(text: str) -> str:
+    out = text
+    for pat in _SUB_Q_STRIP_PATTERNS:
+        out = pat.sub("", out)
+    return out.strip()
+
+
 def _looks_incomplete_fragment(text: str) -> bool:
     t = text.strip()
     if not t:
@@ -201,11 +214,14 @@ def extract_steps_from_answer(standard_answer: str) -> List[Dict[str, Any]]:
         line = _STEP_MARKER_RE.sub("", line).strip()
         if not line:
             continue
-        if _looks_incomplete_fragment(line):
-            continue
         sq = _detect_sub_question(line)
         if sq is not None:
             current_sub_q = sq
+        line = _strip_sub_question_prefix(line)
+        if not line:
+            continue
+        if _looks_incomplete_fragment(line):
+            continue
         steps.append(
             {
                 "step_id": len(steps),
@@ -226,6 +242,22 @@ def canonicalize_expression(expr: str) -> str:
     if expr.startswith("(") and expr.endswith(")") and len(expr) > 2:
         expr = expr[1:-1]
     return expr.lower()
+
+
+def _is_informative_expression(expr: str) -> bool:
+    e = expr.strip()
+    if len(e) < 3:
+        return False
+    if re.fullmatch(r"[a-z\u03b1-\u03c9]", e):
+        return False
+    if re.fullmatch(r"\d+(?:\.\d+)?", e):
+        return False
+    if _EXPR_OPERATOR_RE.search(e):
+        return True
+    if "(" in e and ")" in e and len(e) >= 5:
+        return True
+    alpha_cnt = len(re.findall(r"[a-z\u03b1-\u03c9]", e))
+    return alpha_cnt >= 2 and len(e) >= 5
 
 
 def extract_variables(text: str) -> List[str]:
@@ -257,7 +289,7 @@ def extract_expressions(text: str) -> List[str]:
     exprs: List[str] = []
     for item in exprs_raw:
         canonical = canonicalize_expression(item)
-        if len(canonical) >= 2 and canonical not in exprs:
+        if _is_informative_expression(canonical) and canonical not in exprs:
             exprs.append(canonical)
     return exprs
 
@@ -282,9 +314,13 @@ def extract_claim_keys(text: str) -> List[str]:
     for pat in _CLAIM_PATTERNS:
         for m in pat.finditer(text):
             claim = canonicalize_expression(m.group(0).strip())
-            if claim and claim not in claims:
+            if _is_informative_expression(claim) and claim not in claims:
                 claims.append(claim)
     return claims
+
+
+def _same_sub_question(a: Optional[int], b: Optional[int]) -> bool:
+    return a == b
 
 
 def classify_step_type(text: str) -> StepType:
@@ -313,29 +349,32 @@ def build_dependency_edges_by_rules(
     edges: List[Tuple[int, int, str, str]] = []
     evidences: List[EdgeEvidence] = []
 
-    expr_origin: Dict[str, int] = {}
-    claim_origin: Dict[str, int] = {}
-    var_origin: Dict[str, int] = {}
+    expr_origin: Dict[Tuple[Optional[int], str], int] = {}
+    claim_origin: Dict[Tuple[Optional[int], str], int] = {}
+    var_origin: Dict[Tuple[Optional[int], str], int] = {}
+    by_id: Dict[int, ParsedStep] = {s.step_id: s for s in steps}
 
     for step in sorted(steps, key=lambda n: n.step_id):
         for expr in step.exprs:
-            expr_origin.setdefault(expr, step.step_id)
+            expr_origin.setdefault((step.sub_question_id, expr), step.step_id)
         for claim in step.claim_keys:
-            claim_origin.setdefault(claim, step.step_id)
+            claim_origin.setdefault((step.sub_question_id, claim), step.step_id)
         for var in step.variables:
-            var_origin.setdefault(var, step.step_id)
+            var_origin.setdefault((step.sub_question_id, var), step.step_id)
 
     for step in sorted(steps, key=lambda n: n.step_id):
         seen_sources: set[int] = set()
 
         for expr in step.exprs:
-            src = expr_origin.get(expr)
+            src = expr_origin.get((step.sub_question_id, expr))
             if src is not None and src < step.step_id and src not in seen_sources:
                 edges.append((src, step.step_id, VIRTUAL_EDGE, "expr_ref"))
                 evidences.append(EdgeEvidence(src, step.step_id, VIRTUAL_EDGE, "expr_ref", f"expr={expr}"))
                 seen_sources.add(src)
                 continue
-            for prev_expr, prev_src in expr_origin.items():
+            for (subq, prev_expr), prev_src in expr_origin.items():
+                if not _same_sub_question(subq, step.sub_question_id):
+                    continue
                 if prev_src >= step.step_id or prev_src in seen_sources:
                     continue
                 if _overlap_ratio(expr, prev_expr) >= 0.8:
@@ -347,23 +386,30 @@ def build_dependency_edges_by_rules(
                     break
 
         for claim in step.claim_keys:
-            src = claim_origin.get(claim)
+            src = claim_origin.get((step.sub_question_id, claim))
             if src is not None and src < step.step_id and src not in seen_sources:
                 edges.append((src, step.step_id, VIRTUAL_EDGE, "claim_ref"))
                 evidences.append(EdgeEvidence(src, step.step_id, VIRTUAL_EDGE, "claim_ref", f"claim={claim}"))
                 seen_sources.add(src)
 
         for var in step.variables:
-            src = var_origin.get(var)
+            src = var_origin.get((step.sub_question_id, var))
             if src is not None and src < step.step_id and src not in seen_sources:
                 edges.append((src, step.step_id, VIRTUAL_EDGE, "var_ref"))
                 evidences.append(EdgeEvidence(src, step.step_id, VIRTUAL_EDGE, "var_ref", f"var={var}"))
                 seen_sources.add(src)
 
-        if not seen_sources and step.step_id > 0 and step.step_type in (StepType.DERIVATION, StepType.CONCLUSION):
-            edges.append((step.step_id - 1, step.step_id, DOUBLE_BARRIER_EDGE, "implicit_block"))
+        prev = by_id.get(step.step_id - 1)
+        if (
+            not seen_sources
+            and step.step_id > 0
+            and prev is not None
+            and _same_sub_question(prev.sub_question_id, step.sub_question_id)
+            and step.step_type in (StepType.DERIVATION, StepType.CONCLUSION)
+        ):
+            edges.append((prev.step_id, step.step_id, DOUBLE_BARRIER_EDGE, "implicit_block"))
             evidences.append(
-                EdgeEvidence(step.step_id - 1, step.step_id, DOUBLE_BARRIER_EDGE, "implicit_block", "fallback")
+                EdgeEvidence(prev.step_id, step.step_id, DOUBLE_BARRIER_EDGE, "implicit_block", "fallback")
             )
 
     return edges, evidences
@@ -402,10 +448,16 @@ def _should_add_seq_edge(dag: ReasoningDAG, src_id: int, tgt_id: int) -> bool:
     return True
 
 
-def _add_sequential_weak_edges(dag: ReasoningDAG) -> int:
+def _add_sequential_weak_edges(
+    dag: ReasoningDAG,
+    parsed_steps: List[ParsedStep],
+) -> int:
     ids = sorted(dag.nodes)
+    sid_to_subq = {s.step_id: s.sub_question_id for s in parsed_steps}
     added = 0
     for a, b in zip(ids, ids[1:]):
+        if not _same_sub_question(sid_to_subq.get(a), sid_to_subq.get(b)):
+            continue
         if _should_add_seq_edge(dag, a, b) and not dag.graph.has_edge(a, b):
             dag.graph.add_edge(
                 a,
@@ -549,7 +601,7 @@ def parse_answer_to_dag_debug(
 
     seq_edges_added = 0
     if _ENABLE_SEQ_WEAK_EDGE:
-        seq_edges_added = _add_sequential_weak_edges(dag)
+        seq_edges_added = _add_sequential_weak_edges(dag, parsed_steps)
 
     _assign_hybrid_verdicts(dag, parsed_steps, parsed_ref_dag)
 
@@ -581,6 +633,7 @@ def parse_answer_to_dag_debug(
         "seq_edges_added": seq_edges_added,
         "edge_source_stats": edge_source_stats,
         "verdict_stats": verdict_stats,
+        "sub_questions": sorted({s.sub_question_id for s in parsed_steps if s.sub_question_id is not None}),
     }
     return dag, debug
 
@@ -595,6 +648,74 @@ def build_dag_from_answer(
         problem_id=problem_id,
         reference_dag=reference_dag,
     )
+    return dag
+
+
+def _try_build_from_v2_dag(v2_dag: Dict[str, Any], problem_id: str) -> Optional[ReasoningDAG]:
+    """Build a ReasoningDAG from a v2 native DAG specification.
+
+    Returns None if the v2_dag is malformed or empty, allowing fallback
+    to rule-based construction. This preserves backward compatibility:
+    records without v2_dag use the original pipeline unchanged.
+    """
+    nodes_raw = v2_dag.get("nodes")
+    edges_raw = v2_dag.get("edges")
+    if not nodes_raw or not isinstance(nodes_raw, list):
+        return None
+
+    dag = ReasoningDAG(problem_id=problem_id)
+    _v2_type_map = {
+        "decompose": StepType.DEFINITION,
+        "derive": StepType.DERIVATION,
+        "check": StepType.COMPUTATION,
+        "conclude": StepType.CONCLUSION,
+        "definition": StepType.DEFINITION,
+        "auxiliary": StepType.AUXILIARY,
+    }
+    _v2_verdict_map = {
+        "correct": LocalVerdict.CORRECT,
+        "incorrect": LocalVerdict.INCORRECT,
+        "unverifiable": LocalVerdict.UNVERIFIABLE,
+    }
+    id_to_int: Dict[str, int] = {}
+    for idx, n in enumerate(nodes_raw):
+        if not isinstance(n, dict):
+            continue
+        nid = str(n.get("id", f"n{idx}"))
+        int_id = idx
+        id_to_int[nid] = int_id
+        raw_text = str(n.get("text", ""))
+        stype = _v2_type_map.get(str(n.get("type", "")), StepType.UNKNOWN)
+        verdict = _v2_verdict_map.get(str(n.get("local_verdict", "")), LocalVerdict.UNVERIFIABLE)
+        dag.add_node(Node(
+            step_id=int_id,
+            raw_text=raw_text,
+            normalized_text=raw_text,
+            exprs=extract_expressions(raw_text),
+            claims=extract_claims(raw_text),
+            step_type=stype,
+            local_verdict=verdict,
+            sub_question_id=n.get("sub_question_id"),
+        ))
+
+    if edges_raw and isinstance(edges_raw, list):
+        for e in edges_raw:
+            if not isinstance(e, dict):
+                continue
+            src_str = str(e.get("from", ""))
+            tgt_str = str(e.get("to", ""))
+            src_int = id_to_int.get(src_str)
+            tgt_int = id_to_int.get(tgt_str)
+            if src_int is None or tgt_int is None:
+                continue
+            rel = str(e.get("rel", "depends_on"))
+            if rel == "contradicts":
+                dag.add_implicit_barrier_edge(src_int, tgt_int)
+            else:
+                dag.add_dependency_edge(src_int, tgt_int, rel)
+
+    if dag.num_nodes == 0:
+        return None
     return dag
 
 
@@ -614,6 +735,7 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     count = 0
+    v2_used = 0
     with open(args.input_path, "r", encoding="utf-8") as fin:
         for line_no, line in enumerate(fin, 1):
             line = line.strip()
@@ -625,14 +747,26 @@ def main() -> None:
                 logger.warning("Line %d: bad JSON -- %s", line_no, exc)
                 continue
 
-            answer = record.get("standard_answer", "")
             rid = record.get("record_id", f"record_{line_no}")
-            dag = build_dag_from_answer(answer, problem_id=rid)
+
+            # v2: try native DAG first, fallback to rule-based construction
+            v2_dag_raw = record.get("v2_dag")
+            dag = None
+            if isinstance(v2_dag_raw, dict) and v2_dag_raw:
+                dag = _try_build_from_v2_dag(v2_dag_raw, problem_id=rid)
+                if dag is not None:
+                    v2_used += 1
+
+            if dag is None:
+                answer = record.get("standard_answer", "")
+                dag = build_dag_from_answer(answer, problem_id=rid)
+
             out_file = out_dir / f"{rid}.json"
             out_file.write_text(dag.to_json(), encoding="utf-8")
             count += 1
 
-    logger.info("Built %d DAGs -> %s", count, out_dir)
+    logger.info("Built %d DAGs -> %s (v2_native=%d, rule_fallback=%d)",
+                count, out_dir, v2_used, count - v2_used)
 
 
 if __name__ == "__main__":

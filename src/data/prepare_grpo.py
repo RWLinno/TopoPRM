@@ -100,6 +100,13 @@ def prepare_grpo_dataset(
                 "reference_dag": dag_json,
             }
 
+            # v2 optional fields — pass through if present, ignored by legacy reward
+            for v2_key in ("error_tags", "trace_quality", "trace_confidence",
+                           "difficulty", "multi_trace_id", "trace_variant"):
+                v2_val = rec.get(v2_key)
+                if v2_val is not None:
+                    grpo_record[v2_key] = v2_val
+
             fout.write(json.dumps(grpo_record, ensure_ascii=False) + "\n")
             count += 1
 

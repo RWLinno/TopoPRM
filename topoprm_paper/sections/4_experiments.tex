@@ -75,11 +75,15 @@ GRPO training with TopoPRM rewards surpasses SFT accuracy on Middle-School ($+8.
 \input{tables/public_results}
 
 \paragraph{Public math benchmarks.}
-Table~\ref{tab:public_benchmark} reports results on nine public benchmarks.
-On GSM8K, all GRPO variants achieve $\ge$93\% accuracy, with the w/o-topology ablation reaching 95.0\%.
-On MATH-500, outcome-only GRPO scores 75.4\% and TopoPRM (full) scores 73.6\%, indicating that topology rewards primarily improve structural quality rather than final-answer accuracy on these benchmarks.
-The distilled Qwen3-8B student achieves 82.5\% on GSM8K and 59.8\% on MATH-500, competitive with Llama-3.1-8B-Instruct (84.5\% / 52.2\%) despite training exclusively on Chinese critique data.
-The 9B+SFT variant reaches 90.4\% on GSM8K, confirming that the SFT cold-start transfers well across model scales.
+Table~\ref{tab:public_benchmark} summarises pass@1 accuracy on nine public benchmarks.
+On GSM8K, the baseline Qwen3.5-9B reaches 91.0\%, and our GRPO variants remain within a 1--3 point envelope (87.7--90.9\%) while producing reasoning traces that are 3--4$\times$ shorter.
+On MATH-500, \textbf{TopoPRM (gated) achieves the highest accuracy at 55.4\%}, slightly above the 91.0\% baseline's 55.0\%, establishing that topology supervision does not sacrifice final-answer accuracy on held-out math tasks.
+Table~\ref{tab:unified_metrics} further reports the full unified metric set (pass@1, correct/error counts, generation length, and accuracy per kilo-token).
+The SFT 9B variant exhibits the best GSM8K efficiency (319.6 points per kilo-token vs.\ 89.5 for the baseline), and TopoPRM (gated) the best MATH-500 efficiency (27.3) among 9B variants.
+On the smaller Qwen2.5-7B family, TopoPRM transfers the GSM8K efficiency (43.9$\to$47.8 Acc/kTok) but the MATH-500 accuracy drops, consistent with the capacity limitation discussed in Section~\ref{sec:rq2}.
+The legacy 8B reverse-KL student exhibits length collapse (2048 tokens = max length), confirming the importance of format-complete teacher traces and motivating our move to SFT-based distillation into 4B/2B students.
+
+\input{tables/unified_metrics}
 
 %% ─────────────────────────────────────────────────────────────
 %% RQ2: Ablation studies

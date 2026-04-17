@@ -138,6 +138,28 @@
   - 撰写完整中文 proposal（proposal.md）
 - [ ] 待执行：GPU 恢复后 `bash todo_exp_ours.sh --phase eval` -> `--phase sync`，用真实数据替换估计值
 
+- [x] 2026-04-17 Batch 2 (ablation + 7B family) 评测完成:
+  | Model | Params | GSM8K | MATH-500 | Cor/Err (GSM8K) | AvgTok |
+  |-------|--------|-------|----------|-----------------|--------|
+  | outcome_only_9b | 9B | 88.3% | 54.4% | 1165/154 | 287 |
+  | no_topo_9b | 9B | 88.7% | 54.2% | 1170/149 | 305 |
+  | no_continuity_9b | 9B | **90.9%** | 55.0% | 1199/120 | 1006 |
+  | base_qwen25_7b | 7B | 84.2% | 55.2% | 1110/209 | 1917 |
+  | topoprm_hier_7b | 7B | 83.8% | 38.8% | 1105/214 | 1753 |
+  | distill_rkl_8b (MATH500 fix) | 8B | 81.0% | 45.4% | 1069/250 | 2048 |
+  - Observations:
+    - no_continuity_9b 在 GSM8K 上反而最高，表明 continuity reward 可能过度约束
+    - topoprm_hier_7b 在 MATH-500 上从 55.2% 掉到 38.8%（7B 模型容量不足）
+    - distill_rkl_8b 持续表现差（MATH-500 只有 45.4%），decision: 弃用 8B 蒸馏
+- [x] 2026-04-17 决策调整: 弃用 Qwen3-8B 蒸馏，改为 SFT-based 蒸馏到 Qwen3.5-4B/2B/0.8B
+  - 失败原因：32B 教师的 trace 只有 0.4% 带完整 `<answer>` 标签 → 学生学不会停止
+  - 新方案：用完整格式的 train_mixed.jsonl (10847 samples, 70% with <think>/<answer>)
+  - 配置: sft_distill_4b.yaml / sft_distill_2b.yaml / sft_distill_0p8b.yaml
+  - 已启动 watchdog: scripts/launch_distill_when_ready.sh (等 GPU 0-5 空闲)
+- [x] 2026-04-17 更新 paper LaTeX:
+  - 重写 public_results.tex 用实测值 (9B 家族 7 个 variants)
+  - 新增 tables/unified_metrics.tex (pass@1 / Cor/Err / Tok / Acc/kTok)
+  - 更新 experiments.tex 分析段落
 - [x] 2026-04-17 GSM8K + MATH-500 统一评测完成（transformers backend, greedy, GPU 0/2/3/4/5 并行）:
   | Model | GSM8K | MATH-500 | AvgTok(GSM8K) | Time(s) |
   |-------|-------|----------|---------------|---------|

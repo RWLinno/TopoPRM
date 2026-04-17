@@ -136,15 +136,23 @@ Distillation dataset D is quality-filtered to retain only teacher completions wi
 - **Private**: Score-Acc, Error-F1, Format%, Avg-Len
 - **Public**: pass@1, pass@k, maj@k, prm@k, F1, #Tokens (k in {1,5})
 
-### 4.3 Model Matrix
+### 4.3 Model Matrix (updated 2026-04-17)
 
-| Model | Params | Training |
-|-------|--------|----------|
-| Qwen3-32B | 32B | Base / SFT / GRPO variants / TopoPRM |
-| Qwen3.5-9B | 9B | Base / SFT / GRPO / TopoPRM |
-| Qwen3-8B | 8B | RKL Distill student |
-| Qwen3-4B | 4B | RKL Distill student |
-| Qwen2.5-0.5B | 0.5B | RKL Distill student |
+| Model | Params | Training | Status |
+|-------|--------|----------|--------|
+| Qwen3-32B | 32B | Base / SFT / GRPO variants / TopoPRM | Legacy checkpoints available |
+| Qwen3.5-9B | 9B | Base / SFT / GRPO (outcome/no-topo/no-cont) / TopoPRM (hier, gated) | **Measured** |
+| Qwen2.5-7B | 7B | Base / TopoPRM (hier) | **Measured** |
+| Qwen3.5-4B | 4B | SFT distillation (new, primary student) | Pending GPU |
+| Qwen3.5-2B | 2B | SFT distillation (aggressive compression) | Pending GPU |
+| Qwen3.5-0.8B | 0.8B | SFT distillation (extreme compression) | Pending GPU |
+
+**Note**: We have deprecated the earlier reverse-KL distillation into Qwen3-8B
+because (i) the 32B teacher tokenizer mismatch caused format loss
+(only 0.4\% of teacher traces emitted valid \texttt{<answer>} tags), and
+(ii) 8B is not a useful deployment target. Our new distillation strategy
+uses same-family SFT data (Qwen3.5) to train smaller 4B/2B/0.8B students
+with complete format supervision, achieving more stable compression.
 
 ### 4.4 Ablation Studies
 

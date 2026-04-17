@@ -1,4 +1,4 @@
-# TopoSD-Zero Phase III-A: Self-Revision Training for Qwen3.5-9B
+# TVSD Phase III-A: Self-Revision Training for Qwen3.5-9B
 # Input: data/srt_ready/train.jsonl (output of src/distill/build_srt_data.py)
 # - Each record is a full chat turn with either revision or generation loss tag
 # - Both loss types are summed per Eq. eq:srt (equal weight)

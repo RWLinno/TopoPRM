@@ -1,14 +1,14 @@
-# TopoSD-Zero Status (2026-04-17)
+# TVSD Status (2026-04-17)
 
 ## Executive Summary
 
-Implemented the full TopoSD-Zero pipeline on top of the existing TopoPRM
+Implemented the full TVSD pipeline on top of the existing TopoPRM
 infrastructure: (1) upgraded eval protocol with chat template + SFT-style
 system prompt, (2) added 10-benchmark coverage (GSM8K / MATH-500 / Olympiad
 / Omni-MATH / AIME'24 / AIME'25 / CNMO'24 / LiveCode / MMLU / GPQA-D) with
-pass@k / maj@k / prm@k metrics, (3) implemented SD-Zero-style Phase 1 SRT +
-Phase 2 OPSD with topology-aware revision prompts, (4) rewrote paper §3.5,
-§4.RQ4 and added unified tables, (5) pivoted student target from 8B RKL
+pass@k / maj@k / prm@k metrics, (3) implemented on-policy distillation-style Phase 1 SRT +
+Phase 2 OPSD with topology-aware revision prompts, (4) rewrote paper ï¿½3.5,
+ï¿½4.RQ4 and added unified tables, (5) pivoted student target from 8B RKL
 (known failure) to Qwen3.5-{4B, 2B, 0.8B} OPSD.
 
 ## Key Result (Early)
@@ -42,31 +42,31 @@ Both started via `scripts/bench_transformers.py` with new flags:
   - Enhanced answer extraction (MCQ: "The answer is A", "(A)" etc.)
   - 10 benchmark loaders with local-first strategy
   - pass@1/pass@k/maj@k/prm@k/error/correct/F1/#Tokens
-- `scripts/bench_gen_then_revise.py` ? SD-Zero Generate-then-Revise mode
+- `scripts/bench_gen_then_revise.py` ? on-policy distillation Generate-then-Revise mode
 - `scripts/fill_rft_csv.py` ? aggregates eval JSONs into CSV template
 - `scripts/run_extended_benchmarks.sh` ? queues AIME/CNMO/MMLU/GPQA runs
 
-### TopoSD-Zero pipeline
-- `src/distill/build_srt_data.py` ? 2×2 dispatch (r_out × r_topo) for P_r
+### TVSD pipeline
+- `src/distill/build_srt_data.py` ? 2ï¿½2 dispatch (r_out ï¿½ r_topo) for P_r
 - `scripts/rollout_srt.py` ? Phase 1 on-policy rollout + score
 - `src/distill/opsd_trainer.py` ? Phase 2 on-policy self-distillation
 - Configs: `configs/srt_9b.yaml`, `configs/opsd_9b.yaml`,
   `configs/opsd_student_{4b,2b,0p8b}.yaml`
 
 ### Paper (NeurIPS submission)
-- `sections/3_method.tex` ? **new §3.5 TopoSD-Zero**:
+- `sections/3_method.tex` ? **new ï¿½3.5 TVSD**:
   - Phase III-A SRT with Eq.~eq:topo_pr (topology-aware dispatch table)
   - Phase III-B OPSD with Eq.~eq:opsd
   - Discussion on why topology-aware P_r concentrates KL gradient
 - `sections/4_experiments.tex` ? **RQ4 rewritten**:
-  - From-plain-RKL-to-TopoSD-Zero motivation (0.4% closed-answer rate)
+  - From-plain-RKL-to-TVSD motivation (0.4% closed-answer rate)
   - Revision gain table reference
   - Compression narrative updated
 - `tables/public_results_unified.tex` ? 10-benchmark pass@1 table
 - `tables/unified_metrics.tex` ? full 8-column per-benchmark metrics
 - `tables/revision_gain.tex` ? First-Attempt vs Revised Attempt
-- `references.bib` ? +6 entries (SD-Zero, OPD, OPSD, SDFT, DAPO, RFT)
-- `proposal.md` ? updated model matrix + TopoSD-Zero section
+- `references.bib` ? +6 entries (on-policy distillation, OPD, OPSD, SDFT, DAPO, RFT)
+- `proposal.md` ? updated model matrix + TVSD section
 
 ## Outstanding work (training pending, requires more GPU time)
 
@@ -88,4 +88,4 @@ Both started via `scripts/bench_transformers.py` with new flags:
 | Extraction priority | `####` > `\\boxed` > last num | `<answer>` > `\\boxed` > phrase > last num |
 | MCQ extractor | Any single letter | "The answer is X", "(X)", "X)" patterns |
 | Samples per item | 1 (greedy) | 5 (temp 0.7, k={1,5}) |
-| Metrics reported | pass@1, tokens | 8 metrics × 10 benchmarks |
+| Metrics reported | pass@1, tokens | 8 metrics ï¿½ 10 benchmarks |

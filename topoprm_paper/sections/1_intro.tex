@@ -64,7 +64,7 @@ models. In summary, our contributions are fourfold:
 
 \item \textbf{Accuracy-first reward shaping.} We introduce Stratified Clipping Advantage Estimation (SCAE), which partitions sampled completions by correctness before computing advantages, preventing process rewards from favouring structurally valid but factually wrong traces.
 
-\item \textbf{End-to-end training recipe with distillation.} We instantiate TopoPRM as plug-in reward modules compatible with standard GRPO stacks, and add a reverse-KL distillation stage that compresses the improved reasoning behaviour into smaller student models.
+\item \textbf{End-to-end training recipe with topology-verified compression.} We instantiate TopoPRM as plug-in reward modules compatible with standard GRPO stacks, and add a \emph{topology-verified self-distillation} stage (TVSD) that reuses the same deterministic diagnostics to densify the scalar outcome signal into per-token supervision, compressing the teacher into compact $\leq$4B students without any external teacher or human step-level annotation.
 
 \item \textbf{Comprehensive empirical validation.} On 7{,}595 Chinese mathematical critique problems, TopoPRM improves critique accuracy by $+13.4$ points over outcome-only GRPO while reducing response length by 11\%. The distilled 8B student achieves 82.5\% on GSM8K and 59.8\% on MATH-500, competitive with models of comparable scale.
 \end{enumerate}

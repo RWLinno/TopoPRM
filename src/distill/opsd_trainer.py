@@ -1,4 +1,4 @@
-"""On-Policy Self-Distillation trainer for TopoSD-Zero Phase III-B.
+"""On-Policy Self-Distillation trainer for TVSD Phase III-B.
 
 For each problem x in D2:
     y ~ pi_theta(.|x)                        # student on-policy

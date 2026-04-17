@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SD-Zero-style Generate-then-Revise evaluation.
+"""topology-verified Generate-then-Revise evaluation.
 
 For each benchmark item:
     1) y_init = model.generate(x)           (first attempt)

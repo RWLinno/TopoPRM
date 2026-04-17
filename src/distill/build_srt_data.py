@@ -1,4 +1,4 @@
-"""Build Phase 1 SRT (Self-Revision Training) dataset for TopoSD-Zero.
+"""Build Phase 1 SRT (Self-Revision Training) dataset for TVSD.
 
 Pipeline:
   For each (x, a) in input:

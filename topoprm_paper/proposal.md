@@ -103,17 +103,21 @@ Prevents process rewards from favouring structurally valid but factually incorre
 | Hierarchical | R = R_base * (1+a*R_topo) * (1+b*R_cont) | Topo/cont as gain factors |
 | Gated lexicographic | R = R_out + eps*R_process, eps<<1 | Mathematical guarantee: outcome rank preserved |
 
-### 3.6 TopoSD-Zero: Topology-Aware Self-Distillation
+### 3.6 Topology-Verified Self-Distillation (TVSD)
 
-We replace the plain Reverse-KL distillation (which failed in our pilot: only
-0.4% of 32B teacher traces emitted a closed `<answer>` tag, so students never
-learned to stop) with a two-phase self-distillation that extends SD-Zero with
-DAG-aware revision prompts.
+Plain Reverse-KL distillation failed in our pilot: only 0.4% of 32B teacher
+traces emitted a closed `<answer>` tag, so the student never learned to stop.
+We replace it with **Topology-Verified Self-Distillation (TVSD)**, a compact
+two-phase procedure that densifies a scalar outcome reward into per-token
+supervision using our own deterministic topology / continuity diagnostics
+(Eq. R_topo, R_cont) — with no external teacher or human step-level
+annotation.
 
-**Phase III-A: Self-Revision Training (SRT).** A single model alternates
-between generator and reviser. For each problem x we sample y_init on-policy,
-compute (r_out, r_topo, r_cont) on y_init, then build a topology-aware
-revision prompt P_r via a 2x2 dispatch table:
+**Phase III-A: Topology-Conditioned Self-Refinement.** A single model
+alternates between generator and reviser. For each problem x we sample y_init
+on-policy, compute (r_out, r_topo, r_cont) on y_init, and build a
+topology-aware revision prompt P_r via a 2x2 dispatch over
+(correctness, structure):
 
 | r_out | r_topo | P_r |
 |-------|--------|------|
@@ -123,24 +127,27 @@ revision prompt P_r via a 2x2 dispatch table:
 | 0 | <0.5  | "Wait, this is not correct, let me start over." |
 
 where k is drawn from the orphan-conclusion set of the extracted DAG. The
-SRT loss combines revision NLL and generation NLL (L_revision + L_generation).
+refinement loss combines revision NLL and generation NLL
+(L_revision + L_generation).
 
-**Phase III-B: On-Policy Self-Distillation (OPSD).** Freeze pi_SRT as
-reviser-teacher. Student samples y on-policy; teacher computes per-token
-distribution conditioned on (x, y, P_r, y_{<t}). Loss:
+**Phase III-B: Topology-Gated On-Policy Distillation.** The refined model is
+frozen as a topology-verified teacher. Student samples y on-policy; teacher
+computes per-token distribution conditioned on (x, y, P_r, y_{<t}). Loss:
 
-L_OPSD = E_{x, y~pi_theta(.|x)} sum_t KL( pi_theta(.|x, y_{<t}) || pi_SRT(.|x, y, P_r, y_{<t}) )
+L_TVSD = E_{x, y ~ pi_theta(.|x)} sum_t KL( pi_theta(.|x, y_{<t}) || pi_ref(.|x, y, P_r, y_{<t}) )
 
-**Why topology-aware P_r?** SD-Zero shows the KL gradient concentrates at
-pivotal tokens. Our P_r carries structural signals beyond just r_out, so the
-per-token KL fires at structurally suspect positions even when r_out=1,
-converting our DAG diagnostics into dense per-token supervision without any
-human annotation.
+**Why topology verification matters.** Standard on-policy distillation
+densifies a scalar outcome through per-token targets at uniformly distributed
+positions. Our topology-verified P_r steers the teacher-student divergence
+toward tokens that are *structurally suspect* — orphan conclusions, acyclicity
+violations, continuity breaks — positions that no binary-reward teacher can
+identify. This converts our DAG diagnostics into dense per-token supervision
+while staying entirely within the verifiable-reward paradigm.
 
 **Student compression (<=4B).** Because Phase III-B student rollouts are
-on-policy and format-closed, we can distil to much smaller students without
-the stopping failure seen with plain RKL. Student is initialised from
-Qwen3.5-4B / 2B / 0.8B, teacher stays the 9B SRT model.
+on-policy and format-closed, we can compress into much smaller students
+without the stopping failure seen with plain Reverse-KL. Student is
+initialised from Qwen3.5-4B / 2B / 0.8B, teacher stays the 9B refined model.
 
 ---
 
@@ -167,17 +174,17 @@ Qwen3.5-4B / 2B / 0.8B, teacher stays the 9B SRT model.
 - **Private**: Score-Acc, Error-F1, Format%, Avg-Len
 - **Public**: pass@1, pass@k, maj@k, prm@k, F1, #Tokens (k in {1,5})
 
-### 4.3 Model Matrix (updated 2026-04-17 - TopoSD-Zero pivot)
+### 4.3 Model Matrix (updated 2026-04-17 - TVSD pivot)
 
 | Model | Params | Training | Status |
 |-------|--------|----------|--------|
 | Qwen3-32B | 32B | Base / SFT / GRPO variants / TopoPRM | Legacy checkpoints (deprioritized) |
 | Qwen3.5-9B | 9B | Base / SFT / GRPO (outcome/no-topo/no-cont) / TopoPRM (hier, gated) | **v2 measured with chat template** |
-| Qwen3.5-9B + TopoSD-Zero | 9B | SRT Phase III-A + OPSD Phase III-B | To train |
+| Qwen3.5-9B + TVSD | 9B | SRT Phase III-A + OPSD Phase III-B | To train |
 | Qwen2.5-7B | 7B | Base / TopoPRM (hier) | Measured |
-| Qwen3.5-4B + TopoSD-Zero | 4B | OPSD (teacher = 9B SRT) | Primary student target |
-| Qwen3.5-2B + TopoSD-Zero | 2B | OPSD | Aggressive compression |
-| Qwen3.5-0.8B + TopoSD-Zero | 0.8B | OPSD | Extreme compression |
+| Qwen3.5-4B + TVSD | 4B | TVSD (teacher = 9B SRT) | Primary student target |
+| Qwen3.5-2B + TVSD | 2B | TVSD | Aggressive compression |
+| Qwen3.5-0.8B + TVSD | 0.8B | TVSD | Extreme compression |
 
 **Breakthrough from v2 evaluation protocol:** with chat-template prompting
 and sft-style system message (matching training format), our SFT 9B variant
@@ -191,7 +198,7 @@ SFT/base gap and unlocks TopoPRM's advantage: best MATH-500 accuracy
    max_new_tokens = 2048).
 2. 8B is not a useful deployment target.
 
-Our new route is TopoSD-Zero (Section 3.6): on-policy self-distillation
+Our new route is TVSD (Section 3.6): on-policy self-distillation
 with topology-aware revision prompts, targeting Qwen3.5-{4B, 2B, 0.8B}.
 
 ### 4.4 Ablation Studies

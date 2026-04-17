@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""TopoSD-Zero Phase 1 data rollout.
+"""TVSD Phase 1 data rollout.
 
 For each problem in input, sample y_init on-policy, score it with
 (R_out, R_topo, R_cont), build a topology-aware revision prompt, then sample

@@ -63,11 +63,11 @@ MODEL_REGISTRY: list[tuple[str, str, str]] = [
     ("topoprm_hier_7b",    "+ TopoPRM (Qwen2.5-7B)",          "7B"),
     ("distill_rkl_8b",     "Student (8B, RKL legacy)",        "8B"),
     ("distill_sft_4b",     "Student (Qwen3.5-4B, SFT distill)", "4B"),
-    ("distill_opsd_4b",    "Student (Qwen3.5-4B, TopoSD-Zero)", "4B"),
+    ("distill_opsd_4b",    "Student (Qwen3.5-4B, TVSD)", "4B"),
     ("distill_sft_2b",     "Student (Qwen3.5-2B, SFT distill)", "2B"),
-    ("distill_opsd_2b",    "Student (Qwen3.5-2B, TopoSD-Zero)", "2B"),
+    ("distill_opsd_2b",    "Student (Qwen3.5-2B, TVSD)", "2B"),
     ("distill_sft_0p8b",   "Student (Qwen3.5-0.8B, SFT distill)", "0.8B"),
-    ("distill_opsd_0p8b",  "Student (Qwen3.5-0.8B, TopoSD-Zero)", "0.8B"),
+    ("distill_opsd_0p8b",  "Student (Qwen3.5-0.8B, TVSD)", "0.8B"),
 ]
 
 

@@ -6,5 +6,5 @@ For each reasoning trace, a deterministic parser constructs a directed acyclic g
 Two process signals are then computed: a \emph{topological structure reward} that penalises cycles, orphan conclusions, and directional inconsistency; and a \emph{continuity reward} that verifies each step's traceability to prior claims or problem givens.
 These signals are combined with outcome, format, and length rewards through \emph{Stratified Clipping Advantage Estimation} (SCAE), an accuracy-first stratified shaping strategy for GRPO training that prevents process rewards from favouring structurally valid but factually incorrect traces.
 On private mathematical critique benchmarks (7{,}595 problems), TopoPRM improves critique accuracy by $+13.4$ points over outcome-only GRPO while reducing average response length by 11\%.
-A reverse-KL distillation stage transfers these gains to a Qwen3-8B student that achieves 82.5\% on GSM8K and 59.8\% on MATH-500, competitive with models of comparable scale.
+A topology-verified self-distillation stage (TVSD) further transfers these gains into compact students ($\leq$4B), where the same deterministic diagnostics densify the supervision into per-token targets without any external teacher or human step-level annotation.
 \end{abstract}

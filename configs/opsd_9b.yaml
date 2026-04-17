@@ -1,4 +1,4 @@
-# TopoSD-Zero Phase III-B: On-Policy Self-Distillation for Qwen3.5-9B
+# TVSD Phase III-B: On-Policy Self-Distillation for Qwen3.5-9B
 # Generator (student) = Qwen3.5-9B + sft_qwen35_9b/checkpoint-626 (initial)
 # Reviser (teacher)   = output/srt_9b/best_checkpoint
 #

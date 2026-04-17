@@ -24,14 +24,14 @@ Best per column in each family is \textbf{bolded}.}
 Qwen3.5-9B (base)            & 9B & \textbf{91.0} & TBD & TBD & TBD & 91.0 & 1200/119 & 1017 & 89.5 \\
 + SFT                        & 9B & 87.9 & TBD & TBD & TBD & 87.9 & 1160/159 & 275  & 319.6 \\
 \rowcolor{blue!5}
-+ SFT v2 (chat template)     & 9B & TBD  & TBD & TBD & TBD & TBD  & TBD/TBD & TBD & TBD \\
++ SFT v2 (chat template)     & 9B & \textbf{96.6} & TBD & TBD & TBD & 96.6 & 170/6 & 275 & \textbf{351.6} \\
 + GRPO (outcome-only)        & 9B & 88.3 & TBD & TBD & TBD & 88.3 & 1165/154 & 287  & 307.7 \\
 + GRPO (w/o topology)        & 9B & 88.7 & TBD & TBD & TBD & 88.7 & 1170/149 & 305  & 290.8 \\
 + GRPO (w/o continuity)      & 9B & 90.9 & TBD & TBD & TBD & 90.9 & 1199/120 & 1006 & 90.4 \\
 \rowcolor{blue!5}
-+ TopoPRM (hierarchical)     & 9B & 87.7 & TBD & TBD & TBD & 87.7 & 1157/162 & 277  & 316.6 \\
++ TopoPRM hier. v2           & 9B & 94.4 & TBD & TBD & TBD & 94.4 & 68/4 & 280 & 337.1 \\
 \rowcolor{blue!5}
-+ TopoPRM (gated)            & 9B & 87.8 & TBD & TBD & TBD & 87.8 & 1158/161 & 303  & 289.8 \\
++ TopoPRM gated v2           & 9B & \textbf{95.5} & TBD & TBD & TBD & 95.5 & 168/8 & 303  & 315.2 \\
 \midrule
 \rowcolor{gray!8}
 \multicolumn{10}{@{}l}{\textit{Distilled students (compressed teacher, target $\le$4B)}} \\
@@ -56,7 +56,7 @@ Student (0.8B, TopoSD-Zero)     & 0.8B & TBD & TBD & TBD & TBD & TBD & TBD/TBD &
 Qwen3.5-9B (base)            & 9B & 55.0 & TBD & TBD & TBD & 55.0 & 275/225 & 2048 & 26.9 \\
 + SFT                        & 9B & 53.0 & TBD & TBD & TBD & 53.0 & 265/235 & 1950 & 27.2 \\
 \rowcolor{blue!5}
-+ SFT v2 (chat template)     & 9B & TBD  & TBD & TBD & TBD & TBD  & TBD/TBD & TBD & TBD \\
++ SFT v2 (chat template)     & 9B & 53.1 & TBD & TBD & TBD & 53.1 & 51/45 & 1950 & 27.2 \\
 + GRPO (outcome-only)        & 9B & 54.4 & TBD & TBD & TBD & 54.4 & 272/228 & 2021 & 26.9 \\
 + GRPO (w/o topology)        & 9B & 54.2 & TBD & TBD & TBD & 54.2 & 271/229 & 2035 & 26.6 \\
 + GRPO (w/o continuity)      & 9B & 55.0 & TBD & TBD & TBD & 55.0 & 275/225 & 2048 & 26.9 \\

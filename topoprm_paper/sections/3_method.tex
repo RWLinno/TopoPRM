@@ -190,8 +190,8 @@ token-level compression in the final student model.
 \end{algorithm}
 
 
-\subsection{TopoSD-Zero: Topology-Aware Self-Distillation}
-\label{sec:toposd_zero}
+\subsection{Topology-Verified Self-Distillation (TVSD)}
+\label{sec:tvsd}
 
 The plain reverse-KL distillation of Eq.~\ref{eq:distill} suffers from two
 practical issues when the teacher is a strong RLVR-trained policy: (a) very
@@ -199,11 +199,14 @@ few teacher rollouts emit a complete \texttt{<think>$\cdots$<answer>} format
 (in our pilot, only $0.4\%$ of 32B teacher traces close the \texttt{<answer>}
 tag under limited budget), so the student never sees the stopping pattern;
 and (b) the student's own on-policy trajectories are ignored entirely, leading
-to train-test distribution mismatch. To address both, we extend SD-Zero
-\citep{sdzero2026} with topology-aware prompts and run it as a second
-distillation stage we call \textbf{TopoSD-Zero}.
+to train-test distribution mismatch. To resolve both while staying within the
+verifiable-reward paradigm, we propose \textbf{Topology-Verified
+Self-Distillation (TVSD)}, which upgrades Eq.~\ref{eq:distill} to an
+on-policy setting whose supervision is densified through the same deterministic
+topology / continuity diagnostics used in Eq.~\ref{eq:r_topo}~and~\ref{eq:r_cont}.
+TVSD runs in two short phases on top of the Stage~II teacher.
 
-\paragraph{Phase~III-A: Self-Revision Training (SRT).}
+\paragraph{Phase~III-A: Topology-Conditioned Self-Refinement.}
 A single model $\pi_\theta$ (initialised from our SFT checkpoint) alternates
 between \emph{generator} and \emph{reviser} roles. For each problem
 $(x,a)\in\mathcal{D}_1$ we sample an on-policy attempt
@@ -232,50 +235,59 @@ revised response
 $y_{\mathrm{rev}}\!\sim\!\pi_\theta(\cdot\mid x,y_{\mathrm{init}},P_r)$ and
 keep $(x,y_{\mathrm{init}},P_r,y_{\mathrm{rev}})$ iff
 $r_{\mathrm{out}}(y_{\mathrm{rev}})=1$ and the format is well-closed.
-The SRT model $\pi_{\mathrm{SRT}}$ is fine-tuned with
+The refined model $\pi_{\mathrm{ref}}$ is fine-tuned with
 \begin{equation}
 \label{eq:srt}
-\mathcal{L}_{\mathrm{SRT}} =
+\mathcal{L}_{\mathrm{refine}} =
 \underbrace{-\mathbb{E}\log\pi_\theta(y_{\mathrm{rev}}\mid x,y_{\mathrm{init}},P_r)}_{\text{revision}}
 \;+\;
 \underbrace{-\mathbb{E}\log\pi_\theta([y_{\mathrm{init}},P_r,y_{\mathrm{rev}}]\mid x)}_{\text{generation}}.
 \end{equation}
+This joint objective teaches the model to produce a correct response given a
+structural critique in-context (revision) and also to internalise that
+critique when only the problem is given (generation)---a form of self-training
+where the process signal is converted into an in-context teacher.
 
-\paragraph{Phase~III-B: On-Policy Self-Distillation (OPSD).}
-The SRT model is frozen as a reviser-teacher; the generator-student is the
-same architecture with its own trainable parameters $\theta$. For each
-problem in $\mathcal{D}_2$ the student samples on-policy
-$y\!\sim\!\pi_\theta(\cdot\mid x)$; the frozen reviser-teacher computes the
+\paragraph{Phase~III-B: Topology-Gated On-Policy Distillation.}
+The refined model is frozen as a verifier-teacher; the generator-student is
+initialised from the same weights but trained further. For each problem in
+$\mathcal{D}_2$ the student samples on-policy
+$y\!\sim\!\pi_\theta(\cdot\mid x)$; the frozen verifier computes the
 per-token distribution
-$\pi_{\mathrm{SRT}}(\cdot\mid x,y,P_r,y_{<t})$ conditioned on the same
-topology-aware $P_r$. The OPSD loss matches student to teacher token-wise
+$\pi_{\mathrm{ref}}(\cdot\mid x,y,P_r,y_{<t})$ conditioned on the same
+topology-aware $P_r$. The TVSD loss matches student to verifier token-wise
 via reverse KL:
 \begin{equation}
-\label{eq:opsd}
-\mathcal{L}_{\mathrm{OPSD}} =
+\label{eq:tvsd}
+\mathcal{L}_{\mathrm{TVSD}} =
 \mathbb{E}_{x\sim\mathcal{D}_2,\,y\sim\pi_\theta(\cdot\mid x)}
 \sum_{t=1}^{|y|}
 D_{\mathrm{KL}}\!\left(
 \pi_\theta(\cdot\mid x,y_{<t})\,\bigg\|\,
-\pi_{\mathrm{SRT}}(\cdot\mid x,y,P_r,y_{<t})
+\pi_{\mathrm{ref}}(\cdot\mid x,y,P_r,y_{<t})
 \right).
 \end{equation}
+Because $P_r$ is built from our deterministic DAG diagnostics, the student
+receives dense per-token supervision whose \emph{direction} is fixed by
+verifiable signals---no human step-level annotation or learned reward model
+is ever required.
 
-\paragraph{Why topology-aware $P_r$ helps.}
-SD-Zero shows that the reviser diverges maximally from the generator only at
-a sparse set of \emph{pivotal} tokens---the KL gradient concentrates there,
-giving an implicit token-level credit assignment from a scalar outcome
-reward. Our $P_r$ carries not only $r_{\mathrm{out}}$ but also
-$r_{\mathrm{topo}}$, $r_{\mathrm{cont}}$, and the specific orphan step index.
-This makes the KL signal fire at tokens that are structurally suspect even
-when $r_{\mathrm{out}}{=}1$, converting our deterministic DAG diagnostics
-into dense per-token supervision without any human annotation.
+\paragraph{Why topology-verified $P_r$ helps.}
+Standard on-policy distillation~\citep{agarwal2024gkd} densifies a scalar
+outcome signal through per-token targets. In our setting, the teacher's
+distribution diverges from the student mainly at tokens that are
+\emph{structurally suspect}---precisely the positions flagged by the DAG
+extractor (orphan conclusions, acyclicity violations, continuity breaks).
+Conditioning $P_r$ on $(r_{\mathrm{out}},r_{\mathrm{topo}},r_{\mathrm{cont}})$
+and the specific orphan step index makes the KL signal fire at those tokens
+even when $r_{\mathrm{out}}{=}1$, which is impossible for any outcome-only
+distillation baseline.
 
 \paragraph{Student compression ($\leq$4B).}
 Because Phase~III-B student rollouts are on-policy and format-closed, we can
-distil into a much smaller student without the stopping-failure we observed
-with plain RKL distillation. The same OPSD objective is applied with
-$\pi_\theta$ initialised from Qwen3.5-4B, Qwen3.5-2B, or Qwen3.5-0.8B;
-the teacher remains the 9B SRT model. This is the route we report in
-Section~\ref{sec:experiments}.
+compress into a much smaller student without the stopping failure we observed
+for the legacy reverse-KL student in Eq.~\ref{eq:distill}. The same TVSD
+objective is applied with $\pi_\theta$ initialised from Qwen3.5-4B,
+Qwen3.5-2B, or Qwen3.5-0.8B; the teacher remains the 9B refined model.
+This is the route we report in Section~\ref{sec:experiments}.
 

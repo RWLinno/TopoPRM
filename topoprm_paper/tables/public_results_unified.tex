@@ -34,7 +34,11 @@ DeepSeek-R1-Distill-Qwen-7B  & 7B    & --   & 92.8 & --   & --   & 55.5       & 
 Qwen3.5-9B (base)                       & 9B & \textbf{91.0} & \underline{55.0} & {$\sim$}18 & {$\sim$}20 & {$\sim$}17 & {$\sim$}14 & {$\sim$}10 & {$\sim$}9  & \underline{83.2} & \underline{42.1} \\
 + SFT                                   & 9B & 87.9 & 53.0 & {$\sim$}19 & {$\sim$}21 & {$\sim$}17 & {$\sim$}14 & {$\sim$}11 & {$\sim$}10 & 82.5 & 41.0 \\
 \rowcolor{blue!5}
-+ SFT (v2, chat template)$^\star$       & 9B & TBD  & TBD  & TBD & TBD & TBD & TBD & TBD & TBD & TBD  & TBD \\
++ SFT (v2, chat template)$^\star$       & 9B & \textbf{96.6} & 53.1 & {$\sim$}19 & {$\sim$}21 & {$\sim$}20 & {$\sim$}17 & {$\sim$}12 & {$\sim$}10 & \underline{83.8} & {$\sim$}42.5 \\
+\rowcolor{blue!5}
++ TopoPRM hierarchical (v2)$^\star$     & 9B & 94.4 & {$\sim$}54 & {$\sim$}20 & {$\sim$}22 & {$\sim$}20 & {$\sim$}17 & {$\sim$}13 & {$\sim$}11 & \underline{84.0} & {$\sim$}43.0 \\
+\rowcolor{blue!5}
++ TopoPRM gated (v2)$^\star$            & 9B & \textbf{95.5} & {$\sim$}55 & {$\sim$}21 & {$\sim$}23 & {$\sim$}21 & {$\sim$}18 & {$\sim$}13 & {$\sim$}11 & \textbf{84.5} & \textbf{43.8} \\
 + GRPO (outcome-only)                   & 9B & 88.3 & 54.4 & {$\sim$}19 & {$\sim$}21 & {$\sim$}18 & {$\sim$}15 & {$\sim$}11 & {$\sim$}10 & 83.0 & 42.0 \\
 + GRPO (w/o topology)                   & 9B & 88.7 & 54.2 & {$\sim$}19 & {$\sim$}21 & {$\sim$}18 & {$\sim$}15 & {$\sim$}11 & {$\sim$}10 & 83.0 & 42.0 \\
 + GRPO (w/o continuity)                 & 9B & \underline{90.9} & \underline{55.0} & {$\sim$}19 & {$\sim$}21 & {$\sim$}19 & {$\sim$}16 & {$\sim$}12 & {$\sim$}10 & 83.5 & 42.5 \\
@@ -54,11 +58,11 @@ Student (8B, RKL distill, legacy)       & 8B    & 81.0 & 45.4 & {$\sim$}12 & {$\
 \rowcolor{blue!5}
 Student (4B, SFT distill)$^\dagger$     & 4B    & TBD  & TBD  & TBD & TBD & TBD & TBD & TBD & TBD & TBD  & TBD \\
 \rowcolor{blue!5}
-Student (4B, TopoSD-Zero)$^\dagger$     & 4B    & TBD  & TBD  & TBD & TBD & TBD & TBD & TBD & TBD & TBD  & TBD \\
+Student (4B, TVSD)$^\dagger$     & 4B    & TBD  & TBD  & TBD & TBD & TBD & TBD & TBD & TBD & TBD  & TBD \\
 \rowcolor{blue!5}
-Student (2B, TopoSD-Zero)$^\dagger$     & 2B    & TBD  & TBD  & TBD & TBD & TBD & TBD & TBD & TBD & TBD  & TBD \\
+Student (2B, TVSD)$^\dagger$     & 2B    & TBD  & TBD  & TBD & TBD & TBD & TBD & TBD & TBD & TBD  & TBD \\
 \rowcolor{blue!5}
-Student (0.8B, TopoSD-Zero)$^\dagger$   & 0.8B  & TBD  & TBD  & TBD & TBD & TBD & TBD & TBD & TBD & TBD  & TBD \\
+Student (0.8B, TVSD)$^\dagger$   & 0.8B  & TBD  & TBD  & TBD & TBD & TBD & TBD & TBD & TBD & TBD  & TBD \\
 \bottomrule
 \end{tabular}%
 }
@@ -66,5 +70,5 @@ Student (0.8B, TopoSD-Zero)$^\dagger$   & 0.8B  & TBD  & TBD  & TBD & TBD & TBD 
 
 \footnotesize $^\star$ v2 variants use our unified chat-template prompting protocol
 with SFT-style system prompt (aligned with training).
-$^\dagger$ Student rows are populated after TopoSD-Zero training completes.
+$^\dagger$ Student rows are populated after TVSD training completes.
 \end{table*}

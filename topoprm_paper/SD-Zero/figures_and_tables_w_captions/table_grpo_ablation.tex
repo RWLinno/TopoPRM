@@ -1,0 +1,23 @@
+\def\changesize#1{\fontsize{#1}{10.5pt}\selectfont}
+\begin{table*}[h]
+\centering
+\small
+\fontsize{9pt}{10.5pt}\selectfont
+    \renewcommand{\arraystretch}{1.2}
+    \setlength{\tabcolsep}{2pt}
+\begin{tabular}{lccccccc}
+\toprule
+ % & \multicolumn{6}{c}{\textbf{Math}} & \multirow{2}{*}{\textbf{Avg.}} \\
+\cmidrule(lr){2-7}
+ & {AIME24} & {AIME25} & {HMMT25} & {AMOBench} & {OpenR1} & {MATH} & \textbf{Avg.}\\
+\midrule
+GRPO (4 generations, 1 epoch)                       & 62.5 & 50.0 & 30.4 & 11.0 & 62.9 & 93.5 & 51.7 \\
+GRPO (8 generations, 0.5 epoch)                    & 58.8 & 50.0 & 30.4 & 9.8  & 61.5 & 93.0 & 50.6 \\
+GRPO (8 generations, 1 epoch)                      & 61.7 & 52.1 & 31.3 & 12.0 & \textbf{63.4} & 93.1 & 52.3 \\
+SD-Zero (Ours)                                     & \textbf{68.3} & \textbf{60.0} & \textbf{45.4} & \textbf{16.0} & 60.4 & \textbf{93.6} & \textbf{57.3} \\
+
+\bottomrule
+\end{tabular}
+\caption{\textbf{Comparison with GRPO under larger rollout budgets} on \qwen{} evaluated on math benchmarks. We compare SD-Zero against GRPO variants that use more sampled generations per prompt and different effective training budgets. Even when GRPO is given substantially more exploration through 8 generations, its gains remain limited, whereas SD-Zero achieves the best average performance and outperforms all GRPO settings on most benchmarks. This suggests that the advantage of our method comes not simply from sampling more trajectories, but from turning binary outcome feedback into more informative self-revision-based supervision.}
+\label{tab:grpo_ablation}
+\end{table*}

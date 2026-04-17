@@ -1,0 +1,23 @@
+\def\changesize#1{\fontsize{#1}{10.5pt}\selectfont}
+\begin{table}[h]
+\centering
+\setlength{\tabcolsep}{4pt}
+\small
+\begin{tabular}{lcccc}
+\toprule
+\multirow{3}{*}{\textbf{Method}}  & \multirow{3}{*}{\textbf{Average Generation}}& \multicolumn{3}{c}{\textbf{Generate-then-Revise on AIME24}} \\
+\cmidrule(lr){3-5}
+&\multirow{2}{*}{\textbf{Accuracy (\%)}}&{\changesize{8.3}First Attempt}  & {\changesize{8.3}Revised Attempt} & {\changesize{8.3}Correction} \\
+&  & {\changesize{8.3}Accuracy (\%)} & {\changesize{8.3}Accuracy (\%)} & {\changesize{8.3}Rate (\%)} \\
+
+\midrule
+Base Model & 49.8 & 59.6 & 60.7 & 2.7 \\
+\sft{}  & 57.6 & 66.7 & 71.7 & {15.0} \\
+\ours{} & 60.3 & 68.3 & 73.6 & {16.7} \\
+\rowcolor{lightblue!80}
+\textbf{\ours{} (Phase 2 Only)} & 51.4 & 61.2 & 62.2 & 2.6\\
+\bottomrule
+\end{tabular}
+\caption{\textbf{Ablation of applying \ours{} without the \sft{} phase.} We train a Phase-2-only variant on \qwen{} by running \ours{} directly on the base model, without first inducing self-revision through \sft{}. This variant shows only marginal improvement over the base model in both overall generation accuracy and generate-then-revise performance, and its correction rate remains nearly unchanged. In contrast, the full two-phase method substantially improves both first-attempt generation and revision effectiveness. These results suggest that the \sft{} phase is necessary to first elicit self-revision capability, which \ours{} can then refine and distill into stronger reasoning.}
+\label{tab:phase2-ablation}
+\end{table}

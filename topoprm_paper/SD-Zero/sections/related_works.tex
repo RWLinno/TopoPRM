@@ -1,0 +1,36 @@
+\section{Related Work}\label{sec:related}
+\paragraph{On-Policy Distillation and Self-Distillation.}
+Knowledge distillation trains a student to match a teacher's output distribution either at the token level via soft targets \citep{hinton2015distilling} or at the sequence level \citep{kim2016sequence}. 
+However, such off-policy training introduces a train-inference distribution mismatch that leads to compounding errors at test time \citep{bengio2015scheduled, chen2025retaining}.
+On-policy distillation (OPD) \citep{agarwal2024onpolicy, gu2024minillm, boizard2024uld, minixhofer2025cross} addresses this by using student rollouts with per-token supervision from the teacher.
+
+A key limitation of OPD is the need for an external model during training to score student traces. 
+Recent \emph{self-distillation} methods \citep{furlanello2018born, zhang2019teacher} eliminate this by conditioning the student on privileged information to serve as its own teacher \citep{askell2021general, snell2022learning}, where the privileged 
+context can include reasoning traces \citep{zhao2026self}, in-context demonstrations \citep{shenfeld2026selfdistillationenablescontinuallearning}, or conciseness prompts \citep{sang2026onpolicy}.
+Still, such works assume access to high-quality signals from external sources that are often costly to obtain, and those that remove the need for an external teacher entirely require rich, dense environment feedback \citep{hubotter2026reinforcement}.
+In contrast, \ours{} only requires binary correctness signals of the student's response and generates its own supervision through self-revision.
+
+\paragraph{Self-Training and Self-Refinement.}
+Self-training methods improve models by iteratively generating and filtering their own data. 
+Prior work bootstraps reasoning by fine-tuning on self-generated rationales that yield correct answers \citep{zelikman2022star, yuan2023scalingrelationshiplearningmathematical, singh2023rest, yuan2024selfrewarding}.
+In particular, STaR \citep{zelikman2022star} iteratively generates and filters for correct rationales, discarding incorrect reasoning entirely.
+By contrast, SRT retains the incorrect attempt as context and trains on the full mistake-to-correction trajectory.
+Consistent with this,
+recent evidence suggests that productive reasoning behaviors (e.g., verification, backtracking, etc.) matter more for self-improvement than answer correctness \citep{gandhi2025cognitive}.
+Separately, prompting-based self-refinement methods show that LLMs are capable of critiquing and revise their own outputs at inference time \citep{madaan2023selfrefine, shinn2023reflexion}, though such approaches yield limited gains without external feedback and do not update model weights \citep{huang2023selfcorrect, kamoi2024selfcorrection}.
+Training-based approaches address this by using RL or supervised learning to internalize correction behavior \citep{kumar2024score, havrilla2024glore}, but still require multi-turn generation at inference time.
+\ours{} bridges both avenues by training the model to self-revise and then distilling the revision-informed distribution back into single-pass generation, eliminating multi-turn correction at test time.
+%\sk{todo: connection to process reward models (PRMs); probably relevant since token-kl signal in figure 5 is functionally similar to what a PRM would provide}
+
+\paragraph{Connection to Process Reward Models}
+The per-token KL signal from the reviser is functionally analogous to process reward models (PRMs) \citep{lightman2024lets, wang-etal-2024-math}, in that both provide localized supervision over intermediate reasoning rather than only the final outcome.
+PRMs train a separate model to assign step-level scores to individual reasoning steps.
+In \ours{}, the token-level divergence $D^{(t)}_{KL}$ similarly concentrates on a sparse subset of tokens associated with errors in the response (Figure \ref{fig:credit-assignment}), so that the log-probability gap at each token both penalizes erroneous reasoning and redirects probability mass towards plausible alternatives. The main difference is cost and supervision: PRMs typically require either step-level correctness annotations \citep{lightman2024lets} or rollout-based estimates from search or sampling \citep{wang-etal-2024-math}, together with a separately trained reward model, whereas our reviser's signal arises by conditioning the same model on its own response and a binary outcome, without step-level annotation or an auxiliary reward model. Whether this implicit token-level signal can complement or serve as a cheaper alternative to trained PRMs in settings such as guided tree search remains an interesting direction for future work. 
+%\sk{todo: will add more prm refs}
+
+% \sk{todo: also cite llm behavior noah goodman paper; also howards paper for on policy data}\edward{which papers are these?}
+
+% \sk{https://arxiv.org/abs/2503.01307, https://arxiv.org/abs/2510.18874}
+% \sk{i think we can also include some small part about self-distillation ina "traditional" sense eg born again networks? https://arxiv.org/abs/1805.04770}
+
+% \sk{sdpo also includes the binary reward (+env feedback) in context, so we can include a short comparison to that here and say that what makes our work different: (1) we teach the model to revise in the first place (2) sdpo doesnt include the unsuccessful attempt in the context (instead it include the correct student rollout in context for the group)}

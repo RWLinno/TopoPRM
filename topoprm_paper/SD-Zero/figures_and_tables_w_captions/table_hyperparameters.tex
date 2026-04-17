@@ -1,0 +1,174 @@
+
+% \begin{table}[t]
+% \centering
+% \small
+% \setlength{\tabcolsep}{10pt}
+% \renewcommand{\arraystretch}{1.15}
+% \fontsize{7.5pt}{8.5pt}\selectfont
+% \begin{tabular}{p{4.2cm}p{8.8cm}}
+% \toprule
+% \textbf{Parameters} & \textbf{\ours{}} \\
+% \midrule
+
+% \textbf{General} & \\
+% Policy Model & Qwen/Qwen3-4B-Instruct-2507 \\
+% Teacher model & Qwen/Qwen3-4B-Instruct-2507 \\
+% Thinking & False \\
+% % Seed & 42 \\
+
+% \midrule
+% \textbf{Data} & \\
+% % Dataset name & ResponseDataset \\
+% Training data & OpenR1-Math \\
+% % Input key & \texttt{problem} \\
+% % Teacher input key & \texttt{prompt} \\
+% % Output key & \texttt{ground\_truth} \\
+% Max. teacher prompt length & 32768 \\
+% Max. response length & 8192 \\
+% % Validation max total sequence length & 16384 \\
+% % Max. validation samples & 512 \\
+
+% \midrule
+% \textbf{Batching} & \\
+% Prompts per step & 128 \\
+% Generations per prompt & 1 \\
+% Train global batch size & 128 \\
+% Train micro batch size & 1 \\
+% Generation batch size & 64 \\
+% Logprob batch size & 1 \\
+% Max rollout turns & 1 \\
+
+% \midrule
+% \textbf{Rollout / Generation} & \\
+% Inference engine & vLLM \\
+% Temperature & 1.0 \\
+% Top-$p$ & 1.0 \\
+% Top-$k$ & -- \\
+% Max new tokens & 8192 \\
+% vLLM tensor parallel size & 4 \\
+
+% \midrule
+% \textbf{Validation} & \\
+% Validation batch size & 64 \\
+% Validation period & 20 \\
+% % Validate at start & True \\
+% % Validate at end & True \\
+
+% \midrule
+% \textbf{Distillation loss} & \\
+% % KL type & mixed \\
+% % Mixed KL weight & 0.5 \\
+% Top-$K$ distillation & 64 \\
+% Zero outside top-$K$ & False \\
+
+% \midrule
+% \textbf{Parallelism} & \\
+% Number of GPUs & 4 \\
+% Policy tensor parallel size & 4 \\
+% Policy context parallel size & 1 \\
+% Teacher tensor parallel size & 4 \\
+% Teacher context parallel size & 1 \\
+% Sequence parallel & False \\
+% Activation checkpointing & True \\
+
+% \midrule
+% \textbf{Training} & \\
+% Optimizer & AdamW \\
+% Learning rate & $5 \times 10^{-6}$ \\
+% Scheduler & Linear warmup + constant \\
+% Warmup steps & 20 \\
+% Weight decay & 0.01 \\
+% Gradient clip norm & 1.0 \\
+% Precision & bfloat16 \\
+% % Max num epochs & 5 \\
+% % Max num steps & 1000 \\
+
+% \bottomrule
+% \end{tabular}
+% \caption{Hyperparameters used for the distillation setup, derived from \texttt{distillation\_math.yaml} and overrides in \texttt{run\_distillation.sh}.}
+% \label{tab:distillation_hparams}
+% \end{table}
+
+\begin{table}[h!]
+\centering
+\small
+\setlength{\tabcolsep}{8pt}
+\renewcommand{\arraystretch}{1.15}
+\fontsize{8pt}{8.5pt}\selectfont
+\begin{tabular}{p{3.5cm}p{4cm}p{4cm}}
+\toprule
+\textbf{Parameters} & \textbf{\ours{}} & \textbf{SDFT} \\
+\midrule
+
+\textbf{General} & & \\
+Policy Model & Qwen/Qwen3-4B-Instruct-2507 & Qwen/Qwen3-4B-Instruct-2507 \\
+Teacher model & Qwen/Qwen3-4B-Instruct-2507 & Qwen/Qwen3-4B-Instruct-2507 \\
+Thinking & False & False \\
+% Seed & 42 & 42 \\
+
+\midrule
+\textbf{Data} & & \\
+% Training data & OpenR1-Math & OpenR1-Math \\
+Max. teacher prompt length & 32768 & 32768 \\
+Max. response length & 8192 & 8192 \\
+
+\midrule
+\textbf{Batching} & & \\
+Prompts per step & 128 & 128 \\
+Generations per prompt & 1 & 1 \\
+Train global batch size & 128 & 128 \\
+Train micro batch size & 1 & 1 \\
+Generation batch size & 64 & 128 \\
+Logprob batch size & 1 & -- \\
+Max rollout turns & 1 & 1 \\
+
+\midrule
+\textbf{Rollout / Generation} & & \\
+Inference engine & vLLM & vLLM \\
+Temperature & 1.0 & 1.0 \\
+Top-$p$ & 1.0 & 1.0 \\
+Top-$k$ & -- & -- \\
+Max new tokens & 8192 & 8192 \\
+vLLM tensor parallel size & 4 & 1 \\
+
+\midrule
+\textbf{Validation} & & \\
+Validation batch size & 64 & -- \\
+Validation period & 20 & -- \\
+% Validate at start & True & -- \\
+% Validate at end & True & -- \\
+
+\midrule
+\textbf{Distillation loss} & & \\
+% KL type & mixed & -- \\
+% Mixed KL weight & 0.5 & -- \\
+Top-$K$ distillation & 64 & -- \\
+Zero outside top-$K$ & False & -- \\
+
+\midrule
+\textbf{Parallelism} & & \\
+Number of GPUs & 4 & 4 \\
+Policy tensor parallel size & 4 & -- \\
+Policy context parallel size & 1 & -- \\
+Teacher tensor parallel size & 4 & -- \\
+Teacher context parallel size & 1 & -- \\
+Sequence parallel & False & False \\
+Activation checkpointing & True & True \\
+
+\midrule
+\textbf{Training} & & \\
+Optimizer & AdamW & AdamW \\
+Learning rate & $5 \times 10^{-6}$ & $5 \times 10^{-6}$ \\
+Scheduler & Linear warmup + constant & Cosine (warmup ratio $=0.1$) \\
+Warmup steps & 20 & 20 \\
+Weight decay & 0.01 & -- \\
+Gradient clip norm & 1.0 & 1.0 \\
+Precision & bfloat16 & bfloat16 \\
+% Max num epochs & 5 & 3 \\
+% Max num steps & 1000 & 200 \\
+
+\bottomrule
+\end{tabular}
+\caption{Hyperparameters used for \ours{} \opsd{} phase and SDFT on \qwen{}.}
+\label{tab:distillation_hparams}
+\end{table}

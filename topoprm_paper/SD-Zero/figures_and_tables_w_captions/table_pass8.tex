@@ -1,0 +1,35 @@
+\def\changesize#1{\fontsize{#1}{10.5pt}\selectfont}
+\begin{table*}[h]
+\centering
+\small
+\fontsize{9pt}{10.5pt}\selectfont
+    \renewcommand{\arraystretch}{1.2}
+    \setlength{\tabcolsep}{2.6pt}
+\begin{tabular}{lccccccc}
+\toprule
+ % & \multicolumn{6}{c}{\textbf{Math}} & \multirow{2}{*}{\textbf{Avg.}} \\
+\cmidrule(lr){2-7}
+ & {AIME24} & {AIME25} & {HMMT25} & {AMOBench} & {OpenR1} & {MATH} & \textbf{Average}\\
+\midrule
+\textbf{\qwen{}}           & 76.7          & 76.7          & 50.0          & 30.0          & 69.2          & 97.6          & 66.7          \\
+SFT                        & 83.3          & 73.3          & 46.7          & 18.0          & 69.2          & 97.0          & 64.6          \\
+RFT                        & \textbf{86.7} & \textbf{80.0} & 53.3          & 30.0          & 70.2          & \textbf{98.4} & 69.8          \\
+GRPO                       & 80.0          & 70.0          & 46.7          & 28.0          & 70.0          & 98.0          & 65.4          \\
+SDFT                       & 80.0          & 70.0          & 50.0          & 26.0          & 70.0          & 97.0          & 65.5          \\
+\textbf{\sft{}} (Ours)     & \textbf{86.7} & \textbf{80.0} & 60.0          & 28.0          & 70.2          & 97.6          & 70.4          \\
+\textbf{\ours{}} (Ours)    & \textbf{86.7} & \textbf{80.0} & \textbf{63.3} & \textbf{36.0} & \textbf{72.0} & 97.0          & \textbf{72.5} \\
+\midrule
+
+\textbf{\olmo{}}           & 80.0          & 73.3          & 46.7          & 16.0          & 60.0          & \textbf{98.0} & 62.3          \\
+SFT                        & 83.3          & 66.7          & 46.7          & 18.0          & 55.0          & 96.0          & 60.9          \\
+RFT                        & 80.0          & 73.3          & 60.0          & 22.0          & 62.0          & 97.0          & 65.7          \\
+GRPO                       & 80.0          & 66.7          & 46.7          & 18.0          & 70.0          & 97.0          & 63.1          \\
+SDFT                       & 80.0          & 73.3          & 56.7          & 20.0          & 58.0          & 97.0          & 64.2          \\
+\textbf{\sft{}} (Ours)     & \textbf{83.3} & 76.7          & \textbf{66.7} & 20.0          & 66.0          & \textbf{98.0} & 68.4          \\
+\textbf{\ours{}} (Ours)    & \textbf{83.3} & \textbf{80.0} & \textbf{66.7} & \textbf{30.0} & \textbf{68.0} & 97.0          & \textbf{70.8} \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{Pass@8 performance comparison of \ours{} and \sft{} (Self-Revision Training, Phase~1) against baseline post-training methods} on math reasoning benchmarks. Across both \qwen{} and \olmo{}, \sft{} and especially \ours{} achieve the strongest overall results.}
+% \vspace{-10pt}
+\label{tab:pass8_results}
+\end{table*}

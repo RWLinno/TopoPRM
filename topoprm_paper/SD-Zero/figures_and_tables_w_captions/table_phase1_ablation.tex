@@ -1,0 +1,24 @@
+\def\changesize#1{\fontsize{#1}{10.5pt}\selectfont}
+\begin{table}[h]
+\centering
+\setlength{\tabcolsep}{4pt}
+\small
+\begin{tabular}{lcccc}
+\toprule
+\multirow{3}{*}{\textbf{Method}}  & \multirow{3}{*}{\textbf{Average Generation}}& \multicolumn{3}{c}{\textbf{Generate-then-Revise on AIME24}} \\
+\cmidrule(lr){3-5}
+&\multirow{2}{*}{\textbf{Accuracy (\%)}}&{\changesize{8.3}First Attempt}  & {\changesize{8.3}Revised Attempt} & {\changesize{8.3}Correction} \\
+&  & {\changesize{8.3}Accuracy (\%)} & {\changesize{8.3}Accuracy (\%)} & {\changesize{8.3}Rate (\%)} \\
+
+\midrule
+Base Model & 49.8 & 59.6 & 60.7 & 2.7 \\
+\sft{}  & 57.6 & 66.7 & 71.7 & {15.0} \\
+\rowcolor{lightyellow!50}
+\textbf{\sft{} (\lgen{} Only)} & 56.4 & 65.4 & 67.9 & 7.2 \\
+\rowcolor{lightblue!80}
+\textbf{\sft{} (\lrev{} Only)} & 52.2 & 62.1 & 66.7 & 12.1 \\
+\bottomrule
+\end{tabular}
+\caption{\textbf{Ablation of the two loss terms in the \sft{} objective.} We train \qwen{} with \sft{} using only \lgen{} or only \lrev{}, and evaluate both overall generation quality and self-revision ability. Both terms are important: using either term alone underperforms the full \sft{} objective in average generation accuracy and in generate-then-revise performance. In particular, \lgen{} alone yields relatively weak correction after revision, while \lrev{} alone improves correction rate but leads to substantially worse first-attempt and overall generation accuracy, showing that the two terms play complementary roles in strengthening both generation and self-revision.}
+\label{tab:phase1-ablation}
+\end{table}

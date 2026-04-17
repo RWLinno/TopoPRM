@@ -1,0 +1,102 @@
+\begin{table}[h!]
+\centering
+\small
+\setlength{\tabcolsep}{10pt}
+\renewcommand{\arraystretch}{1.15}
+\fontsize{8pt}{8.5pt}\selectfont
+\begin{tabular}{p{5.5cm}p{7cm}}
+\toprule
+\textbf{Parameters} & \textbf{GRPO} \\
+\midrule
+
+\textbf{General} & \\
+Model &  Qwen/Qwen3-4B-Instruct-2507\\
+Thinking & False \\
+
+\midrule
+\textbf{Data} & \\
+% Training data & OpenR1-Math\\
+% Prompt key & \texttt{prompt} \\
+% Reward function key & \texttt{data\_source} \\
+Max. prompt length & 1024 \\
+Max. response length & 8192 \\
+Train batch size & 64 \\
+Validation batch size & -- \\
+Shuffle & True \\
+Truncation & left \\
+
+\midrule
+\textbf{Batching} & \\
+Rollouts per prompt ($n$) & 8 \\
+PPO mini-batch size & 64 \\
+PPO micro-batch size per GPU & 1 \\
+Logprob micro-batch size per GPU & 1 \\
+Max. sequences per rollout batch & 64 \\
+Max. batched tokens & 16384 \\
+
+\midrule
+\textbf{Rollout / Generation} & \\
+Inference engine & vLLM \\
+Rollout mode & sync \\
+Temperature & 0.7 \\
+Top-$p$ & 1.0 \\
+Top-$k$ & -- \\
+Sampling & True \\
+% Validation temperature & 0 \\
+% Validation samples per prompt & 1 \\
+% Validation sampling & False \\
+Max new tokens & 8192 \\
+Tensor parallel size & 2 \\
+% GPU memory utilization & 0.4 \\
+Enable chunked prefill & True \\
+% Load format & dummy \\
+
+\midrule
+\textbf{Actor / Policy Optimization} & \\
+Strategy & FSDP \\
+PPO epochs & 1 \\
+Clip ratio & 0.2 \\
+Entropy coefficient & 0.001 \\
+Use KL loss & True \\
+KL loss coefficient & 0.001 \\
+KL loss type & low-var KL \\
+Gradient clip norm & 1.0 \\
+Dynamic batch size & False \\
+% Max token length per GPU & 12500 \\
+
+\midrule
+\textbf{Reference Model} & \\
+Strategy & FSDP \\
+% Logprob micro-batch size per GPU & 1 \\
+Dynamic batch size & False \\
+Sequence parallel size & 1 \\
+
+% \midrule
+% \textbf{Critic / Reward Model} & \\
+% Critic enabled & False \\
+% Reward model enabled & False \\
+
+\midrule
+\textbf{Parallelism} & \\
+Number of GPUs & 8 \\
+Number of nodes & 1 \\
+Sequence parallel & 1 \\
+Actor strategy & FSDP \\
+Reference strategy & FSDP \\
+Gradient checkpointing & True \\
+
+\midrule
+\textbf{Training} & \\
+Optimizer & AdamW \\
+Learning rate & $1 \times 10^{-6}$ \\
+Scheduler & Constant \\
+Warmup steps ratio & 0.0 \\
+Weight decay & 0.01 \\
+Precision & bfloat16 \\
+NCCL timeout & 1800 \\
+
+\bottomrule
+\end{tabular}
+\caption{Hyperparameters used in GRPO baseline on \qwen{}.}
+\label{tab:grpo_hparams}
+\end{table}

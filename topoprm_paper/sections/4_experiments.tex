@@ -171,29 +171,42 @@ The full TopoPRM training (SFT + GRPO) completes in approximately 12 GPU-hours.
 The reward computation overhead from DAG extraction and topology scoring adds $<$5\% wall-clock time relative to outcome-only GRPO, as the deterministic extractor operates on CPU in parallel with GPU-bound generation.
 
 %% ─────────────────────────────────────────────────────────────
-%% RQ4: Distillation effectiveness
+%% RQ4: Distillation effectiveness (TopoSD-Zero)
 %% ─────────────────────────────────────────────────────────────
-\subsection{RQ4: Distillation and Case Study}
+\subsection{RQ4: TopoSD-Zero Distillation ($\le$4B Students)}
 \label{sec:rq4}
 
 \input{tables/compression}
 
-\paragraph{The student retains and exceeds teacher quality.}
-Table~\ref{tab:compression} evaluates reasoning compression via reverse-KL distillation.
-The Qwen3-8B student not only retains but substantially exceeds the teacher's critique accuracy (59.0\% vs.\ 29.7\%), while maintaining high format compliance (94--97\%).
-We attribute this to the process-aware filtering in distillation data construction, which selects only teacher traces with composite reward $R_{\mathrm{total}} > 0.7$, effectively removing noisy training signal.
+\paragraph{From plain RKL to TopoSD-Zero.}
+Our initial reverse-KL distillation (32B teacher $\to$ 8B student) produced
+a student that failed on public math benchmarks: 81.0\% GSM8K and 45.4\%
+MATH-500, with every sample hitting the 2048-token generation cap.
+Post-mortem analysis revealed that only 0.4\% of the 32B teacher traces
+closed the required \texttt{<answer>} tag within the training budget, so
+the student never observed a complete stopping pattern.
+This motivated the switch to TopoSD-Zero (Section~\ref{sec:toposd_zero}),
+where teacher traces are generated on-policy and conditioned on
+topology-aware revision prompts, guaranteeing closed format by construction.
+
+\input{tables/revision_gain}
+
+\paragraph{Revision gain.}
+Table~\ref{tab:revision_gain} reports the SD-Zero-style
+Generate-then-Revise evaluation. Our topology-aware reviser provides a
+larger gain than a plain SD-Zero reviser on the same SFT checkpoint,
+confirming that DAG-derived structural conditioning of $P_r$ delivers
+more precise token-level corrections than binary reward alone.
 
 \paragraph{Compression-oriented RLVR narrative.}
-Our results support a two-stage view of efficient reasoning alignment.
-Stage~I (RLVR with deterministic process rewards) improves structural
-quality and produces high-quality trajectories; Stage~II (reverse-KL
-compression) converts these trajectories into a compact student policy.
-This decomposition is important empirically: on 9B, direct GRPO variants
-are sensitive to reward design and model capacity, whereas the distilled
-8B student remains strong and stable. In other words, RLVR mainly
-provides a high-fidelity \emph{signal generator}, and distillation is the
-main \emph{capacity transfer} mechanism that turns verbose structured
-reasoning into deployable compact behaviour.
+The measured results support a two-stage view of efficient reasoning
+alignment:
+Stage~I--II (SFT + GRPO with topology-aware rewards) produces a
+high-signal teacher; Stage~III (TopoSD-Zero: SRT + OPSD) converts the
+teacher into a compact student while preserving structural quality.
+This decomposition is essential empirically: direct distillation into
+Qwen3-8B with 32B teacher fails (81.0\%/45.4\%), but same-family OPSD
+into Qwen3.5-4B retains accuracy while halving response length.
 
 \input{tables/case_study}
 

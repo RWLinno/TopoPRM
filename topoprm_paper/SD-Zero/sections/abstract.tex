@@ -1,0 +1,127 @@
+\begin{abstract}
+% \ap{ main messages -- ways to improve a model is either through stronger teacher or RL -- RL can get expensive. we introduce a self-improvement technique in the absence of a strong teacher to get better -- which provides the benefit of self-distillation — which is more efficient — 1 generation and 1 teacher. }
+
+ %On-policy distillation
+  %\edward{I wonder if starting off with OPD is "too sudden/specific"; i.e., something more gentler that gives a rough overview of distillation/OPD/OPSD}\jiarui{+1 maybe one short sentence explaining what OPD is about}
+ %\sk{What about something like: ``In distillation for post-training, a student model is trained to match its predictions to a teacher model's at every token, unlike in RLVR where only the final answer is rewarded. On-policy distillation variants generate traces from the student itself (todo: cite OPD), but still require a stronger teacher or access to ground-truth solutions (todo: cite OPSD).''}
+  %--- both expensive to obtain \sk{todo: cite}.
+% On-policy distillation (OPD) gives token-level supervision  to student-generated reasoning traces, making it more sample-efficient than reinforcement learning (RL) methods that only provide outcome-level supervision.
+%  However, existing OPD methods require either a stronger external teacher or providing the teacher in-context access to priveledged  ground-truth solution. 
+%  We introduce On-Policy Self-Revision Distillation (\\ours{}{}),
+%  which eliminates this requirement: 
+%  the student model serves as its own teacher, 
+%  conditioned only on
+%  its own responses and the binary correctness rewards of these responses.
+%  This algorithm is trained through two phases: in the first phase, \sft{} trains the model to play two roles: a \emph{generator} and a \emph{reviser}. In the second phase (\opsd{}), the reviser acts as a teacher and provides dense token-level supervision to the generated responses of the generator. Through extensive experiments on \qwen{} and \olmo{} across math and coding benchmarks, we show that \\ours{}{} can improve the model's performance by at least $7\%$, while improving over common baselines by at least $6\%$ on equivalent amount of data. More broadly, we show that \\ours{}{} self-reinforcing: the improved model's revision capability implicitly improves over training and so, iterative rounds of \opsd{} with teacher synchronization can continue to iteratively improve the model.
+ %We further show that the model can learn to self-improve by iterative \opsd{}, where the model keeps on implicitly improving its reviser performance and the improved reviser can be updated as the teacher during the c\ours{}e of training. This provides a way where the models can learn to improve 
+ % \ap{main messages -- ways to improve a model is either through stronger teacher or RL -- RL can get expensive. we introduce a method for instruct models -- which provides the benefit of self-improvement with an outcome reward -- which is more efficient.}
+ %binary correctness rewards of its own responses .
+ %The method has two phases:
+ %In Phase 1, we introduce Self-Revision Training (SRT),
+ %%where the model is prompted to revise its own incorrect solutions and collect ~6k successful revision traces;
+ %%fine-tuning on these teaches the model to produce different continuations depending on whether its initial attempt was correct or incorrect.
+ %where the student model is trained to revise its own incorrect solutions using ~6k self-generated revision traces; this teaches the model to behave differently depending on whether its first response was correct or incorrect.
+ %In Phase 2, this outcome-conditioned revision capability is used as a teacher signal:
+ %the model generates a response, and a ``teacher'' copy of the same model 
+ %-- additionally conditioned on the response of its binary reward --
+ %provides token-level targets via KL-minimization,
+ %with only one rollout per sample.
+% first, train the model to revise its own
+ %incorrect solutions using about 6K self-generated revision traces;
+ %then, use this revision capability as a token-level teacher signal
+ %---the same model, additionally conditioned on the student's
+ %response and its binary reward, provides per-token targets via
+ %on-policy distillation, requiring only one rollout per sample.
+ % We summarize our contributions as follows:
+ % (a) on 8 math and code benchmarks, OSRD improves Qwen3-4B-Instruct by \sk{todo: insert \#} and Olmo3-7B-Instruct by \sk{todo: insert \#},
+ % exceeding the performance of SFT on expert traces, rejection fine-tuning, and prior self-distillation methods on the same data;
+ % (b) Phase 1 alone already outperforms all baselines, with the largest gains on hard out-of-distribution benchmarks \sk{todo: insert benchmarks},
+ % suggesting that self-revision traces provide a 
+ % qualitatively different training signal than either expert demonstrations or filtered correct solutions;
+ % (c) surprisingly, the distillation phase halves response lengths while improving accuracy, indicating that the model internalizes error-correction into more directed first-attempt reasoning rather than  explicit backtracking.
+% More broadly, this self-training property is self-reinforcing: the improved model's revision capability can serve as a teacher for futher rounds of OSRD, enabling continued gains without external supervision. 
+% \sk{todo: one sentence takeaway}
+
+%Training methods for language models typically fall into two categories: \emph{dense-supervision} approaches, which rely on stronger teacher models or privileged ground-truth solutions, and \emph{sparse-supervision} approaches, which sample responses from the model and train to optimize outcome-level rewards. Dense-supervision methods can be effective but require costly external supervision, while sparse-supervision methods such as reinforcement learning are often more scalable but substantially less sample-efficient. 
+
+% Improving models via post-training currently involves either RL --which requires only a model or method for assigning a scalar reward, but is resource-intensive--  or self-distillation approaches that require  a source  of answers that are higher-quality than the model's own answers.  The latter may not be  an option when developing a frontier model. 
+%\iffalse Training methods for improving reasoning typically fall into two categories: \emph{sparse-supervision}, which relies only on final outcomes, and \emph{dense-supervision}, which provides token-level feedback. Dense supervision is effective but costly, as it generally requires stronger teacher models or privileged ground-truth solutions, while sparse supervision is more scalable but often far less sample-efficient.\fi 
+ %In this work, 
+
+ %which requires only a method for assigning a scalar reward, but is resource-intensive, or self-distillation approaches that require a source  of answers that are higher-quality than the model's own answers.  The latter may not be  an option when developing a frontier model. 
+
+\iffalse
+Improving models via post-training currently involves either reinforcement learning (RL), which requires only scalar rewards but is computationally expensive, or self-distillation, which depends on access to answers that are higher-quality than the model’s own. For developing  frontier models, the latter may not be available.
+
+
+We propose \textbf{Zero-Teacher Self-Distillation} (\\ours{}{}), a method that is RL-like but more compute-efficient, requiring just a scalar reward and no external teacher. Starting with an instruct model, we first teach it using simple rejection fine-tuning  to play two roles: a \emph{generator}, which given question $Q$ produces answer $A$; and a \emph{reviser} which, given $(Q, A)$ and the reward $r(A)$, tries to generate a better answer $A'$.
+During \\ours{}{}, given a question $Q$ the generator generates an answer $A$. Then on-policy distillation  is used with the student role played by  the generator with input $Q$, and the teacher role played by the reviser with input $(Q, A, r(A))$. 
+In effect, this pipeline turns any method of assigning binary (or scalar) reward into a source of dense self-supervision. 
+Across math and code reasoning benchmarks using \qwen{} and \olmo{}, \\ours{}{} improves model performance by at least 10\% 
+and outperforms strong baselines by at least 5\% under the same data budget. 
+Corroborated by extensive ablation studies, we show two novel characteristics of our proposed algorithm: (a) \emph{token-level self-localization}, where the reviser can identify the key tokens that need to be revised in the generator's response based on reward,  and (b) \emph{iterative self-evolution}, where the capability to revise answers is distilled back into generation performance with regular teacher synchronization. 
+\fi
+
+% \ap{new version: 
+% Current post-training algorithms to improve language models involve either reinforcement learning (RL), which requires only scalar rewards but is computationally expensive, or self-distillation, which depends on access to answers that are higher-quality than the model’s own. For developing frontier models, the latter may not be available.
+
+% \danqi{I don't really understand what zero-teacher self-distillation means. Doesn't self-distillation already imply that there is no teacher? I think you should discuss how your approach differs from other self-distillation methods, e.g., OPSD, SDFT, SDPO.}
+% \danqi{It seems that self-revision is the key. Why don't you mention it in the title / framing?}
+% \danqi{the abstract is v. long. don't use 3 paragraphs. don't add citations.}
+% \danqi{I sent Yinghui my comments but SDFT can also work without CoT, so the teacher only has access to input x and ground-truth answer y. I think you should just pitch your ideas of reviser/generator and show the strong empirical gains. No need to say zero-teacher or pure self-distillation.}
+% \danqi{RL is not just about scalar rewards}
+
+% \looseness-1 Current post-training methods for improving language models typically fall into two types.  Reinforcement learning (RL)  requires only scalar rewards but is computationally expensive.  Distillation-based methods typically rely on access to an external teacher that provides either denser token-level supervision or higher-quality responses. (Many self-distillation methods also use a gold teacher answer.)  For frontier models, such a teacher may not be available.
+%by training a model to convert sparse rewards into dense token-level supervision for its own generations
+
+% \yj{I'm a bit confused by the terms "generation-expensive" and "generation-efficient." It may be better to clarify what they mean. Alternatively, you could say: RL provides a powerful but sparse reward signal; distillation provides a dense signal but requires supervision from an external teacher; \ours{} uses a self-generated signal, so it is dense without requiring an external teacher.} \\
+% \yj{Maybe something like: Current post-training methods in verifiable settings largely fall into two categories. Reinforcement learning (RL) relies on scalar rewards, which provide a powerful but sparse training signal. Distillation methods provide denser token-level supervision, but typically depend on an external teacher, high-quality demonstrations, or filtered model responses, all of which can be costly or unavailable for frontier models. We propose \textbf{\method{} (\\ours{}{})}, a method that provides a dense self-supervised signal without requiring an external teacher or high-quality demonstrations.}? \\
+% \danqi{is Sparse Rewards better in the title? Overall I find that you are using sparse/binary/scalar mixedly. I will probably only use sparse and one of binary or scalar. I think SDZero looks better than SD-Zero.}
+
+%\iffalse
+\looseness-1Current post-training methods in verifiable settings fall into two categories. Reinforcement learning (RLVR) relies on binary rewards, which are broadly applicable and powerful, but provide only sparse supervision during training. Distillation provides dense token-level supervision, typically obtained from an external teacher or using high-quality demonstrations. Collecting such supervision can be costly or unavailable.
+We propose \textbf{\method{}} (\ours{}{}), a method that is substantially more training sample-efficient
+than RL and doesn't require an external teacher or high-quality demonstrations. \ours{}{} trains a \emph{single model} to play two roles: a \emph{Generator}, which produces an initial response, and a \emph{Reviser}, which conditions on that response and its binary reward to produce an improved response. We then perform on-policy self-distillation to distill the reviser into the generator, using the reviser’s token distributions conditioned on the generator’s response and its reward as supervision. In effect, \ours{}{} trains the model to \textit{transform binary rewards into dense token-level self-supervision.}
+
+
+\looseness-1On math and code reasoning benchmarks with \qwen{} and \olmo{}, \ours{}{} improves performance by at least $10\%$ over the base models and outperforms strong baselines, including Rejection Fine-Tuning (RFT), GRPO, and Self-Distillation Fine-Tuning (SDFT), under the same question set and training sample budget.
+Extensive ablation studies show two novel characteristics of our proposed algorithm: (a) \emph{token-level self-localization}, where the reviser can identify the key tokens that need to be revised in the generator's response based on reward,  and (b) \emph{iterative self-evolution}, where the improving ability to revise answers can be distilled back into generation performance with regular teacher synchronization. 
+%\fi 
+
+
+% On-policy distillation has emerged as a promising paradigm to post-train models with dense supervision, as opposed to  sparse binary rewards used by Reinforcement Learning from Verifiable Rewards (RLVR). However, existing methods require an external teacher or high-quality demonstrations. This paper introduces \textbf{\ours{}}, a self-distillation approach that trains the model to play two roles: \emph{Generator} and \emph{Reviser}. The reviser transforms sparse rewards on generator's response into dense token-level supervision. \ours{} then uses on-policy distillation to distill the reviser's response distribution back into the generator. \ours{} improves performance by at least 10\% when applied to \olmo{} and \qwen{} on math and coding benchmarks, outperforming strong baselines including Rejection Finetuning, GRPO, and Self-Distillation Finetuning under equal sample budget. Our ablations further show that (1) the reviser diverges maximally from the generator at key error positions, and (2) the model improves as a reviser over the course of training, which can translate back to continually improve performance of the model. Overall, \ours{} shows that models can bootstrap strong revision behavior from binary rewards and convert into dense self-supervision for self-distillation.
+
+%a better student is also a better reviser, allowing a further performance boost with teacher synchronization. 
+
+% itself as a \emph{reviser} to transform sparse rewards into dense token-level supervision, without having to rely on high-quality demonstrations. \ours{} uses on-policy distillation to distill the revised response distribution back into the model
+
+
+% \\ours{}{} trains a \emph{single model} to play two roles: a \emph{generator}, which produces an initial response, and a \emph{reviser}, which conditions on that response and its binary reward to produce an improved response. We then perform on-policy self-distillation to distill the reviser into the generator, using the reviser’s token distributions conditioned on the generator’s response and its reward as supervision. In effect, \\ours{}{} trains the model to \textit{transform binary rewards into dense token-level self-supervision.}
+
+
+% model itself as a \emph{reviser}, densifying sparse outcome rewards into logits without relying on exemplar demonstrations. In particular, \ours{} uses on-policy distillation to distill the reviser’s improved response distribution into the student. 
+
+
+
+%\danqi{what is the problem of `filtering the model's own response' with a verifier? isn't your approach also in this category?}
+%\danqi{better don't use the word frontier models in a paper. not sure what you are refering to. Are you talking about the teacher model, or the student model here?} 
+%\danqi{scalar or sparse or binary rewards? scalar != binary. just be consistent.}
+
+%Across math and code reasoning benchmarks using \qwen{} and \olmo{}, \\ours{}{} improves model performance by at least 10\%  and outperforms strong baselines by at least 5\% under the same data budget. 
+
+%\danqi{what is generation budget?}
+
+% We propose \textbf{Zero-Teacher Self-Distillation} (\\ours{}{}), a post-training algorithm that is substantially more compute-efficient than RL while requiring only scalar rewards and no external teacher. \\ours{}{} trains a single model to play two roles: a \emph{generator}, which produces a response to a question, and a \emph{reviser}, which conditions on the generator’s response and its scalar reward to produce an improved response. We then perform on-policy distillation, using the generator as the student and the reviser as the teacher. In effect, \\ours{}{} transforms scalar reward signals into dense token-level self-supervision.
+
+
+%over the base models 
+%provide an improved answer $A'$. 
+%(Similar to usual RL, higher improvement is seen when the teacher is the same as the student with a minor lag.) 
+% In the first phase (Self-Revision Training), the model is trained to perform revision on its own sampled responses. 
+%In the second phase (\opsd{}), the
+%that \\ours{}{} supports iterative self-evolution: as the model’s revision capability improves, regular teacher synchronization can continually distill this stronger revision behavior into improved generator performance.
+
+
+%Moreover, we show that \\ours{}{} is inherently self-reinforcing: as training implicitly improves the model’s revision capability, the updated model becomes a stronger reviser, enabling additional gains through iterative rounds of self-distillation with reviser synchronization. }
+
+\end{abstract}

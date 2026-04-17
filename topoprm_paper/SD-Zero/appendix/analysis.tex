@@ -1,0 +1,87 @@
+\section{Analysis of \ours{}}
+\label{app:analysisofours}
+\subsection{Self-Revision Keyword Analysis} \label{app:keywords}
+Below, we list the self-revision keywords used in our behavioral analysis. These keywords are used in the study described in \Cref{fig:behavior-evolution} to quantify the frequency of explicit self-correction language during training, complementing the analysis of response length and downstream performance. We construct the list by collecting common phrases that models frequently use when revising an earlier reasoning step, such as signaling doubt, detecting an error, restarting, rechecking, or correcting a previous claim. Concretely, the list includes expressions associated with hesitation (e.g., “wait,” “hold on”), error acknowledgment (e.g., “my mistake,” “this is wrong”), and explicit restart or verification behavior (e.g., “let me recheck,” “let me try again,” “let me start over”). While this keyword set is not intended to exhaustively capture all forms of self-correction, it provides a simple and interpretable proxy for tracking overt self-revision behavior across training stages.
+
+
+\definecolor{boxbg}{HTML}{F7F9FC}
+\definecolor{boxframe}{HTML}{4F81BD}
+\definecolor{codegreen}{HTML}{1F6F43}
+
+\lstdefinestyle{pythonstyle}{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    stringstyle=\color{darkbluegreen},
+    showstringspaces=false,
+    breaklines=true,
+    frame=none
+}
+\begin{tcolorbox}[
+    colback=lightblue!30,
+    colframe=vividblue,
+    coltitle=black,
+    title=List of Self-Revision Keywords Used in Behavioral Analysis (\Cref{sec:behavioral_analysis}),
+    % fonttitle=\bfseries,
+    boxrule=0.8pt,
+      arc=2pt,
+      left=6pt,
+      right=6pt,
+      top=4pt,
+      bottom=4pt
+]
+\begin{lstlisting}[style=pythonstyle]
+REVISION_KEYWORDS = [
+    "wait",
+    "hold on",
+    "actually",
+    "on second thought",
+    "let me recheck",
+    "let's recheck",
+    "let me check",
+    "let's check",
+    "let me recalculate",
+    "let's recalculate",
+    "let me correct",
+    "my mistake",
+    "i made a mistake",
+    "this is wrong",
+    "that is wrong",
+    "that's wrong",
+    "incorrect",
+    "re-evaluate",
+    "let's re-evaluate",
+    "let me rethink",
+    "let's rethink",
+    "let me double check",
+    "let's double check",
+    "wait a minute",
+    "let me start over",
+    "let me try again",
+    "oops"
+]
+\end{lstlisting}
+\end{tcolorbox}
+
+\clearpage
+\subsection{Ablation Studies on \ours{} Method Design}
+\subsubsection{Ablating Loss terms in SRT}
+The SRT objective \lsrt{} (Section~\ref{sec:method}) combines two terms: the first term \lrev{} trains the model to produce a revision or rephrase conditioned on the outcome; the second term \lgen{} trains it to generate better responses by actively evaluating its current response and self-correcting. We ablate this by training with each term alone. If the self-correction term is redundant, removing it should not hurt Phase~2 performance; if the conditioned revision term is redundant, the model should still learn to revise from the self-correction objective alone.
+
+As shown in \Cref{tab:phase1-ablation}, both terms are necessary, and neither alone recovers the full effect of \sft{}. Using only \lgen{} preserves relatively strong first-attempt generation, but its revised-attempt improvement is much smaller, with the correction rate dropping from 15.0\% to 7.2\%. This suggests that self-correction behavior does not emerge reliably from the generation objective alone. In contrast, using only \lrev{} yields a higher correction rate of 12.1\%, indicating that the model does learn to revise when explicitly trained to do so, but this comes at a clear cost to generation quality: both average generation accuracy and first-attempt accuracy fall substantially relative to the full \sft{} objective. Taken together, these results show that the two terms play complementary roles. \lrev{} is important for directly eliciting revision behavior, while \lgen{} helps transfer that behavior back into stronger standalone generation. Their combination is what enables \sft{} to simultaneously improve first-attempt performance and unlock effective self-revision. This complementarity is consistent with previous work 
+\citep{kumar2024traininglanguagemodelsselfcorrect}, which similarly finds that self-correction does not emerge from a correction-focused signal alone, but requires preserving the model’s underlying generation ability while separately training revision behavior.
+
+
+% \sk{I think the SCoRE paper also discusses the importance of this mixing (will double check), in which case we can cite SCoRE + mention their observation is consistent with ours?}
+
+ \input{figures_and_tables_w_captions/table_phase1_ablation}
+
+
+\subsubsection{Applying \opsd{} Phase Directly to the Base Model}
+\Cref{tab:phase2-ablation} provides an ablation study showing what happens when we remove the \sft{} phase and apply the \opsd{} phase directly to the base model. Although this Phase-2-only variant slightly improves average generation accuracy from 49.8 to 51.4, its Generate-then-Revise (see \Cref{sec:srt-results}) behavior remains weak: first-attempt accuracy increases only modestly from 59.6 to 61.2, revised-attempt accuracy rises from 60.7 to 62.2, and the correction rate is only 2.6\%, which is nearly identical to the base model's 2.7\%. In contrast, models that include the \sft{} phase achieve much stronger revision gains, with correction rates of 15.0\% for \sft{} and 16.7\% for \ours{}. These results indicate that directly applying preference optimization to a model without prior self-revision training does not meaningfully improve its ability to revise incorrect solutions. Instead, the \sft{} phase appears to be a necessary prerequisite that first elicits self-revision behavior, after which the \opsd{} phase can effectively refine and strengthen it.
+\input{figures_and_tables_w_captions/table_phase2_ablation}
+
+\subsubsection{Ablating Data Split Between Phases}
+Our method uses a fixed overall data budget that must be divided between the \sft{} phase and the \opsd{} phase. This creates a natural trade-off: allocating more data to \sft{} may produce a stronger reviser, but leaves fewer examples for Phase 2 distillation; allocating too little data to \sft{} may instead yield a reviser that is not strong enough to provide useful supervision. To study this trade-off, we vary the split between the two phases while keeping the total amount of training data fixed, and report both the intermediate \sft{} model accuracy and the final \ours{} model accuracy in \Cref{tab:data-split-ablation}.
+
+\input{figures_and_tables_w_captions/table_data_ablation}

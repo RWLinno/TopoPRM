@@ -1,0 +1,29 @@
+\section{Additional Results}
+\label{app:additionalresults}
+% \sk{in addition to Figure~\ref{fig:self-revision}, maybe we can include a small table with exact numbers for mean + median tokens per response for instruct model, grpo, opsd, srt, and self-distillation (both for first attempt and revised attempt). We can also include a revision success rate by method table, i.e.\ what fraction of incorrect --> correct flips does each method achieve? If SRT corrects 40\% of wrong first-attempts but grpo corrects only 15\%, that quantifies the ``unlocked revision capability'' claim precisely.}
+\subsection{Pass@8 Performance on Math Benchmarks}
+\Cref{tab:pass8_results} complements the main results in \Cref{tab:main_results} by showing that the advantages of \sft{} and \ours{} persist under Pass@8 evaluation. The trend is consistent with the avg@16 results: across both Qwen3-4B-Instruct and Olmo-3-7B-Instruct, \sft{} already matches or outperforms strong baselines, and \ours{} further achieves the best overall average performance. These gains on Pass@8 suggest that our method is not merely sharpening the output distribution around a narrow set of solutions, but genuinely making the model’s exploration more well-directed, so that correct reasoning paths are more likely to be discovered across multiple attempts. Overall, the Pass@8 results further reinforce the conclusion that explicit self-revision training improves reasoning quality, and that the second-stage \ours{} training strengthens this effect.
+
+\input{figures_and_tables_w_captions/table_pass8}
+
+\subsection{SDFT Under Final-Answer-Only Supervision}
+\label{app:sdsf-final-answers}
+In \Cref{tab:sdft_final_answers}, we show that SDFT performs much worse when given access only to ground-truth final answers rather than gold solution traces. Its performance remains close to the base model and falls far behind \ours{} across all math benchmarks. These results highlight that existing self-distillation methods do not naturally benefit from final-answer-only supervision, whereas \ours{} is specifically designed to convert such sparse outcome feedback into effective token-level learning signals.
+\input{figures_and_tables_w_captions/table_final_answers}
+
+
+\subsection{Detailed Self-Revision Statistics}
+\label{app:revision-token-tradeoff}
+
+\Cref{tab:revision-token-tradeoff} reports detailed statistics for the Generate-then-Revise evaluation on 1K AIME24 questions with \qwen{} as the base model. For each method, we show the average token cost of the first attempt and the revision, together with the corresponding accuracies before and after revision. We also report the net wrong-to-correct rate, computed as $(\text{Revised Attempt Accuracy} - \text{First Attempt Accuracy}) / (100 - \text{First Attempt Accuracy})$, which measures the fraction of initially incorrect answers that are corrected after revision. These statistics complement \Cref{fig:self-revision} by quantifying both the accuracy gains and the token efficiency of revision across methods.
+\vspace{-1em}
+\input{figures_and_tables_w_captions/table_revision}
+
+\subsection{GRPO Configuration Comparison}
+The GRPO baseline in \Cref{tab:main_results} is run under 4 generations per question under a sampling budget matched with \ours{}. Here, we vary the number of generations per question and the number of training epochs in GRPO for \qwen{} on the math domain.
+
+As shown in \Cref{tab:grpo_ablation}, simply increasing the rollout budget in GRPO does not close the gap to our method. Moving from 4 to 8 generations per question (with 0.5 training epochs to match rollout budget) yields only marginal improvements, and in some settings even slightly hurts performance. Extending training to a full epoch with 8 generations (2$\times$ sampling budget as \ours{}) provides some recovery, but the gains remain modest overall.
+
+\input{figures_and_tables_w_captions/table_grpo_ablation}
+
+

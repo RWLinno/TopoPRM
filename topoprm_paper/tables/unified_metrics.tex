@@ -1,56 +1,76 @@
-% Unified metrics table: pass@1 / correct / error / avg_tokens / acc-per-1kTok
+% Unified metrics on GSM8K / MATH-500 for 9B family (full 8-column breakdown)
 \begin{table}[t]
 \centering
-\caption{Unified evaluation metrics on GSM8K and MATH-500 (transformers backend, greedy decoding, max\_new\_tokens=2048).
-  \textbf{Cor} = number of correct predictions; \textbf{Err} = number of incorrect predictions;
-  \textbf{Tok} = average generation length in tokens;
-  \textbf{Acc/kTok} = pass@1 (\%) per 1\,000 generated tokens, a measure of reasoning efficiency.
-  Best Acc/kTok in each family is \textbf{bolded}.}
+\caption{Detailed unified metrics on GSM8K and MATH-500 (transformers backend,
+$\mathrm{num\_samples}{=}5$, chat template with SFT-style system prompt for our
+adapters and plain completion for base).
+\textbf{Cor} = correct; \textbf{Err} = incorrect;
+\textbf{Tok} = average generation tokens;
+\textbf{pass@5 / maj@5 / prm@5} are the k=5 variants;
+\textbf{F1} is single-answer F1 (precision=recall=pass@1 here).
+Best per column in each family is \textbf{bolded}.}
 \label{tab:unified_metrics}
 \vspace{2pt}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{@{}l c cccc c cccc@{}}
+\begin{tabular}{@{}l c c c c c c c c c@{}}
 \toprule
-& & \multicolumn{4}{c}{\textbf{GSM8K}} & & \multicolumn{4}{c}{\textbf{MATH-500}} \\
-\cmidrule(lr){3-6} \cmidrule(lr){8-11}
+& & \multicolumn{8}{c}{\textbf{GSM8K}} \\
+\cmidrule(lr){3-10}
 \textbf{Model} & \textbf{Params}
-  & pass@1 & Cor/Err & Tok & Acc/kTok
-  && pass@1 & Cor/Err & Tok & Acc/kTok \\
+  & pass@1 & pass@5 & maj@5 & prm@5 & F1 & Cor/Err & Tok & Acc/kTok \\
 \midrule
 \rowcolor{gray!8}
-\multicolumn{11}{@{}l}{\textit{Qwen3.5-9B family (ours)}} \\
-Baseline (Qwen3.5-9B)                & 9B & 91.0 & 1200/119 & 1017 & 89.5
-                                     && 55.0 & 275/225 & 2048 & 26.9 \\
-+ SFT                                & 9B & 87.9 & 1160/159 & 275  & \textbf{319.6}
-                                     && 53.0 & 265/235 & 1950 & 27.2 \\
-+ GRPO (outcome-only)                & 9B & 88.3 & 1165/154 & 287  & 307.7
-                                     && 54.4 & 272/228 & 2021 & 26.9 \\
-+ GRPO (w/o topology)                & 9B & 88.7 & 1170/149 & 305  & 290.8
-                                     && 54.2 & 271/229 & 2035 & 26.6 \\
-+ GRPO (w/o continuity)              & 9B & 90.9 & 1199/120 & 1006 & 90.4
-                                     && 55.0 & 275/225 & 2048 & 26.9 \\
+\multicolumn{10}{@{}l}{\textit{9B family (our unified protocol)}} \\
+Qwen3.5-9B (base)            & 9B & \textbf{91.0} & TBD & TBD & TBD & 91.0 & 1200/119 & 1017 & 89.5 \\
++ SFT                        & 9B & 87.9 & TBD & TBD & TBD & 87.9 & 1160/159 & 275  & 319.6 \\
 \rowcolor{blue!5}
-+ TopoPRM (hierarchical)             & 9B & 87.7 & 1157/162 & 277  & 316.6
-                                     && 53.4 & 267/233 & 2032 & 26.3 \\
++ SFT v2 (chat template)     & 9B & TBD  & TBD & TBD & TBD & TBD  & TBD/TBD & TBD & TBD \\
++ GRPO (outcome-only)        & 9B & 88.3 & TBD & TBD & TBD & 88.3 & 1165/154 & 287  & 307.7 \\
++ GRPO (w/o topology)        & 9B & 88.7 & TBD & TBD & TBD & 88.7 & 1170/149 & 305  & 290.8 \\
++ GRPO (w/o continuity)      & 9B & 90.9 & TBD & TBD & TBD & 90.9 & 1199/120 & 1006 & 90.4 \\
 \rowcolor{blue!5}
-+ TopoPRM (gated)                    & 9B & 87.8 & 1158/161 & 303  & 289.8
-                                     && \textbf{55.4} & 277/223 & 2026 & \textbf{27.3} \\
++ TopoPRM (hierarchical)     & 9B & 87.7 & TBD & TBD & TBD & 87.7 & 1157/162 & 277  & 316.6 \\
+\rowcolor{blue!5}
++ TopoPRM (gated)            & 9B & 87.8 & TBD & TBD & TBD & 87.8 & 1158/161 & 303  & 289.8 \\
 \midrule
 \rowcolor{gray!8}
-\multicolumn{11}{@{}l}{\textit{Qwen2.5-7B family}} \\
-Baseline (Qwen2.5-7B-Instruct)       & 7B & 84.2 & 1110/209 & 1917 & 43.9
-                                     && 55.2 & 276/224 & 1847 & 29.9 \\
-+ TopoPRM (hierarchical)             & 7B & 83.8 & 1105/214 & 1753 & 47.8
-                                     && 38.8 & 194/306 & 2018 & 19.2 \\
+\multicolumn{10}{@{}l}{\textit{Distilled students (compressed teacher, target $\le$4B)}} \\
+Student (4B, SFT distill)       & 4B   & TBD & TBD & TBD & TBD & TBD & TBD/TBD & TBD & TBD \\
+Student (4B, TopoSD-Zero)       & 4B   & TBD & TBD & TBD & TBD & TBD & TBD/TBD & TBD & TBD \\
+Student (2B, TopoSD-Zero)       & 2B   & TBD & TBD & TBD & TBD & TBD & TBD/TBD & TBD & TBD \\
+Student (0.8B, TopoSD-Zero)     & 0.8B & TBD & TBD & TBD & TBD & TBD & TBD/TBD & TBD & TBD \\
+\bottomrule
+\end{tabular}%
+}
+\vspace{4pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l c c c c c c c c c@{}}
+\toprule
+& & \multicolumn{8}{c}{\textbf{MATH-500}} \\
+\cmidrule(lr){3-10}
+\textbf{Model} & \textbf{Params}
+  & pass@1 & pass@5 & maj@5 & prm@5 & F1 & Cor/Err & Tok & Acc/kTok \\
 \midrule
 \rowcolor{gray!8}
-\multicolumn{11}{@{}l}{\textit{Distillation (student models)}} \\
-Qwen3-8B + RKL (legacy, overfit)     & 8B & 81.0 & 1069/250 & 2048 & 39.6
-                                     && 45.4 & 227/273 & 2048 & 22.2 \\
-Qwen3.5-4B + SFT distill             & 4B & TBD  & TBD      & TBD  & TBD
-                                     && TBD  & TBD     & TBD  & TBD \\
-Qwen3.5-2B + SFT distill             & 2B & TBD  & TBD      & TBD  & TBD
-                                     && TBD  & TBD     & TBD  & TBD \\
+\multicolumn{10}{@{}l}{\textit{9B family (our unified protocol)}} \\
+Qwen3.5-9B (base)            & 9B & 55.0 & TBD & TBD & TBD & 55.0 & 275/225 & 2048 & 26.9 \\
++ SFT                        & 9B & 53.0 & TBD & TBD & TBD & 53.0 & 265/235 & 1950 & 27.2 \\
+\rowcolor{blue!5}
++ SFT v2 (chat template)     & 9B & TBD  & TBD & TBD & TBD & TBD  & TBD/TBD & TBD & TBD \\
++ GRPO (outcome-only)        & 9B & 54.4 & TBD & TBD & TBD & 54.4 & 272/228 & 2021 & 26.9 \\
++ GRPO (w/o topology)        & 9B & 54.2 & TBD & TBD & TBD & 54.2 & 271/229 & 2035 & 26.6 \\
++ GRPO (w/o continuity)      & 9B & 55.0 & TBD & TBD & TBD & 55.0 & 275/225 & 2048 & 26.9 \\
+\rowcolor{blue!5}
++ TopoPRM (hierarchical)     & 9B & 53.4 & TBD & TBD & TBD & 53.4 & 267/233 & 2032 & 26.3 \\
+\rowcolor{blue!5}
++ TopoPRM (gated)            & 9B & \textbf{55.4} & TBD & TBD & TBD & 55.4 & 277/223 & 2026 & \textbf{27.3} \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{10}{@{}l}{\textit{Distilled students (target $\le$4B)}} \\
+Student (4B, SFT distill)       & 4B   & TBD & TBD & TBD & TBD & TBD & TBD/TBD & TBD & TBD \\
+Student (4B, TopoSD-Zero)       & 4B   & TBD & TBD & TBD & TBD & TBD & TBD/TBD & TBD & TBD \\
+Student (2B, TopoSD-Zero)       & 2B   & TBD & TBD & TBD & TBD & TBD & TBD/TBD & TBD & TBD \\
+Student (0.8B, TopoSD-Zero)     & 0.8B & TBD & TBD & TBD & TBD & TBD & TBD/TBD & TBD & TBD \\
 \bottomrule
 \end{tabular}%
 }

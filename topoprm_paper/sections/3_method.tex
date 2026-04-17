@@ -189,3 +189,93 @@ token-level compression in the final student model.
 \end{algorithmic}
 \end{algorithm}
 
+
+\subsection{TopoSD-Zero: Topology-Aware Self-Distillation}
+\label{sec:toposd_zero}
+
+The plain reverse-KL distillation of Eq.~\ref{eq:distill} suffers from two
+practical issues when the teacher is a strong RLVR-trained policy: (a) very
+few teacher rollouts emit a complete \texttt{<think>$\cdots$<answer>} format
+(in our pilot, only $0.4\%$ of 32B teacher traces close the \texttt{<answer>}
+tag under limited budget), so the student never sees the stopping pattern;
+and (b) the student's own on-policy trajectories are ignored entirely, leading
+to train-test distribution mismatch. To address both, we extend SD-Zero
+\citep{sdzero2026} with topology-aware prompts and run it as a second
+distillation stage we call \textbf{TopoSD-Zero}.
+
+\paragraph{Phase~III-A: Self-Revision Training (SRT).}
+A single model $\pi_\theta$ (initialised from our SFT checkpoint) alternates
+between \emph{generator} and \emph{reviser} roles. For each problem
+$(x,a)\in\mathcal{D}_1$ we sample an on-policy attempt
+$y_{\mathrm{init}}\!\sim\!\pi_\theta(\cdot\mid x)$ and compute the three
+verifiable signals: outcome $r_{\mathrm{out}}\!\in\!\{0,1\}$, topology
+$r_{\mathrm{topo}}$, and continuity $r_{\mathrm{cont}}$. We then build a
+topology-aware revision prompt $P_r(r_{\mathrm{out}},r_{\mathrm{topo}},r_{\mathrm{cont}})$
+via a $2\!\times\!2$ dispatch table over (correctness, structure):
+\begin{equation}
+\label{eq:topo_pr}
+P_r =
+\begin{cases}
+\texttt{"Rephrase this correct critique more concisely."}
+  & r_{\mathrm{out}}{=}1,\ r_{\mathrm{topo}}{\ge}\tau_s \\
+\texttt{"Correct answer but step $k$ has no dependency; rewrite w/ explicit refs."}
+  & r_{\mathrm{out}}{=}1,\ r_{\mathrm{topo}}{<}\tau_s \\
+\texttt{"Well-structured but final verdict wrong, reconsider."}
+  & r_{\mathrm{out}}{=}0,\ r_{\mathrm{topo}}{\ge}\tau_s \\
+\texttt{"Wait, this is not correct, let me start over."}
+  & r_{\mathrm{out}}{=}0,\ r_{\mathrm{topo}}{<}\tau_s
+\end{cases}
+\end{equation}
+where $\tau_s=0.5$ and $k$ is drawn from the orphan-conclusion set of the
+extracted DAG $\mathcal{G}=\mathcal{E}(y_{\mathrm{init}})$. We then sample a
+revised response
+$y_{\mathrm{rev}}\!\sim\!\pi_\theta(\cdot\mid x,y_{\mathrm{init}},P_r)$ and
+keep $(x,y_{\mathrm{init}},P_r,y_{\mathrm{rev}})$ iff
+$r_{\mathrm{out}}(y_{\mathrm{rev}})=1$ and the format is well-closed.
+The SRT model $\pi_{\mathrm{SRT}}$ is fine-tuned with
+\begin{equation}
+\label{eq:srt}
+\mathcal{L}_{\mathrm{SRT}} =
+\underbrace{-\mathbb{E}\log\pi_\theta(y_{\mathrm{rev}}\mid x,y_{\mathrm{init}},P_r)}_{\text{revision}}
+\;+\;
+\underbrace{-\mathbb{E}\log\pi_\theta([y_{\mathrm{init}},P_r,y_{\mathrm{rev}}]\mid x)}_{\text{generation}}.
+\end{equation}
+
+\paragraph{Phase~III-B: On-Policy Self-Distillation (OPSD).}
+The SRT model is frozen as a reviser-teacher; the generator-student is the
+same architecture with its own trainable parameters $\theta$. For each
+problem in $\mathcal{D}_2$ the student samples on-policy
+$y\!\sim\!\pi_\theta(\cdot\mid x)$; the frozen reviser-teacher computes the
+per-token distribution
+$\pi_{\mathrm{SRT}}(\cdot\mid x,y,P_r,y_{<t})$ conditioned on the same
+topology-aware $P_r$. The OPSD loss matches student to teacher token-wise
+via reverse KL:
+\begin{equation}
+\label{eq:opsd}
+\mathcal{L}_{\mathrm{OPSD}} =
+\mathbb{E}_{x\sim\mathcal{D}_2,\,y\sim\pi_\theta(\cdot\mid x)}
+\sum_{t=1}^{|y|}
+D_{\mathrm{KL}}\!\left(
+\pi_\theta(\cdot\mid x,y_{<t})\,\bigg\|\,
+\pi_{\mathrm{SRT}}(\cdot\mid x,y,P_r,y_{<t})
+\right).
+\end{equation}
+
+\paragraph{Why topology-aware $P_r$ helps.}
+SD-Zero shows that the reviser diverges maximally from the generator only at
+a sparse set of \emph{pivotal} tokens---the KL gradient concentrates there,
+giving an implicit token-level credit assignment from a scalar outcome
+reward. Our $P_r$ carries not only $r_{\mathrm{out}}$ but also
+$r_{\mathrm{topo}}$, $r_{\mathrm{cont}}$, and the specific orphan step index.
+This makes the KL signal fire at tokens that are structurally suspect even
+when $r_{\mathrm{out}}{=}1$, converting our deterministic DAG diagnostics
+into dense per-token supervision without any human annotation.
+
+\paragraph{Student compression ($\leq$4B).}
+Because Phase~III-B student rollouts are on-policy and format-closed, we can
+distil into a much smaller student without the stopping-failure we observed
+with plain RKL distillation. The same OPSD objective is applied with
+$\pi_\theta$ initialised from Qwen3.5-4B, Qwen3.5-2B, or Qwen3.5-0.8B;
+the teacher remains the 9B SRT model. This is the route we report in
+Section~\ref{sec:experiments}.
+

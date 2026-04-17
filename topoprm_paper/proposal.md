@@ -103,13 +103,44 @@ Prevents process rewards from favouring structurally valid but factually incorre
 | Hierarchical | R = R_base * (1+a*R_topo) * (1+b*R_cont) | Topo/cont as gain factors |
 | Gated lexicographic | R = R_out + eps*R_process, eps<<1 | Mathematical guarantee: outcome rank preserved |
 
-### 3.6 Reverse-KL Distillation
+### 3.6 TopoSD-Zero: Topology-Aware Self-Distillation
 
-Transfer teacher's improved reasoning to smaller student:
+We replace the plain Reverse-KL distillation (which failed in our pilot: only
+0.4% of 32B teacher traces emitted a closed `<answer>` tag, so students never
+learned to stop) with a two-phase self-distillation that extends SD-Zero with
+DAG-aware revision prompts.
 
-L_distill = E_{(q,s)~D} [D_KL(pi_phi(.|q,s) || pi_theta*(.|q,s))]
+**Phase III-A: Self-Revision Training (SRT).** A single model alternates
+between generator and reviser. For each problem x we sample y_init on-policy,
+compute (r_out, r_topo, r_cont) on y_init, then build a topology-aware
+revision prompt P_r via a 2x2 dispatch table:
 
-Distillation dataset D is quality-filtered to retain only teacher completions with R_total > tau_d.
+| r_out | r_topo | P_r |
+|-------|--------|------|
+| 1 | >=0.5 | "Rephrase this correct critique more concisely." |
+| 1 | <0.5  | "Correct answer but step k has no dependency; rewrite with explicit references." |
+| 0 | >=0.5 | "Well-structured but final verdict wrong, reconsider." |
+| 0 | <0.5  | "Wait, this is not correct, let me start over." |
+
+where k is drawn from the orphan-conclusion set of the extracted DAG. The
+SRT loss combines revision NLL and generation NLL (L_revision + L_generation).
+
+**Phase III-B: On-Policy Self-Distillation (OPSD).** Freeze pi_SRT as
+reviser-teacher. Student samples y on-policy; teacher computes per-token
+distribution conditioned on (x, y, P_r, y_{<t}). Loss:
+
+L_OPSD = E_{x, y~pi_theta(.|x)} sum_t KL( pi_theta(.|x, y_{<t}) || pi_SRT(.|x, y, P_r, y_{<t}) )
+
+**Why topology-aware P_r?** SD-Zero shows the KL gradient concentrates at
+pivotal tokens. Our P_r carries structural signals beyond just r_out, so the
+per-token KL fires at structurally suspect positions even when r_out=1,
+converting our DAG diagnostics into dense per-token supervision without any
+human annotation.
+
+**Student compression (<=4B).** Because Phase III-B student rollouts are
+on-policy and format-closed, we can distil to much smaller students without
+the stopping failure seen with plain RKL. Student is initialised from
+Qwen3.5-4B / 2B / 0.8B, teacher stays the 9B SRT model.
 
 ---
 
@@ -136,23 +167,32 @@ Distillation dataset D is quality-filtered to retain only teacher completions wi
 - **Private**: Score-Acc, Error-F1, Format%, Avg-Len
 - **Public**: pass@1, pass@k, maj@k, prm@k, F1, #Tokens (k in {1,5})
 
-### 4.3 Model Matrix (updated 2026-04-17)
+### 4.3 Model Matrix (updated 2026-04-17 - TopoSD-Zero pivot)
 
 | Model | Params | Training | Status |
 |-------|--------|----------|--------|
-| Qwen3-32B | 32B | Base / SFT / GRPO variants / TopoPRM | Legacy checkpoints available |
-| Qwen3.5-9B | 9B | Base / SFT / GRPO (outcome/no-topo/no-cont) / TopoPRM (hier, gated) | **Measured** |
-| Qwen2.5-7B | 7B | Base / TopoPRM (hier) | **Measured** |
-| Qwen3.5-4B | 4B | SFT distillation (new, primary student) | Pending GPU |
-| Qwen3.5-2B | 2B | SFT distillation (aggressive compression) | Pending GPU |
-| Qwen3.5-0.8B | 0.8B | SFT distillation (extreme compression) | Pending GPU |
+| Qwen3-32B | 32B | Base / SFT / GRPO variants / TopoPRM | Legacy checkpoints (deprioritized) |
+| Qwen3.5-9B | 9B | Base / SFT / GRPO (outcome/no-topo/no-cont) / TopoPRM (hier, gated) | **v2 measured with chat template** |
+| Qwen3.5-9B + TopoSD-Zero | 9B | SRT Phase III-A + OPSD Phase III-B | To train |
+| Qwen2.5-7B | 7B | Base / TopoPRM (hier) | Measured |
+| Qwen3.5-4B + TopoSD-Zero | 4B | OPSD (teacher = 9B SRT) | Primary student target |
+| Qwen3.5-2B + TopoSD-Zero | 2B | OPSD | Aggressive compression |
+| Qwen3.5-0.8B + TopoSD-Zero | 0.8B | OPSD | Extreme compression |
 
-**Note**: We have deprecated the earlier reverse-KL distillation into Qwen3-8B
-because (i) the 32B teacher tokenizer mismatch caused format loss
-(only 0.4\% of teacher traces emitted valid \texttt{<answer>} tags), and
-(ii) 8B is not a useful deployment target. Our new distillation strategy
-uses same-family SFT data (Qwen3.5) to train smaller 4B/2B/0.8B students
-with complete format supervision, achieving more stable compression.
+**Breakthrough from v2 evaluation protocol:** with chat-template prompting
+and sft-style system message (matching training format), our SFT 9B variant
+achieves 96-97% GSM8K (vs. 88% under raw-text prompt). This closes the
+SFT/base gap and unlocks TopoPRM's advantage: best MATH-500 accuracy
+(55.4%, +0.4 over base) at 3x shorter trace length.
+
+**Distillation pivot.** We deprecate reverse-KL into Qwen3-8B because:
+1. 32B teacher tokenizer mismatch + truncation produced only 0.4% closed
+   `<answer>` traces, so students never learned to stop (every sample hit
+   max_new_tokens = 2048).
+2. 8B is not a useful deployment target.
+
+Our new route is TopoSD-Zero (Section 3.6): on-policy self-distillation
+with topology-aware revision prompts, targeting Qwen3.5-{4B, 2B, 0.8B}.
 
 ### 4.4 Ablation Studies
 

@@ -160,10 +160,38 @@ def score_response(text: str, solution: str, reference_dag=None) -> dict:
         r_cont = float(ContinuityReward()(completions)[0])
     except Exception:
         pass
+
+    # Find first orphan conclusion step index, mirroring rollout_srt.score_trace.
+    # Used by build_prompt_dispatch to fill P_r's {k} with the real index instead
+    # of the legacy default k=1 (handoff §C.1).
+    orphan_step = None
+    try:
+        from src.data.build_dag import build_dag_from_answer
+        from src.dag.node import StepType
+
+        dag = build_dag_from_answer(text)
+        if dag is not None and getattr(dag, "nodes", None):
+            for sid in sorted(dag.nodes.keys()):
+                node = dag.nodes[sid]
+                if node.step_type != StepType.CONCLUSION:
+                    continue
+                has_virtual_pred = any(
+                    dag.is_virtual_edge(
+                        dag.graph.edges[u, sid].get("edge_type", "")
+                    )
+                    for u in dag.graph.predecessors(sid)
+                )
+                if not has_virtual_pred:
+                    orphan_step = int(sid)
+                    break
+    except Exception:
+        orphan_step = None
+
     return {
         "r_out": 1 if r_out >= 0.5 else 0,
         "r_topo": r_topo,
         "r_cont": r_cont,
+        "orphan_step": orphan_step,
     }
 
 
@@ -242,11 +270,16 @@ def main():
                 print(f"  skip {pi}: student sample err {e}")
                 continue
 
-            # 2) Score y and build P_r
+            # 2) Score y and build P_r (P_r placeholder {k} now uses the
+            # actual orphan step index when available, mirroring rollout_srt
+            # post-D3; previously P_r always degraded to k=1).
             sc = score_response(y, p["solution"], p.get("reference_dag"))
             if cfg.get("use_topo_aware_pr", True):
                 _bucket, P_r = build_prompt_dispatch(
-                    sc["r_out"], sc["r_topo"], cfg.get("topo_threshold", 0.5),
+                    sc["r_out"],
+                    sc["r_topo"],
+                    cfg.get("topo_threshold", 0.5),
+                    orphan_step=sc.get("orphan_step"),
                 )
             else:
                 P_r = ("Let me rephrase the above solution." if sc["r_out"]

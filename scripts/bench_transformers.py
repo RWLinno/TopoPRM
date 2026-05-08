@@ -157,6 +157,17 @@ def answers_match_mcq(pred: str | None, gold: str) -> bool:
     return pred.upper() == g
 
 
+def answers_match_text(pred: str | None, gold: str) -> bool:
+    """Lenient text matcher for code/output style tasks."""
+    if pred is None:
+        return False
+    p = " ".join(str(pred).strip().split()).lower()
+    g = " ".join(str(gold).strip().split()).lower()
+    if not p or not g:
+        return False
+    return p == g or g in p
+
+
 def answer_extractor_for_benchmark(bench: str):
     if bench in {"gsm8k", "math500", "olympiadbench", "omni_math",
                  "aime2024", "aime2025", "cnmo2024"}:
@@ -171,6 +182,8 @@ def answer_extractor_for_benchmark(bench: str):
 def matcher_for_benchmark(bench: str):
     if bench in {"mmlu", "gpqa_diamond"}:
         return answers_match_mcq
+    if bench == "livecode":
+        return answers_match_text
     return answers_match_numeric
 
 
@@ -240,13 +253,16 @@ def load_math500() -> list[dict]:
     return items
 
 
-def _safe_load_dataset(hf_path, *, name=None, split=None):
+def _safe_load_dataset(hf_path, *, name=None, split=None, trust_remote_code=False):
     """Wrap load_dataset with multiple fallbacks."""
     last_exc = None
     for s in [split] if split else [None]:
         for n in ([name] if name else [None, "default", "all"]):
             try:
-                kwargs = {"cache_dir": "/root/.cache/huggingface/datasets"}
+                kwargs = {
+                    "cache_dir": "/root/.cache/huggingface/datasets",
+                    "trust_remote_code": trust_remote_code,
+                }
                 if n:
                     return load_dataset(hf_path, n, split=s, **kwargs)
                 else:
@@ -432,48 +448,67 @@ def load_mmlu(subset_ratio: float = 1.0) -> list[dict]:
 
 
 def load_gpqa_diamond() -> list[dict]:
+    def _to_mcq(rows):
+        """Convert raw GPQA rows into shuffled ABCD multiple-choice items."""
+        import random
+        items = []
+        for r in rows:
+            q = str(r.get("question", r.get("Question", "")))
+            correct = str(r.get("answer", r.get("Correct Answer", "")))
+            opts = [
+                correct,
+                str(r.get("Incorrect Answer 1", "")),
+                str(r.get("Incorrect Answer 2", "")),
+                str(r.get("Incorrect Answer 3", "")),
+            ]
+            rng = random.Random(hash(q) & 0xFFFF)
+            order = list(range(4))
+            rng.shuffle(order)
+            letters = "ABCD"
+            shuffled = [opts[i] for i in order]
+            gold_letter = letters[order.index(0)]
+            opt_text = "\n".join(f"{letters[i]}. {shuffled[i]}" for i in range(4))
+            q_text = f"{q}\n\n{opt_text}"
+            items.append({"question": q_text, "gold": gold_letter, "source": "gpqa_diamond"})
+        return items
+
     local = Path("data/benchmarks/GPQA_Diamond/test.jsonl")
     if local.exists():
         rows = _load_jsonl(local)
-        return [{
-            "question": str(r.get("question", r.get("Question", ""))),
-            "gold": str(r.get("answer", r.get("Correct Answer", ""))),
-            "source": "gpqa_diamond",
-        } for r in rows]
+        return _to_mcq(rows)
     for path, name, split in [
         ("Idavidrein/gpqa", "gpqa_diamond", "train"),
     ]:
         try:
             ds = _safe_load_dataset(path, name=name, split=split)
-            items = []
-            for row in ds:
-                q = row.get("Question", row.get("question", ""))
-                opts = [
-                    row.get("Correct Answer", ""),
-                    row.get("Incorrect Answer 1", ""),
-                    row.get("Incorrect Answer 2", ""),
-                    row.get("Incorrect Answer 3", ""),
-                ]
-                import random
-                rng = random.Random(hash(q) & 0xFFFF)
-                order = list(range(4))
-                rng.shuffle(order)
-                letters = "ABCD"
-                shuffled = [opts[i] for i in order]
-                gold_letter = letters[order.index(0)]
-                opt_text = "\n".join(f"{letters[i]}. {shuffled[i]}" for i in range(4))
-                q_text = f"{q}\n\n{opt_text}"
-                items.append({"question": q_text, "gold": gold_letter, "source": "gpqa_diamond"})
-            return items
+            return _to_mcq([dict(row) for row in ds])
         except Exception:
             continue
     return []
 
 
 def load_livecode() -> list[dict]:
-    """LiveCodeBench proxy. Use local file if exists else skip (execution out of scope)."""
-    for p in [Path("data/benchmarks/LiveCode/test.jsonl"),
-              Path("data/benchmarks/livecodebench/test.jsonl")]:
+    """LiveCode is permanently disabled (2026-04-21).
+
+    Our TopoPRM models are trained purely for math reasoning. Empirical
+    validation (see docs/exp_roadmap_2026-04-20.md) confirmed that every
+    candidate model scores 0% on LiveCode under strict text-match scoring,
+    so we no longer report this column in the main paper. The loader now
+    returns [] unconditionally so any previously-launched shell pipeline
+    that still has ``livecode`` in its benches list skips it instantly.
+    """
+    return []
+
+    # (legacy loader retained below for reference; unreachable.)
+    local_paths = [
+        Path("data/benchmarks/LiveCode/test.jsonl"),
+        Path("data/benchmarks/LiveCode/train.jsonl"),
+        Path("data/benchmarks/livecodebench/test.jsonl"),
+        Path("data/benchmarks/livecodebench/train.jsonl"),
+        Path("data/benchmarks/livecode/test.jsonl"),
+        Path("data/benchmarks/livecode/train.jsonl"),
+    ]
+    for p in local_paths:
         if p.exists():
             rows = _load_jsonl(p)
             return [{
@@ -481,6 +516,29 @@ def load_livecode() -> list[dict]:
                 "gold": str(r.get("expected_output", r.get("answer", r.get("test", ""))))[:120],
                 "source": "livecode",
             } for r in rows]
+
+    # HF fallback: keep best-effort to avoid "No data for benchmark livecode".
+    for hf_path, split in [
+        ("livecodebench/code_generation_lite", "test"),
+        ("livecodebench/code_generation_lite", "train"),
+    ]:
+        try:
+            ds = _safe_load_dataset(hf_path, split=split, trust_remote_code=True)
+            items = []
+            for r in ds:
+                q = r.get("question_content", r.get("question", r.get("prompt", "")))
+                gold = r.get("expected_output", r.get("answer", r.get("test", "")))
+                if not str(q).strip():
+                    continue
+                items.append({
+                    "question": str(q),
+                    "gold": str(gold)[:120],
+                    "source": "livecode",
+                })
+            if items:
+                return items
+        except Exception:
+            continue
     return []
 
 
@@ -849,7 +907,26 @@ def main():
                         help="Prepend 1-3 few-shot CoT demonstrations")
     parser.add_argument("--temperature", type=float, default=0.7)
     parser.add_argument("--top_p", type=float, default=0.95)
+    parser.add_argument("--force_overwrite", action="store_true",
+                        help="Re-run even if <label>_<bench>_metrics.json already exists")
     args = parser.parse_args()
+
+    # Skip-if-exists pre-filter: drop benches whose metrics.json already exists,
+    # unless --force_overwrite is set.  If this empties the list we exit early
+    # and never pay the model-load cost.
+    if not args.force_overwrite:
+        filtered = []
+        out_dir_pre = Path(args.output_dir)
+        for bench in args.benchmarks:
+            mf = out_dir_pre / f"{args.label}_{bench}_metrics.json"
+            if mf.exists():
+                print(f"[skip-exists] {mf}")
+            else:
+                filtered.append(bench)
+        if not filtered:
+            print(f"[skip-all] all benchmarks for label={args.label} already saved; nothing to do")
+            return
+        args.benchmarks = filtered
 
     print(f"Loading model: {args.model}")
     tokenizer = AutoTokenizer.from_pretrained(

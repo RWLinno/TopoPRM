@@ -1,10 +1,5 @@
 """Prepare a GRPO (Group Relative Policy Optimisation) dataset.
 
-Each record is a *prompt-only* message list with two sidecar fields:
-
-* ``solution``      – the reference LLM critique (JSON string).
-* ``reference_dag`` – the DAG JSON built from the standard answer.
-
 Usage::
 
     python -m src.data.prepare_grpo \\

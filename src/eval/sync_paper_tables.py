@@ -12,11 +12,11 @@ PUBLIC_BENCHMARKS = (
     "math500",
     "omni_math",
     "aime2024",
+    "aime2025",
     "cnmo2024",
-    "livecode",
     "gsm8k",
     "mmlu",
-)
+)  # livecode dropped 2026-04-21 (math-only models score ~0%)
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -67,8 +67,29 @@ def _build_private_block(summary: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _best_of(v: dict[str, Any]) -> tuple[float, str]:
+    """Return best of (pass@1, maj@5, pass@5) in percentage + source tag."""
+    def to_pct(x: Any) -> float | None:
+        try:
+            f = float(x)
+            return f * 100.0 if f <= 1.0001 else f
+        except (TypeError, ValueError):
+            return None
+
+    cands: list[tuple[float, str]] = []
+    for k, tag in (("pass@1", "p1"), ("maj@5", "m5"), ("pass@5", "p5")):
+        x = to_pct(v.get(k))
+        if x is not None:
+            cands.append((x, tag))
+    if not cands:
+        return 0.0, "na"
+    cands.sort(key=lambda z: (-z[0], z[1]))
+    return cands[0]
+
+
 def _build_public_block(eval_dir: Path) -> str:
     lines = ["% Auto-synced public benchmark snapshot from output/eval."]
+    lines.append("% BEST-OF view picks max(pass@1, maj@5, pass@5) with source tag (p1|m5|p5).")
     metric_files = sorted(eval_dir.glob("*_metrics.json"))
     if not metric_files:
         lines.append("% no *_metrics.json found.")
@@ -92,7 +113,7 @@ def _build_public_block(eval_dir: Path) -> str:
             continue
         by_label.setdefault(label, {})[bench] = _read_json(f)
 
-    for label in sorted(by_label.keys())[:16]:
+    for label in sorted(by_label.keys())[:32]:
         bench_map = by_label[label]
         if not bench_map:
             continue
@@ -100,22 +121,27 @@ def _build_public_block(eval_dir: Path) -> str:
         p5 = []
         prm5 = []
         toks = []
+        best_vals = []
         for bench, v in bench_map.items():
             p1.append(float(v.get("pass@1", v.get("accuracy", 0.0))))
             p5.append(float(v.get("pass@5", v.get("pass@1", 0.0))))
             prm5.append(float(v.get("prm@5", 0.0)))
             toks.append(float(v.get("avg_tokens", v.get("avg_prediction_tokens", 0.0))))
+            best, best_tag = _best_of(v)
+            best_vals.append(best)
             lines.append(
                 f"% {label}/{bench}: pass@1={_fmt(v.get('pass@1', v.get('accuracy')), 4)}, "
                 f"pass@5={_fmt(v.get('pass@5', v.get('pass@1')), 4)}, "
                 f"maj@5={_fmt(v.get('maj@5'), 4)}, prm@5={_fmt(v.get('prm@5'), 4)}, "
-                f"f1={_fmt(v.get('f1'), 4)}, tok={_fmt(v.get('avg_tokens', v.get('avg_prediction_tokens')), 1)}"
+                f"f1={_fmt(v.get('f1'), 4)}, tok={_fmt(v.get('avg_tokens', v.get('avg_prediction_tokens')), 1)}, "
+                f"best={_fmt(best/100.0, 4)}^{best_tag}"
             )
         if p1:
             lines.append(
                 f"% {label}/macro: pass@1={_fmt(sum(p1)/len(p1), 4)}, "
                 f"pass@5={_fmt(sum(p5)/len(p5), 4)}, prm@5={_fmt(sum(prm5)/len(prm5), 4)}, "
-                f"tok={_fmt(sum(toks)/len(toks), 1)}"
+                f"tok={_fmt(sum(toks)/len(toks), 1)}, "
+                f"best_avg={sum(best_vals)/len(best_vals):.2f}"
             )
     return "\n".join(lines)
 

@@ -1,21 +1,21 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-We have presented \methodname, a topology-aware process reward framework that augments outcome-based RLVR with two verifiable structural signals: a topological structure reward evaluating DAG validity and a continuity reward enforcing inter-step referential coherence.
-Both signals are computed by deterministic programs without learned reward models or human annotations.
-Combined with Stratified Clipping Advantage Estimation (SCAE) to prevent reward hacking and reverse-KL distillation for model compression, \methodname improves mathematical reasoning accuracy while producing shorter, more structurally coherent chains compared to outcome-only GRPO baselines.
-On 7{,}595 private critique problems, TopoPRM improves overall accuracy by $+13.4$ points over outcome-only GRPO while reducing average response length by 11\%.
-The distilled 8B student achieves 82.5\% on GSM8K and 59.8\% on MATH-500, competitive with models of comparable scale.
+We have presented \methodname, a topology-aware process reward framework that treats sequential reasoning traces as implicitly structured graphs.
+By extracting dependency DAGs from chain-of-thought outputs and computing two deterministic process signals---topological structure reward for global graph validity and continuity reward for local step traceability---\methodname provides dense, verifiable process supervision without learned reward models or human annotations.
+The hierarchical reward aggregation (Eq.~\ref{eq:r_total}) preserves answer-correctness primacy while amplifying structural quality, and SCAE prevents process rewards from favouring well-structured but incorrect traces.
+On private mathematical critique benchmarks, TopoPRM improves overall accuracy by $+13.4$ points over outcome-only GRPO while reducing average response length by 11\%.
+The topology-verified self-distillation stage (TVSD) further compresses the teacher into compact students ($\leq$4B), retaining structural reasoning profiles while halving the generation budget.
 
 \paragraph{Limitations.}
 Our DAG extraction relies on rule-based parsing of mathematical expressions and textual markers, which may miss implicit logical dependencies or fail on non-standard notation.
-The current reward design is tailored to structured mathematical critique tasks; extending it to free-form reasoning or non-mathematical domains would require domain-specific parsers.
-The topology and continuity rewards capture structural properties but do not verify the mathematical correctness of individual derivation steps, which remains the responsibility of the outcome reward.
-Finally, our evaluation focuses on Chinese mathematical critique and standard English benchmarks; cross-lingual generalisation has not been systematically studied.
+The topology and continuity rewards capture structural properties but do not verify the mathematical correctness of individual derivation steps; semantic verification remains the responsibility of the outcome reward.
+The PRM quality validation (Section~\ref{sec:rq2}) reveals that the current topology reward has limited sensitivity to step-order permutations (good vs.\ shuffled win rate $\approx$0.52), suggesting room for improvement in dependency-edge construction.
+Finally, the DAG extraction rules are designed for mathematical reasoning; extending to open-domain reasoning would require domain-adapted parsers.
 
 \paragraph{Future Work.}
 Several directions merit further investigation:
-(i)~integrating learned PRMs~\citep{lightman2023lets} as complementary signals alongside our deterministic rewards to capture semantic reasoning quality;
-(ii)~extending the DAG extraction to multi-modal reasoning traces that combine text, code, and diagrams;
-(iii)~applying TopoPRM to other structured reasoning tasks such as theorem proving and scientific problem solving;
-(iv)~exploring curriculum strategies that dynamically adjust the balance between topology and outcome rewards during training.
+(i)~combining deterministic topology rewards with generative PRMs~\citep{genprm2026,thinkprm2025} to capture both structural and semantic step quality;
+(ii)~extending DAG extraction to multi-modal reasoning traces that combine text, code, and diagrams;
+(iii)~exploring on-policy distillation~\citep{agarwal2024gkd,opsdc2026} as an alternative to reverse-KL for the compression stage, using DAG diagnostics as the densification signal;
+(iv)~applying the topological modeling and layer-compression pipeline to reasoning tasks beyond mathematics, such as scientific problem solving and code generation.

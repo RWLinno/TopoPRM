@@ -5,10 +5,21 @@ from typing import Any, Optional
 
 from swift.rewards import ORM, orms
 
+import os
+
 from src.dag.graph import ReasoningDAG
 from src.data.build_dag import build_dag_from_answer, extract_steps_from_answer
 from src.reward.reward_config import RewardConfig
 from src.reward.utils import completion_to_text, extract_think_block
+
+# Edge weights used by the weighted orphan-support score.
+# - virtual edges (claim_ref / expr_ref / var_ref) are strong supports → 1.0
+# - double_barrier edges (auto fallback "weak support") → 0.5
+# - solid edges (sequential ordering) → 0.3
+# A conclusion is "fully supported" once the weight sum of its predecessors ≥ 1.0.
+_ORPHAN_W_VIRTUAL: float = float(os.environ.get("TOPO_ORPHAN_W_VIRTUAL", 1.0))
+_ORPHAN_W_DOUBLE_BARRIER: float = float(os.environ.get("TOPO_ORPHAN_W_DOUBLE_BARRIER", 0.5))
+_ORPHAN_W_SOLID: float = float(os.environ.get("TOPO_ORPHAN_W_SOLID", 0.3))
 
 
 @dataclass
@@ -116,7 +127,15 @@ class TopoReward(ORM):
         return max(0.0, min(1.0, float(v)))
 
     @staticmethod
-    def _orphan_conclusion_ratio(dag: ReasoningDAG) -> float:
+    def _orphan_conclusion_ratio_legacy(dag: ReasoningDAG) -> float:
+        """Legacy binary orphan ratio (pre-2026-04-23).
+
+        A conclusion is "orphan" iff it has no virtual predecessor.
+        Treats double_barrier and solid predecessors as zero support, which
+        in v3b inflated rho_orphan and pinned topo reward to 0 on many
+        rollouts.  Kept for ablation reproducibility; activate with env
+        ``TOPO_ORPHAN_LEGACY=1``.
+        """
         from src.dag.node import StepType
 
         conclusion_ids = [
@@ -133,6 +152,49 @@ class TopoReward(ORM):
             if not has_virtual_pred:
                 orphan_count += 1
         return orphan_count / len(conclusion_ids)
+
+    @staticmethod
+    def _orphan_conclusion_ratio(dag: ReasoningDAG) -> float:
+        """Weighted orphan ratio: rho ∈ [0, 1], lower is better.
+
+        For each conclusion node we accumulate a support weight from its
+        predecessors:
+          virtual_edge → ``_ORPHAN_W_VIRTUAL`` (default 1.0)
+          double_barrier_edge → ``_ORPHAN_W_DOUBLE_BARRIER`` (default 0.5)
+          solid_edge → ``_ORPHAN_W_SOLID`` (default 0.3)
+
+        A node is "fully supported" once weight ≥ 1.0; otherwise it
+        contributes ``1 - support`` to the orphan ratio.  This converts
+        the previously binary signal into a continuous one and stops
+        treating fallback double_barrier edges as "no support".
+
+        Set ``TOPO_ORPHAN_LEGACY=1`` to fall back to the binary version.
+        """
+        if os.environ.get("TOPO_ORPHAN_LEGACY", "0") not in ("0", "false", "False", ""):
+            return TopoReward._orphan_conclusion_ratio_legacy(dag)
+
+        from src.dag.node import StepType
+
+        conclusion_ids = [
+            sid for sid, n in dag.nodes.items() if n.step_type == StepType.CONCLUSION
+        ]
+        if not conclusion_ids:
+            return 0.0
+
+        orphan_score_sum = 0.0
+        for cid in conclusion_ids:
+            support = 0.0
+            for u in dag.graph.predecessors(cid):
+                etype = dag.graph.edges[u, cid].get('edge_type', '')
+                if dag.is_virtual_edge(etype):
+                    support += _ORPHAN_W_VIRTUAL
+                elif dag.is_barrier_edge(etype):
+                    support += _ORPHAN_W_DOUBLE_BARRIER
+                elif dag.is_solid_edge(etype):
+                    support += _ORPHAN_W_SOLID
+            support = min(1.0, max(0.0, support))
+            orphan_score_sum += (1.0 - support)
+        return orphan_score_sum / len(conclusion_ids)
 
     @staticmethod
     def _step_alignment(dag: ReasoningDAG, num_steps: int) -> float:

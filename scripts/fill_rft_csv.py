@@ -26,9 +26,9 @@ from typing import Any
 
 BENCH_ORDER = [
     "gsm8k", "math500", "olympiadbench", "omni_math",
-    "aime2024", "aime2025", "cnmo2024", "livecode",
+    "aime2024", "aime2025", "cnmo2024",
     "mmlu", "gpqa_diamond",
-]
+]  # livecode dropped 2026-04-21 (math-only models score ~0%)
 
 BENCH_LABELS = {
     "gsm8k": "GSM8K",
@@ -38,31 +38,38 @@ BENCH_LABELS = {
     "aime2024": "AIME 2024",
     "aime2025": "AIME 2025",
     "cnmo2024": "CNMO 2024",
-    "livecode": "LiveCode",
     "mmlu": "MMLU",
     "gpqa_diamond": "GPQA-D",
 }
 
 METRIC_COLS = ["error", "correct", "F1", "pass@1", "pass@k", "maj@k", "prm@k", "#Tokens"]
 
-# Model display names + params (in order)
+# Model display names + params (in order).
+# v3 labels = unified rerun_unified_v3.sh launch (max_new_tokens adjusted per group)
 MODEL_REGISTRY: list[tuple[str, str, str]] = [
     # label_prefix, display_name, params
     ("base_9b",            "Qwen3.5-9B (base)",               "9B"),
     ("base_9b_v2",         "Qwen3.5-9B (base, v2)",           "9B"),
+    ("base_9b_v3",         "Qwen3.5-9B (base, v3)",           "9B"),
     ("sft_9b",             "+ SFT",                           "9B"),
     ("sft_9b_v2",          "+ SFT (v2 chat)",                 "9B"),
+    ("sft_9b_v3",          "+ SFT (v3)",                      "9B"),
     ("topoprm_hier_9b",    "+ GRPO (TopoPRM hierarchical)",   "9B"),
     ("topoprm_hier_9b_v2", "+ GRPO (TopoPRM hierarchical v2)", "9B"),
+    ("topoprm_hier_9b_v3", "+ GRPO (TopoPRM hierarchical v3)", "9B"),
     ("topoprm_gated_9b",   "+ GRPO (TopoPRM gated)",          "9B"),
     ("topoprm_gated_9b_v2", "+ GRPO (TopoPRM gated v2)",      "9B"),
+    ("topoprm_gated_9b_v3", "+ GRPO (TopoPRM gated v3)",      "9B"),
     ("outcome_only_9b",    "+ GRPO (outcome-only)",           "9B"),
     ("no_topo_9b",         "+ GRPO (w/o topology)",           "9B"),
     ("no_continuity_9b",   "+ GRPO (w/o continuity)",         "9B"),
     ("base_qwen25_7b",     "Qwen2.5-7B (base)",               "7B"),
     ("topoprm_hier_7b",    "+ TopoPRM (Qwen2.5-7B)",          "7B"),
+    ("topoprm_hier_qwen25_7b_v3", "+ TopoPRM (Qwen2.5-7B v3)", "7B"),
     ("distill_rkl_8b",     "Student (8B, RKL legacy)",        "8B"),
+    ("base_4b_v3",         "Qwen3.5-4B (base, v3)",           "4B"),
     ("distill_sft_4b",     "Student (Qwen3.5-4B, SFT distill)", "4B"),
+    ("student_4b_sft_distill_v3", "Student (Qwen3.5-4B, SFT distill v3)", "4B"),
     ("distill_opsd_4b",    "Student (Qwen3.5-4B, TVSD)", "4B"),
     ("distill_sft_2b",     "Student (Qwen3.5-2B, SFT distill)", "2B"),
     ("distill_opsd_2b",    "Student (Qwen3.5-2B, TVSD)", "2B"),
@@ -99,12 +106,51 @@ def _count(v: Any) -> str:
         return str(v)
 
 
+def _to_pct(v: Any) -> float | None:
+    """Convert stored metric to percentage float, or None if not numeric."""
+    if v is None or v == "":
+        return None
+    try:
+        x = float(v)
+        return x * 100.0 if x <= 1.0001 else x
+    except Exception:
+        return None
+
+
+def best_of(d: dict[str, Any]) -> tuple[float | None, str]:
+    """Return best of (pass@1, maj@5, pass@5) as (value_pct, source_tag).
+
+    Source tag encoding:
+      p1 = pass@1, m5 = maj@5, p5 = pass@5
+
+    If none available, returns (None, '').
+    """
+    candidates: list[tuple[float, str]] = []
+    for key, tag in (("pass@1", "p1"), ("maj@5", "m5"), ("pass@5", "p5")):
+        v = _to_pct(d.get(key))
+        if v is not None:
+            candidates.append((v, tag))
+    if not candidates:
+        return None, ""
+    candidates.sort(key=lambda x: (-x[0], x[1]))
+    return candidates[0]
+
+
 def metric_row(label: str, eval_dir: Path) -> tuple[dict[str, dict[str, str]], int]:
     """Return {bench: {metric: str}} and a samples_count for Avg.F1 computation."""
     row: dict[str, dict[str, str]] = {}
     f1_vals = []
     for bench in BENCH_ORDER:
         mf = eval_dir / f"{label}_{bench}_metrics.json"
+        if not mf.exists():
+            # Also accept suffix variants like:
+            #   sft_9b_v2_ext_k5_gpu1_<bench>_metrics.json
+            candidates = sorted(
+                eval_dir.glob(f"{label}*_{bench}_metrics.json"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )
+            mf = candidates[0] if candidates else mf
         if not mf.exists():
             row[bench] = {m: "-" for m in METRIC_COLS}
             continue
@@ -150,10 +196,71 @@ def build_header() -> list[list[str]]:
     return [h1, h2]
 
 
+def _raw_metric_row(label: str, eval_dir: Path) -> dict[str, dict[str, Any]]:
+    """Like metric_row but returns the raw JSON dict per benchmark (for best_of)."""
+    out: dict[str, dict[str, Any]] = {}
+    for bench in BENCH_ORDER:
+        mf = eval_dir / f"{label}_{bench}_metrics.json"
+        if not mf.exists():
+            cands = sorted(
+                eval_dir.glob(f"{label}*_{bench}_metrics.json"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )
+            mf = cands[0] if cands else mf
+        if mf.exists():
+            out[bench] = _read_metrics(mf)
+        else:
+            out[bench] = {}
+    return out
+
+
+def write_bestof_csv(output: Path, only_with_data: bool, eval_dir: Path) -> None:
+    """Write a compact best-of CSV: one column per benchmark = max of (pass@1/maj@5/pass@5).
+
+    Each cell is 'value^tag' where tag is p1/m5/p5. '-' when missing.
+    """
+    header = ["Model", "Params", "Avg"]
+    for bench in BENCH_ORDER:
+        header.append(BENCH_LABELS[bench])
+
+    rows: list[list[str]] = [header]
+    for prefix, display, params in MODEL_REGISTRY:
+        bench_raw = _raw_metric_row(prefix, eval_dir)
+        pcts: list[float] = []
+        cells: list[str] = []
+        has_any = False
+        for bench in BENCH_ORDER:
+            d = bench_raw.get(bench) or {}
+            if not d:
+                cells.append("-")
+                continue
+            val, tag = best_of(d)
+            if val is None:
+                cells.append("-")
+                continue
+            has_any = True
+            pcts.append(val)
+            cells.append(f"{val:.1f}^{tag}")
+        if only_with_data and not has_any:
+            continue
+        avg = f"{sum(pcts)/len(pcts):.1f}" if pcts else "-"
+        rows.append([display, params, avg, *cells])
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with output.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
+        for r in rows:
+            writer.writerow(r)
+    print(f"Wrote {output}  best-of view  ({len(rows)-1} model rows)")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--eval_dir", type=Path, default=Path("output/eval"))
     ap.add_argument("--output", type=Path, default=Path("docs/rft_ours.csv"))
+    ap.add_argument("--bestof_output", type=Path, default=Path("docs/rft_bestof_ours.csv"),
+                    help="Best-of(pass@1,maj@5,pass@5) view CSV")
     ap.add_argument("--only_with_data", action="store_true",
                     help="Only include model rows that have at least one measured benchmark")
     args = ap.parse_args()
@@ -180,6 +287,9 @@ def main():
             writer.writerow(r)
 
     print(f"Wrote {args.output}  ({len(out_rows) - 2} model rows, {len(BENCH_ORDER)} benchmarks)")
+
+    if args.bestof_output:
+        write_bestof_csv(args.bestof_output, args.only_with_data, args.eval_dir)
 
 
 if __name__ == "__main__":

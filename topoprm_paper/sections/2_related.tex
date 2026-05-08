@@ -24,15 +24,21 @@ assign scalar rewards to individual reasoning steps, using human
 annotations of step-level correctness as training signal.
 Math-Shepherd~\citep{wang2024math} reduces annotation cost by estimating
 step-level value through Monte Carlo rollouts from each intermediate
-state. Proof-RM~\citep{proofRM2026} targets mathematical proofs and
-designs reward functions that account for proof structure. These
-approaches improve over outcome-only supervision but depend on either
-expensive per-step human labels or learned verifiers whose accuracy is
-itself uncertain. TopoPRM takes a complementary approach: rather than
-scoring individual steps, it extracts structural properties of the full
-reasoning graph (acyclicity, connectivity, directional consistency) using
-deterministic rules, requiring no annotations and introducing no
-additional model parameters.
+state. Recent work has moved toward \emph{generative} PRMs:
+ThinkPRM~\citep{thinkprm2025} uses long chain-of-thought verification
+to judge each step, achieving strong out-of-domain performance with
+orders of magnitude fewer process labels;
+GenPRM~\citep{genprm2026} incorporates code verification into the
+verification chain, enabling a 1.5B verifier to outperform GPT-4o on
+ProcessBench.
+RLKD~\citep{rlkd2025} introduces a Generative Structure Reward Model
+that captures multi-branch reasoning structure for distillation.
+These approaches all rely on learned or LLM-based verifiers.
+TopoPRM takes a complementary approach: rather than
+scoring individual steps with a neural model, it extracts structural
+properties of the full reasoning graph (acyclicity, connectivity,
+directional consistency) using deterministic rules, requiring no
+annotations, no LLM inference, and no additional model parameters.
 
 \paragraph{Graph-structured reasoning.}
 Graph-of-Thought~\citep{besta2024graph} organizes LLM reasoning into
@@ -55,34 +61,31 @@ training~\citep{Denison2024SycophancyTS}. In the GRPO setting,
 DAPO~\citep{dapo2026} introduces dynamic sampling to stabilize training,
 and difficulty-aware GRPO~\citep{difficultyGRPO2026} adjusts
 optimization pressure based on problem difficulty. On the compression
-side, on-policy self-distillation~\citep{reasoning_compression_2025} and
-reverse-KL distillation~\citep{hinton2015distilling} reduce verbose
-chain-of-thought outputs into shorter reasoning traces. TopoPRM
-addresses reward hacking through a different mechanism: Stratified
-Clipping Advantage Estimation (SCAE) hierarchically prioritizes answer
-correctness over auxiliary process rewards, preventing models from
-accumulating topology or continuity reward at the expense of accuracy.
-Our distillation stage then transfers both accuracy and structural
-conciseness from the TopoPRM-trained teacher to smaller student models.
+side, OPSDC~\citep{opsdc2026} uses on-policy self-distillation with
+concise privileged teachers to compress verbose reasoning by 40--57\%
+while improving accuracy;
+reverse-KL distillation~\citep{hinton2015distilling} reduces verbose
+chain-of-thought outputs into shorter traces. TopoPRM
+addresses reward hacking through Stratified
+Clipping Advantage Estimation (SCAE), which hierarchically prioritizes answer
+correctness over auxiliary process rewards. Our TVSD compression stage
+shares the on-policy self-distillation principle with OPSDC but uses
+\emph{deterministic topology diagnostics} rather than instruction-conditioned
+teacher logits as the densification signal.
 
-\paragraph{RLVR with self-distillation.}
-Recent RLVR studies further explore combining sparse verifiable rewards
-with dense token-level self-distillation signals. The key insight in
-this line is to separate \emph{update direction} (from reliable
-environment/verifier feedback) from \emph{update magnitude} (from richer
-token-level evidence), so that training remains stable while improving
-sample efficiency. We treat this as a complementary design principle:
-TopoPRM keeps deterministic process rewards as the primary optimisation
-signal, and uses reverse-KL distillation after RLVR to compress the
-teacher's structured reasoning behaviour. Unlike privileged-information
-distribution matching methods, our compression stage does not require a
-teacher with extra hidden inputs at training time, which makes it
-directly compatible with our verifiable trace-to-DAG reward pipeline.
-
-
-\paragraph{Attribution note.}
-Our SCAE-style stratified shaping follows the same high-level
-accuracy-first principle as prior stratified advantage methods in
-process-aware RLVR. In this work we focus on a plugin-compatible
-implementation for text-output TopoPRM training and report its empirical
-impact under the same benchmark/evaluation protocol.
+\paragraph{On-policy distillation for reasoning.}
+On-policy distillation (OPD) trains a student on its own generations
+while a teacher provides dense
+supervision~\citep{minillm2023,agarwal2024gkd}.
+OPD has become a standard post-training primitive in production systems
+including Qwen3~\citep{qwen3_2025}, MiMo~\citep{mimo2026},
+and DeepSeek-V4~\citep{deepseekv4_2026}.
+ExOPD~\citep{exopd2026} casts OPD as dense KL-constrained RL with
+reward extrapolation, enabling students to surpass their teachers.
+SRPO~\citep{srpo2026} unifies GRPO and self-distillation via
+sample routing.
+TopoPRM connects to this line through its TVSD compression stage,
+which is an on-policy distillation procedure where the densification
+signal comes from deterministic DAG diagnostics rather than teacher
+logits or learned reward models. This makes it compatible with any
+base model without cross-tokenizer or cross-architecture constraints.

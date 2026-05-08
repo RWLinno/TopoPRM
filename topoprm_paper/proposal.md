@@ -164,10 +164,13 @@ initialised from Qwen3.5-4B / 2B / 0.8B, teacher stays the 9B refined model.
 | Public-Math | OlympiadBench | - | Olympiad level |
 | Public-Math | Omni-MATH | - | Comprehensive math |
 | Public-Math | AIME 2024 | 30 | AMC/AIME competition |
+| Public-Math | AIME 2025 | 90 | AMC/AIME competition (recent) |
 | Public-Math | CNMO 2024 | - | Chinese Math Olympiad |
-| Public-Math | LiveCodeBench | - | Code + math |
-| Public-General | MMLU | - | Multi-discipline knowledge |
+| Public-General | MMLU | 1,500 (subset) | Multi-discipline knowledge |
 | Public-General | GPQA-Diamond | - | Graduate-level QA |
+
+> LiveCodeBench was dropped on 2026-04-21: our models are trained exclusively for math
+> reasoning and scored ~0% under strict text-match scoring, so the column was uninformative.
 
 ### 4.2 Metrics
 

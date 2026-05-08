@@ -55,15 +55,38 @@ class RewardConfig:
     TOPO_REQUIRE_VALID_DAG = env_bool("TOPO_REQUIRE_VALID_DAG", True)
     TOPO_VERIFY_LOG_EVERY = env_int("TOPO_VERIFY_LOG_EVERY", 0)
 
-    # Composite dynamic weighting
+    # Composite dynamic weighting (ABLATION ONLY, default OFF post 2026-04-23
+    # moderate cleanup: the dynamic-weighting scheme is not described in the
+    # paper's method section so we keep it disabled by default; set
+    # TOPO_DYNAMIC_REWARD=1 to re-enable for ablation experiments).
     TOPO_REWARD_LOG_EVERY = env_int("TOPO_REWARD_LOG_EVERY", 10)
-    TOPO_DYNAMIC_REWARD = env_bool("TOPO_DYNAMIC_REWARD", True)
+    TOPO_DYNAMIC_REWARD = env_bool("TOPO_DYNAMIC_REWARD", False)
     TOPO_DYNAMIC_ETA = env_float("TOPO_DYNAMIC_ETA", 0.50)
     TOPO_DYNAMIC_MIN_WEIGHT = env_float("TOPO_DYNAMIC_MIN_WEIGHT", 0.05)
     TOPO_DYNAMIC_OUTCOME_FLOOR = env_float("TOPO_DYNAMIC_OUTCOME_FLOOR", 0.35)
 
-    # Hierarchical reward controls
+    # Hierarchical reward controls.
+    # ALPHA (topo vs continuity mix) is the single principal hyperparameter
+    # appearing in the paper's Eq. R_hier.
     TOPO_HIER_ALPHA = env_float("TOPO_HIER_ALPHA", 0.60)
-    TOPO_HIER_NOISE_EPS = env_float("TOPO_HIER_NOISE_EPS", 0.01)
+    # Anti-collapse hacks below default to OFF post 2026-04-23 moderate cleanup:
+    # ms-swift GRPO already performs group-wise advantage normalization
+    # (scale_rewards='group' is its default), so explicit std-floor noise
+    # injection is redundant.  Kept for ablation, not for main runs.
+    TOPO_HIER_NOISE_EPS = env_float("TOPO_HIER_NOISE_EPS", 0.0)
     TOPO_HIER_MIN_STD = env_float("TOPO_HIER_MIN_STD", 0.005)
-    TOPO_HIER_REWARD_TEMP = env_float("TOPO_HIER_REWARD_TEMP", 2.0)
+    # Reward temperature rescaling (=1 means identity).  No formal motivation
+    # in the paper; default neutralised.
+    TOPO_HIER_REWARD_TEMP = env_float("TOPO_HIER_REWARD_TEMP", 1.0)
+    # Floor on the multiplicative base term so that topology gain is never zero-ed
+    # out when r_base = 0 (outcome=format=length=0).  This is a BUG FIX and is
+    # documented in the paper appendix as a zero-variance-group remedy.  Set to 0
+    # only for ablation purposes.
+    TOPO_HIER_BASE_FLOOR = env_float("TOPO_HIER_BASE_FLOOR", 0.05)
+
+    # Shared anti-collapse controls for Gated / Composite (off by default;
+    # see Hier rationale above).
+    TOPO_GATED_NOISE_EPS = env_float("TOPO_GATED_NOISE_EPS", 0.0)
+    TOPO_GATED_MIN_STD = env_float("TOPO_GATED_MIN_STD", 0.001)
+    TOPO_COMPOSITE_NOISE_EPS = env_float("TOPO_COMPOSITE_NOISE_EPS", 0.0)
+    TOPO_COMPOSITE_MIN_STD = env_float("TOPO_COMPOSITE_MIN_STD", 0.001)

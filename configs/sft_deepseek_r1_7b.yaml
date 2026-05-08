@@ -1,0 +1,24 @@
+# SFT config for DeepSeek-R1-Distill-Qwen-7B
+# Baseline: MATH-500=92.8%, AIME=55.5%
+# Target after SFT: maintain math accuracy while adding DAG-structured reasoning
+
+model: deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
+model_type: qwen2_5
+
+train_type: lora
+lora_rank: 64
+lora_alpha: 128
+lora_target_modules: ALL
+
+dataset:
+  - type: jsonl
+    path: data/grpo_ready/train_public.jsonl
+
+max_length: 4096
+num_train_epochs: 3
+learning_rate: 5.0e-5
+per_device_train_batch_size: 2
+gradient_accumulation_steps: 8
+warmup_ratio: 0.05
+save_strategy: epoch
+output_dir: output/sft_deepseek_r1_7b

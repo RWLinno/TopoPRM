@@ -32,7 +32,7 @@ from src.distill.build_srt_data import (
 from src.reward.outcome_reward import OutcomeReward
 from src.reward.topo_reward import TopoReward
 from src.reward.continuity_reward import ContinuityReward
-from src.data.build_dag import ReasoningDAG
+from src.data.build_dag import ReasoningDAG, build_dag_from_answer
 from scripts.bench_transformers import patch_swift_adapter_namespace
 
 
@@ -85,16 +85,32 @@ def score_trace(text: str, solution: str, reference_dag=None) -> dict:
     # Binary r_out
     r_out_bin = 1 if r_out >= 0.5 else 0
 
-    # Orphan step index: try to find first orphan conclusion node in DAG
+    # Orphan step index: build the DAG from the trace and find the first
+    # CONCLUSION node that has no virtual-edge predecessor.  This replaces
+    # the legacy call to the non-existent ReasoningDAG.from_trace /
+    # .orphan_conclusion_nodes() which always returned None and degraded
+    # the topology-aware revision prompt P_r to k=1 (handoff §C.1).
     orphan_step = None
     try:
-        dag = ReasoningDAG.from_trace(text) if hasattr(ReasoningDAG, "from_trace") else None
-        if dag:
-            orphans = dag.orphan_conclusion_nodes() if hasattr(dag, "orphan_conclusion_nodes") else []
-            if orphans:
-                orphan_step = int(orphans[0])
+        from src.dag.node import StepType
+
+        dag = build_dag_from_answer(text)
+        if dag is not None and getattr(dag, "nodes", None):
+            for sid in sorted(dag.nodes.keys()):
+                node = dag.nodes[sid]
+                if node.step_type != StepType.CONCLUSION:
+                    continue
+                has_virtual_pred = any(
+                    dag.is_virtual_edge(
+                        dag.graph.edges[u, sid].get("edge_type", "")
+                    )
+                    for u in dag.graph.predecessors(sid)
+                )
+                if not has_virtual_pred:
+                    orphan_step = int(sid)
+                    break
     except Exception:
-        pass
+        orphan_step = None
 
     return {
         "r_out": r_out_bin,

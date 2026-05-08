@@ -94,16 +94,7 @@ BENCHMARK_REGISTRY: dict[str, dict[str, Any]] = {
         "prompt_template": "math_zh",
         "answer_extractor": "boxed_or_numeric",
     },
-    "livecode": {
-        "hf_path": "livecodebench/code_generation_lite",
-        "hf_name": None,
-        "split": "test",
-        "question_key": "question_content",
-        "answer_key": None,
-        "extract_gold": "_extract_code_gold",
-        "prompt_template": "code",
-        "answer_extractor": "code",
-    },
+    # LiveCode dropped 2026-04-21: math-only models always score ~0%.
     "mmlu": {
         "hf_path": "cais/mmlu",
         "hf_name": "all",

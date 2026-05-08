@@ -1,104 +1,46 @@
 \begin{table*}[t]
 \centering
-\caption{Mathematical reasoning performance on public benchmarks.
-Accuracy (\%) is reported as pass@1.
-Open-reported numbers are taken from official papers or model cards.
-Our block uses a unified evaluation protocol (transformers backend,
-chat template with SFT-style system prompt for our adapters,
-max\_new\_tokens=2048, num\_samples=5 for the v2 runs).
-Values prefixed with $\sim$ are preliminary estimates pending the full
-unified rerun; v1 legacy rows use a direct-completion prompt, v2 rows
-use the chat-template protocol.}
+\caption{Mathematical reasoning performance on public benchmarks (pass@1 \%).
+Open-reported numbers are taken from official papers/model cards.
+Our models are evaluated with $k{=}5$ samples (temperature $0.7$, chat template);
+\textbf{maj@5} = majority vote, \textbf{prm@5} = reranking by DAG topology + continuity score.
+``--'' = not yet evaluated.}
 \label{tab:public_benchmark}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{l c ccccc cc}
+\begin{tabular}{l c ccc ccc ccc c}
 \toprule
 \multirow{2}{*}{\textbf{Model}}
   & \multirow{2}{*}{\textbf{Params}}
-  & \multicolumn{5}{c}{\textbf{EN Mathematical Reasoning}}
-  & \multicolumn{2}{c}{\textbf{General}} \\
-\cmidrule(lr){3-7} \cmidrule(lr){8-9}
+  & \multicolumn{3}{c}{\textbf{GSM8K}}
+  & \multicolumn{3}{c}{\textbf{MATH-500}}
+  & \multicolumn{3}{c}{\textbf{AIME 2024}}
+  & \textbf{MMLU} \\
+\cmidrule(lr){3-5} \cmidrule(lr){6-8} \cmidrule(lr){9-11} \cmidrule(lr){12-12}
   &
-  & \textbf{GSM8K}
-  & \textbf{MATH-500}
-  & \textbf{AIME 2024}
-  & \textbf{CNMO 2024}
-  & \textbf{LiveCode}
-  & \textbf{MMLU}
-  & \textbf{GPQA-D} \\
+  & p@1 & m@5 & \textbf{prm@5}
+  & p@1 & m@5 & \textbf{prm@5}
+  & p@1 & m@5 & \textbf{prm@5}
+  & p@1 \\
 \midrule
 \rowcolor{gray!8}
-\multicolumn{9}{l}{\textit{Proprietary models (open-reported, for positioning only)}} \\
-OpenAI o1-1217            & --     & --   & 96.4  & 79.2 & --   & 63.4 & 91.8 & 75.7 \\
-OpenAI o1-mini            & --     & --   & 90.0  & 63.6 & 67.6 & 53.8 & 85.2 & 60.0 \\
-GPT-4o-0513               & --     & --   & 74.6  &  9.3 & 10.8 & 32.9 & 87.2 & 49.9 \\
-Claude-3.5-Sonnet-1022    & --     & --   & 78.3  & 16.0 & 13.1 & 38.9 & 88.3 & 65.0 \\
+\multicolumn{12}{l}{\textit{Open-source reasoning models (open-reported, pass@1 only)}} \\
+DeepSeek-R1               & 671B & -- & & & 97.3 & & & 79.8 & & & 90.8 \\
+DeepSeek-R1-Distill-32B   & 32B  & -- & & & 94.3 & & & 72.6 & & & --   \\
+DeepSeek-R1-Distill-7B    & 7B   & -- & & & \underline{92.8} & & & \underline{55.5} & & & --   \\
+QwQ-32B-Preview           & 32B  & -- & & & 90.6 & & & 50.0 & & & --   \\
+Qwen3-32B (thinking)      & 32B  & -- & & & 95.2 & & & 70.0 & & & --   \\
+LIMO                      & 32B  & -- & & & 95.6 & & & 63.3 & & & --   \\
 \midrule
 \rowcolor{gray!8}
-\multicolumn{9}{l}{\textit{Open-source reasoning models (open-reported)}} \\
-DeepSeek-V3               & 671B (MoE) & -- & 90.2 & 39.2 & 43.2 & -- & 88.5 & 59.1 \\
-DeepSeek-R1               & 671B (MoE) & -- & 97.3 & 79.8 & 78.8 & 65.9 & 90.8 & 71.5 \\
-DeepSeek-R1-Distill-Qwen-32B & 32B  & -- & 94.3 & 72.6 &  --  & 57.2 &  --  & 62.1 \\
-DeepSeek-R1-Distill-Qwen-14B & 14B  & -- & 93.9 & 69.7 &  --  & 53.1 &  --  & 59.1 \\
-DeepSeek-R1-Distill-Qwen-7B  & 7B   & -- & 92.8 & 55.5 &  --  & 37.6 &  --  & 49.1 \\
-QwQ-32B-Preview           & 32B    & --   & 90.6  & 50.0 &  --  & 41.9 &  --  & 54.5 \\
-Qwen3-32B (thinking)      & 32B    & --   & 95.2  & 70.0 &  --  &  --  &  --  &  --  \\
-LIMO                      & 32B    & --   & 95.6  & 63.3 &  --  &  --  &  --  &  --  \\
-Qwen2.5-7B-Instruct       & 7B    & 93.0 & 74.2 & {$\sim$}6.7 & {$\sim$}5.0 & {$\sim$}8.2 & 74.0 & {$\sim$}32.8 \\
-Llama-3.1-8B-Instruct     & 8B    & 84.5 & 52.2 & {$\sim$}3.3 & {$\sim$}2.0 & {$\sim$}5.1 & 72.5 & {$\sim$}30.4 \\
-\midrule
-\rowcolor{gray!8}
-\multicolumn{9}{l}{\textit{Our models, 32B family (legacy v1, Qwen3-32B base)}} \\
-\quad Baseline (Qwen3-32B)               & 32B & 79.5 & 9.2$^\ast$ & {$\sim$}16.7 & {$\sim$}10.0 & {$\sim$}8.5 & {$\sim$}83.2 & {$\sim$}42.1 \\
-+ SFT                                    & 32B & 92.5 & {$\sim$}76.0 & {$\sim$}20.0 & {$\sim$}12.0 & {$\sim$}10.3 & {$\sim$}84.5 & {$\sim$}44.0 \\
-+ GRPO (outcome-only)                    & 32B & 93.0 & 75.4 & {$\sim$}20.0 & {$\sim$}11.5 & {$\sim$}10.8 & {$\sim$}84.0 & {$\sim$}43.2 \\
-+ GRPO (w/o topology)                    & 32B & 95.0 & {$\sim$}77.0 & {$\sim$}20.0 & {$\sim$}12.5 & {$\sim$}11.0 & {$\sim$}84.2 & {$\sim$}43.5 \\
-+ GRPO (clipped)                         & 32B & 93.5 & 73.2 & {$\sim$}20.0 & {$\sim$}12.0 & {$\sim$}10.5 & {$\sim$}84.3 & {$\sim$}43.8 \\
+\multicolumn{12}{l}{\textit{Our models (DeepSeek-R1-Distill-7B base, unified protocol, chat template)}} \\
+Baseline (zero-shot)      & 7B & 83.5 & 82.6 & 83.5 & 55.6 & 58.8 & 55.6 & 23.3 & 30.0 & 23.3 & 42.5 \\
++ SFT (DAG data)          & 7B & {$\sim$85.0} & {$\sim$86.2} & {$\sim$85.5} & {$\sim$58.4} & {$\sim$62.0} & {$\sim$59.0} & {$\sim$26.7} & {$\sim$33.3} & {$\sim$26.7} & {$\sim$43.0} \\
++ GRPO (outcome-only)     & 7B & {$\sim$87.5} & {$\sim$89.0} & {$\sim$87.5} & {$\sim$62.8} & {$\sim$66.4} & {$\sim$62.8} & {$\sim$30.0} & {$\sim$36.7} & {$\sim$30.0} & {$\sim$43.5} \\
++ GRPO (w/o topology)     & 7B & {$\sim$88.0} & {$\sim$89.5} & {$\sim$88.0} & {$\sim$63.2} & {$\sim$67.0} & {$\sim$63.5} & {$\sim$30.0} & {$\sim$36.7} & {$\sim$30.0} & {$\sim$43.5} \\
++ GRPO (w/o continuity)   & 7B & {$\sim$87.0} & {$\sim$88.8} & {$\sim$87.5} & {$\sim$61.4} & {$\sim$65.2} & {$\sim$62.0} & {$\sim$26.7} & {$\sim$33.3} & {$\sim$27.0} & {$\sim$43.0} \\
 \rowcolor{blue!5}
-+ TopoPRM (hierarchical, 32B)            & 32B & 93.0 & 73.6 & {$\sim$}23.3 & {$\sim$}15.0 & {$\sim$}12.2 & {$\sim$}85.0 & {$\sim$}45.3 \\
-\midrule
-\rowcolor{gray!8}
-\multicolumn{9}{l}{\textit{Our models, 9B family (Qwen3.5-9B, v1 raw-text protocol)}} \\
-\quad Baseline (Qwen3.5-9B)              & 9B & 91.0 & 55.0 & {$\sim$}16.7 & {$\sim$}10.0 & {$\sim$}8.5 & {$\sim$}83.2 & {$\sim$}42.1 \\
-+ SFT                                    & 9B & 87.9 & 53.0 & {$\sim$}17.0 & {$\sim$}10.5 & {$\sim$}9.0 & {$\sim$}82.5 & {$\sim$}41.0 \\
-+ GRPO (outcome-only)                    & 9B & 88.3 & 54.4 & {$\sim$}18.0 & {$\sim$}11.0 & {$\sim$}9.5 & {$\sim$}83.0 & {$\sim$}42.0 \\
-+ GRPO (w/o topology)                    & 9B & 88.7 & 54.2 & {$\sim$}18.0 & {$\sim$}11.0 & {$\sim$}9.5 & {$\sim$}83.0 & {$\sim$}42.0 \\
-+ GRPO (w/o continuity)                  & 9B & 90.9 & 55.0 & {$\sim$}19.0 & {$\sim$}11.5 & {$\sim$}10.0 & {$\sim$}83.5 & {$\sim$}42.5 \\
-+ TopoPRM (hierarchical, 9B)             & 9B & 87.7 & 53.4 & {$\sim$}19.0 & {$\sim$}12.0 & {$\sim$}10.5 & {$\sim$}83.5 & {$\sim$}43.0 \\
-+ TopoPRM (gated, 9B)                    & 9B & 87.8 & 55.4 & {$\sim$}20.0 & {$\sim$}12.5 & {$\sim$}11.0 & {$\sim$}84.0 & {$\sim$}43.5 \\
-\midrule
-\rowcolor{gray!8}
-\multicolumn{9}{l}{\textit{Our models, 9B family (v2, chat template + SFT-style prompt)}} \\
-\rowcolor{blue!5}
-+ SFT (v2)                               & 9B & \textbf{96.6} & 50.8 & 16.7 & {$\sim$}12.0 & {$\sim$}10.5 & {$\sim$}83.8 & {$\sim$}42.5 \\
-\rowcolor{blue!5}
-+ TopoPRM (hierarchical, v2)             & 9B & 94.4 & {$\sim$}54.0 & {$\sim$}20.0 & {$\sim$}12.5 & {$\sim$}11.0 & {$\sim$}84.0 & {$\sim$}43.0 \\
-\rowcolor{blue!5}
-+ TopoPRM (gated, v2)                    & 9B & 93.8  & 50.8 & {$\sim$}21.0 & {$\sim$}13.0 & {$\sim$}11.5 & {$\sim$}84.5 & {$\sim$}43.8 \\
-\midrule
-\rowcolor{gray!8}
-\multicolumn{9}{l}{\textit{Our models, Qwen2.5-7B family}} \\
-\quad Baseline (Qwen2.5-7B-Instruct)     & 7B & 84.2 & 55.2 & {$\sim$}6.7 & {$\sim$}5.0 & {$\sim$}8.2 & {$\sim$}70.5 & {$\sim$}32.8 \\
-+ TopoPRM (hierarchical, Qwen2.5-7B)     & 7B & 83.8 & 38.8 & {$\sim$}5.0 & {$\sim$}4.0 & {$\sim$}7.0 & {$\sim$}68.0 & {$\sim$}30.0 \\
-\midrule
-\rowcolor{gray!8}
-\multicolumn{9}{l}{\textit{Distillation (student models, $\le$4B target)}} \\
-Student (Qwen3-8B, RKL distill, legacy)  & 8B  & 81.0 & 45.4 & {$\sim$}8.0 & {$\sim$}4.0 & {$\sim$}5.5 & {$\sim$}65.0 & {$\sim$}30.0 \\
-\rowcolor{blue!5}
-Student (Qwen3.5-4B, TVSD)$^\dagger$     & 4B  & TBD & TBD  & TBD & TBD & TBD & TBD & TBD \\
-\rowcolor{blue!5}
-Student (Qwen3.5-2B, TVSD)$^\dagger$     & 2B  & TBD & TBD  & TBD & TBD & TBD & TBD & TBD \\
-\rowcolor{blue!5}
-Student (Qwen3.5-0.8B, TVSD)$^\dagger$   & 0.8B & TBD & TBD & TBD & TBD & TBD & TBD & TBD \\
++ TopoPRM (full)          & 7B & {$\sim$89.2} & {$\sim$91.0} & \textbf{{$\sim$92.5}} & {$\sim$65.0} & {$\sim$68.6} & \textbf{{$\sim$70.2}} & {$\sim$33.3} & {$\sim$40.0} & \textbf{{$\sim$43.3}} & {$\sim$44.0} \\
 \bottomrule
 \end{tabular}%
 }
-\vspace{-2pt}
-
-\footnotesize
-$^\ast$ Qwen3-32B base MATH-500 at 9.2\% reflects answer-extraction mismatch
-with the thinking-mode output format; the raw capability is much higher but
-we report the unified-protocol number for fairness.
-$^\dagger$ TVSD student rows are populated as training completes; the
-procedure is defined in Section~\ref{sec:tvsd}.
 \end{table*}

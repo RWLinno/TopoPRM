@@ -1,54 +1,87 @@
-# TopoPRM 文档导航（2026 重构版）
+# TopoPRM 文档导航
 
-本目录已按“研究叙事 + 工程实现 + 对外传播”重组，核心围绕两条主贡献：
+> Last refreshed: **2026-05-07 17:50 CST** — Phase 2 完成；Phase 3a SFT 训练进行中。
 
-1. **Deterministic Verifiable Process Reward Model（可验证过程奖励）**
-2. **Reverse-KL Reasoning Distillation（反向 KL 推理蒸馏）**
+## 当前实验状态
 
-> 术语约定：本文档中的“可验证”指**奖励计算可复现、可审计、可程序化检查**，不等同于语义完备证明验证。
+### Phase 1: DAG 数据构建 -- 完成
 
----
+- 19,472 条公开数学题 DAG（GSM8K + MATH 训练集），100% valid, 100% acyclic, 40.9% virtual edges
+- 产物：`data/grpo_ready/train_public.jsonl`
 
-## 1. 快速入口
+### Phase 2: DeepSeek-R1-Distill-Qwen-7B 基线评测 -- 完成
 
-- 训练与复现实操：`docs/training_pipeline.md`
-- 奖励方法设计：`docs/reward_design.md`
-- 蒸馏方法设计：`docs/distillation_reverse_kl.md`
-- 进展与执行状态：`docs/progress.md`
-- 阶段总结：`docs/work_summary.md`
+使用 `--use_chat_template`（label: `baseline_dr1_7b_chat`）：
 
----
+| Benchmark | pass@1 | pass@5 | maj@5 | prm@5 | avg_tok | 模型卡 |
+|-----------|--------|--------|-------|-------|---------|--------|
+| GSM8K     | **83.5%** | 90.8% | 82.6% | 83.5% | 599  | ~95%   |
+| MATH-500  | **55.6%** | 62.8% | 58.8% | 55.6% | 3412 | 92.8%  |
+| AIME 2024 | **23.3%** | 33.3% | 30.0% | 23.3% | 4096 | 55.5%  |
+| CNMO 2024 | **23.3%** | 40.0% | 30.0% | 23.3% | 4094 | --     |
+| MMLU      | **42.5%** | --    | --    | --    | 511  | ~70%   |
 
-## 2. 对外宣传与可视化
+注意事项：
+- MATH-500 绝对数字低于模型卡，主因：answer extraction 不支持 LaTeX 复杂答案（如 `\frac{14}{3}`），实际模型能力被低估
+- AIME/CNMO avg_tok≈4096 = 触顶截断，导致答案被截
+- prm@5 = pass@1 是预期行为（baseline 无 TopoPRM 训练，PRM scorer 给出 0 分）
+- 关键对比：**同一协议下** TopoPRM 训练后 vs baseline 的提升幅度
 
-- 宣传总览页面：`docs/publicity/demo_page.html`
-- 框架可视化：`docs/publicity/framework_visualization.html`
-- 技术路线可视化：`docs/publicity/technical_roadmap.html`
-- 说明文档：`docs/publicity/README.md`
+### Phase 3a: SFT 训练 -- 进行中
 
----
+- 脚本：`scripts/train_sft.py`（trl SFTTrainer + LoRA）
+- 数据：`data/grpo_ready/train_public.jsonl`（19,472 条）
+- 模型：DeepSeek-R1-Distill-Qwen-7B + LoRA (r=64, α=128)
+- 进度：~11/3651 steps，预计约 3 小时完成
+- 日志：`logs/phase3_sft.log`
+- 产物将在：`output/sft_deepseek_r1_7b/final/`
 
-## 3. 工作报告与研究沉淀
+### Phase 3b: GRPO 训练 -- 待 SFT 完成
 
-- 报告总览：`docs/reports/README.md`
-- Proposal（重构版）：`docs/reports/proposal_reframed.md`
-- 更新日志（结构化）：`docs/reports/update_log.md`
-- 难点与解决：`docs/reports/challenges_and_solutions.md`
-- 论文思考：`docs/reports/paper_thinking.md`
+- 脚本：`scripts/train_grpo.py`（trl GRPOTrainer + TopoPRM hierarchical reward）
+- 加载 SFT adapter → GRPO 200 steps
 
----
+### Phase 4/5: 后续评测与论文同步 -- 待 Phase 3
 
-## 4. 测试与验证
+## 论文当前状态
 
-- 测试说明：`docs/testing.md`
-- 测试代码目录：`tests/`
-  - 新增：
-    - `tests/test_reverse_kl_loss.py`
-    - `tests/test_distill_filter.py`
-    - `tests/test_prm_model.py`
+| 文件 | 状态 |
+|------|------|
+| `tables/public_results.tex` | 12 列表（p@1/m@5/prm@5），baseline 行已填，其余 `--` 等训练后数据 |
+| `sections/4_experiments.tex` | Setup/Benchmarks/Baselines 已重写为 DR1-7B 主线 |
+| `tables/dag_structural_public.tex` | TBD 模板，等 Phase 3 产物 |
+| `tables/dag_scaling.tex` | TBD 模板 |
 
----
+## 管线命令
 
-## 5. 历史文档
+```bash
+# Phase 3a: SFT（当前正在运行）
+CUDA_VISIBLE_DEVICES=0,1 python3 scripts/train_sft.py
 
-`dag_schema.md`、`dag_pipeline.md`、`ms_swift_custom_reward.md` 等历史文档保留，用于追溯实现细节与迭代背景。
+# Phase 3b: GRPO（SFT 完成后）
+CUDA_VISIBLE_DEVICES=0,1 python3 scripts/train_grpo.py --sft_adapter output/sft_deepseek_r1_7b/final
+
+# Phase 4: 评测训练后模型
+# (同 bench_transformers.py，加 --adapter 和 --sft_style)
+```
+
+## 关键文件
+
+### 训练脚本（新，替代无法响应的 swift CLI）
+- `scripts/train_sft.py` — trl SFTTrainer + LoRA
+- `scripts/train_grpo.py` — trl GRPOTrainer + TopoPRM reward
+- `scripts/bench_transformers.py` — 统一评测
+
+### 配置（参考，实际参数已内嵌脚本）
+- `configs/sft_deepseek_r1_7b.yaml`
+- `configs/grpo_topoprm_deepseek_r1_7b.yaml`
+
+### 核心方法文档
+- [dag_schema.md](dag_schema.md) — DAG 节点/边/虚边定义
+- [reward_design.md](reward_design.md) — 五分量奖励设计
+- [training_pipeline.md](training_pipeline.md) — SFT→GRPO→TVSD 三阶段
+
+## 归档
+- `archive/2026-03/` — 早期方案文档
+- `archive/2026-04-early/` — 4 月上半月日志
+- `archive/2026-04-late/` — 4 月下旬不达标结果

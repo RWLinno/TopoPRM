@@ -38,11 +38,15 @@ _STEP_MARKER_RE = re.compile(
     r"(?:第\s*\d+\s*步)[:：]?"
     r"|"
     r"[一二三四五六七八九十]+[、.．:]"
+    r"|"
+    r"\*\*(?:step|steps?)\s*\d+\*\*[:.\-]?"
+    r"|"
+    r"(?:first|second|third|fourth|fifth|next|then|finally)[,:]"
     r")\s*",
     re.IGNORECASE,
 )
 _INLINE_STEP_SPLIT_RE = re.compile(
-    r"(?=(?:^|[\s。；;])(?:step\s*\d+|步骤\s*\d+|[（(]?\d+[)）][、.．:]?|第\s*\d+\s*步[:：]?))",
+    r"(?=(?:^|[\s。；;.])(?:step\s*\d+|步骤\s*\d+|[（(]?\d+[)）][、.．:]?|第\s*\d+\s*步[:：]?))",
     re.IGNORECASE,
 )
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[。！？!?;；])\s+")
@@ -83,9 +87,16 @@ _CLAIM_PATTERNS: List[re.Pattern] = [
 _CLAIM_VERB_HINTS = (
     "是", "为", "等于", "得到", "可得", "推出", "所以", "因此", "故", "则", "说明", "成立", "不成立",
     "平行", "垂直", "相等", "同余", "大于", "小于", "不少于", "不大于",
+    # English claim verb hints
+    "equals", "equal to", "we get", "we obtain", "we have", "we find",
+    "therefore", "thus", "hence", "so ", "it follows", "implies",
+    "is equal", "is greater", "is less", "divides", "is divisible",
+    "is parallel", "is perpendicular", "is congruent", "is similar",
+    "satisfies", "yields", "gives us", "results in",
 )
 
 _TYPE_RULES: List[Tuple[List[str], StepType]] = [
+    # Chinese
     (["\u2235", "\u5df2\u77e5", "\u7531\u9898\u610f", "\u6839\u636e\u9898\u610f", "\u9898\u76ee\u7ed9\u51fa"], StepType.DEFINITION),
     (["\u2234", "\u63a8\u5f97", "\u6240\u4ee5", "\u56e0\u6b64", "\u7531\u6b64\u53ef\u5f97", "\u5219"], StepType.DERIVATION),
     (["\u89e3\u5f97", "\u8ba1\u7b97", "\u5316\u7b80", "\u6574\u7406\u5f97"], StepType.COMPUTATION),
@@ -93,6 +104,14 @@ _TYPE_RULES: List[Tuple[List[str], StepType]] = [
     (["\u8fde\u63a5", "\u4f5c", "\u8fc7\u70b9", "\u5ef6\u957f"], StepType.AUXILIARY),
     (["\u4ee3\u5165", "\u4ee4", "\u5c06.*\u4ee3\u5165", "\u628a.*\u4ee3\u5165"], StepType.SUBSTITUTION),
     (["\u5206\u7c7b\u8ba8\u8bba", "\u5f53.*\u65f6", "\u5206\u4e24\u79cd\u60c5\u51b5", "\u60c5\u51b5\u4e00", "\u60c5\u51b5\u4e8c"], StepType.CASE_ANALYSIS),
+    # English
+    (["given that", "we know", "by assumption", "let ", "suppose", "assume"], StepType.DEFINITION),
+    (["therefore", "thus", "hence", "it follows", "we deduce", "this gives", "implies that", "so we"], StepType.DERIVATION),
+    (["computing", "calculating", "simplif", "expanding", "substitut", "evaluat", "we compute"], StepType.COMPUTATION),
+    (["the answer is", "in conclusion", "finally", "the final answer", "boxed{", "\\boxed"], StepType.CONCLUSION),
+    (["construct", "draw ", "extend", "connect"], StepType.AUXILIARY),
+    (["substitut", "plug", "replacing", "putting.*into"], StepType.SUBSTITUTION),
+    (["case 1", "case 2", "case i", "case ii", "if.*then", "consider the case", "without loss of generality"], StepType.CASE_ANALYSIS),
 ]
 
 _ENABLE_SEQ_WEAK_EDGE = (os.environ.get("TOPO_ENABLE_SEQUENTIAL_WEAK_EDGE", "1") or "1") != "0"
@@ -160,8 +179,9 @@ def _looks_incomplete_fragment(text: str) -> bool:
         return True
     if t.endswith((":", "：", ",", "，", ";", "；")):
         return True
-    # Typical heading-like fragments that should not become standalone nodes.
     if re.match(r"^(思路|分析|解题思路|设|已知|证明|结论)\s*[:：]?$", t, re.IGNORECASE):
+        return True
+    if re.match(r"^(solution|proof|approach|strategy|method|answer|note)\s*[:.]?$", t, re.IGNORECASE):
         return True
     return False
 
@@ -487,7 +507,7 @@ def _parse_reference_dag(raw_ref: Any) -> Optional[ReasoningDAG]:
 
 def _fallback_verdict(step: ParsedStep, has_virtual_in: bool, has_virtual_out: bool) -> LocalVerdict:
     text = step.normalized_text
-    if re.search(r"错误|不成立|矛盾|有误|invalid|wrong", text, re.IGNORECASE):
+    if re.search(r"错误|不成立|矛盾|有误|invalid|wrong|contradiction|impossible|no solution", text, re.IGNORECASE):
         return LocalVerdict.INCORRECT
     if step.step_type == StepType.CONCLUSION and not has_virtual_in:
         return LocalVerdict.INCORRECT

@@ -139,7 +139,7 @@ steps or the problem statement.
 \section{Limitations}
 \label{app:limitations}
 
-Three limitations of the current work warrant discussion. First, the DAG
+Four limitations of the current work warrant discussion. First, the DAG
 extraction relies on rule-based parsing of inter-step references through
 keyword matching and expression overlap. This procedure may miss implicit
 logical dependencies that lack explicit surface-level cues, such as
@@ -152,6 +152,33 @@ reuse the same symbols. Third, our evaluation focuses exclusively on
 mathematical reasoning in a Chinese educational critique setting. Whether
 TopoPRM generalises to other structured reasoning domains, such as code
 generation or scientific reasoning, remains an open question.
+
+\paragraph{Fourth limitation: TopoPRM on short adversarial benchmarks.}
+On small long-CoT benchmarks (AIME~2024, AIME~2025, CNMO~2024) our
+GRPO-trained TopoPRM variants (hierarchical / gated) do \emph{not}
+exceed the SFT baseline on pass@1 and in some cases trail by 4--13~pp
+absolute. Two concrete causes, supported by our training logs:
+\begin{enumerate}[leftmargin=*,itemsep=1pt]
+\item \textbf{Short GRPO budget.} The public 9B checkpoints used in the
+main table are \texttt{checkpoint-79}, roughly warm-up length for GRPO.
+Across the run, reward mean drifts from $0.12$ to $0.11$ without a
+sustained upward trend, and \texttt{frac\_reward\_zero\_std}\,$\approx\!0.36$
+throughout, meaning $\sim$40\% of each GRPO rollout group contributes
+zero advantage signal. These trajectories are reported verbatim in the
+supplementary file \texttt{docs/reward\_collapse\_diagnosis\_2026-04-20.md}.
+\item \textbf{Tight gating threshold for the 9B gated variant.} At
+\texttt{checkpoint-79} the gated reward stays at $\approx\!0.013$ with
+\texttt{reward\_std}\,$\approx\!5{\times}10^{-4}$ for the entire run, indicating the
+composite signal rarely crosses the gate; the gated student is thus
+effectively an SFT adapter with noise, which explains why its AIME/CNMO
+numbers track SFT rather than improving over it.
+\end{enumerate}
+The main-table narrative accommodates this: TopoPRM's claim in this
+paper is structural supervision and compression, not a pass@1 ceiling
+over SFT at short training budgets. Continuing GRPO to 300--500 steps
+with a \texttt{reward\_std\_floor} regulariser, and annealing the gating
+threshold, are left for future work
+(see \S\ref{app:future} and \texttt{docs/exp\_roadmap\_2026-04-20.md}).
 
 \section{Future Work}
 \label{app:future}

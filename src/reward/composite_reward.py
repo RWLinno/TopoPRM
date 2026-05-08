@@ -1,3 +1,31 @@
+"""TopoPRM composite rewards for ms-swift GRPO.
+
+This module implements the three reward aggregators referenced in the paper:
+
+* :class:`TopoCompositeReward` -- linear mix of outcome/format/topo/continuity/length.
+* :class:`TopoHierarchicalReward` -- multiplicative form ``r_base * (1 + alpha*r_topo + (1-alpha)*r_cont)``.
+  This is the main reward used for the 9B/7B TopoPRM models reported in the paper.
+* :class:`TopoGatedReward` -- lexicographic "outcome first, process tie-break" form.
+
+Principal hyperparameters (the only knobs appearing in the paper equations):
+
+* ``alpha`` (``TOPO_HIER_ALPHA``): topology vs continuity mix weight (Eq. R_hier).
+* ``BASE_WEIGHTS`` class constants (0.70/0.15/0.15 for outcome/format/length).
+* ``TopoReward`` internal weights for the five DAG indicators
+  (valid / acyclic / no_orphan / direction / step_align / ref_edge_f1).
+* Orphan-support edge weights (virtual=1.0, double_barrier=0.5, solid=0.3) in
+  :func:`src.reward.topo_reward.TopoReward._orphan_conclusion_ratio`.
+* ``TOPO_HIER_BASE_FLOOR`` (0.05): a bug-fix floor documented in the paper
+  appendix; prevents zero-variance rollout groups when the outcome reward is 0.
+
+Everything else (``TOPO_*_NOISE_EPS``, ``TOPO_*_MIN_STD``, ``TOPO_HIER_REWARD_TEMP``,
+``TOPO_DYNAMIC_*``) is ablation-only: defaults are set so that these are no-ops,
+and the main results in the paper are reproduced without any of them.  GRPO
+already performs group-wise advantage normalization via ms-swift
+(``scale_rewards='group'`` by default); duplicating that with explicit std-floor
+noise injection was deprecated in the 2026-04-23 cleanup pass.
+"""
+
 from __future__ import annotations
 
 import math
@@ -139,6 +167,26 @@ class _SafeCompositeBase(ORM):
         mu = sum(xs) / len(xs)
         var = sum((x - mu) ** 2 for x in xs) / len(xs)
         return math.sqrt(max(var, 0.0))
+
+    @classmethod
+    def _inject_std_floor(
+        cls,
+        rewards: list[float],
+        min_std: float,
+        noise_eps: float,
+    ) -> list[float]:
+        """If batch reward std < min_std, inject zero-mean Gaussian noise with
+        scale ``noise_eps`` so that GRPO advantage estimation has non-zero
+        variance to learn from. Disabled when ``noise_eps <= 0``.
+        """
+        if not rewards or noise_eps <= 0:
+            return rewards
+        std_val = cls._std(rewards)
+        if std_val >= min_std:
+            return rewards
+        import random
+
+        return [r + random.gauss(0.0, noise_eps) for r in rewards]
 
     def _corr(self, xs: list[float], ys: list[float]) -> float:
         if not xs or not ys or len(xs) != len(ys):
@@ -323,7 +371,14 @@ class TopoCompositeReward(_SafeCompositeBase):
                 + w["continuity"] * c
                 + w["length"] * l
             )
-            rewards.append(round(self._clip01(r), 6))
+            rewards.append(round(r, 6))
+        # Ablation-only std-floor (default NOISE_EPS=0 -> no-op).  See module docstring.
+        rewards = self._inject_std_floor(
+            rewards,
+            RewardConfig.TOPO_COMPOSITE_MIN_STD,
+            RewardConfig.TOPO_COMPOSITE_NOISE_EPS,
+        )
+        rewards = [round(self._clip01(r), 6) for r in rewards]
         self._maybe_log_components(
             "topo_composite_linear/components",
             outcome_scores,
@@ -363,6 +418,7 @@ class TopoHierarchicalReward(_SafeCompositeBase):
     NOISE_EPS: float = RewardConfig.TOPO_HIER_NOISE_EPS
     MIN_STD: float = RewardConfig.TOPO_HIER_MIN_STD
     REWARD_TEMP: float = RewardConfig.TOPO_HIER_REWARD_TEMP
+    BASE_FLOOR: float = RewardConfig.TOPO_HIER_BASE_FLOOR
 
     def __init__(self, ablation_config: Optional[str] = None, **kwargs: Any) -> None:
         super().__init__(ablation_config=ablation_config, **kwargs)
@@ -371,6 +427,7 @@ class TopoHierarchicalReward(_SafeCompositeBase):
         self.NOISE_EPS = float(os.environ.get("TOPO_HIER_NOISE_EPS", cfg.get("reward_noise_eps", self.NOISE_EPS)))
         self.MIN_STD = float(os.environ.get("TOPO_HIER_MIN_STD", cfg.get("min_reward_std", self.MIN_STD)))
         self.REWARD_TEMP = float(os.environ.get("TOPO_HIER_REWARD_TEMP", cfg.get("reward_temperature", self.REWARD_TEMP)))
+        self.BASE_FLOOR = float(os.environ.get("TOPO_HIER_BASE_FLOOR", cfg.get("base_floor", self.BASE_FLOOR)))
 
     @staticmethod
     def _batch_rescale(scores: list[float]) -> list[float]:
@@ -416,22 +473,28 @@ class TopoHierarchicalReward(_SafeCompositeBase):
         topo_scaled = self._batch_rescale(topo_scores)
         cont_scaled = self._batch_rescale(continuity_scores)
 
+        floor = max(0.0, float(self.BASE_FLOOR))
         rewards: list[float] = []
         for o, f, t, c, l in zip(outcome_scores, format_scores, topo_scaled, cont_scaled, length_scores):
             r_base = bw["outcome"] * o + bw["format"] * f + bw["length"] * l
+            # Floor on r_base so that topology gain is never multiplied by zero
+            # when outcome=format=length=0 (this was responsible for ~36% of
+            # zero-variance rollout groups in v3b — see method_diagnosis_2026-04-22.md).
+            r_base_floored = max(r_base, floor)
             gain = 1.0 + alpha * t + (1.0 - alpha) * c
-            r = r_base * gain
+            r = r_base_floored * gain
             rewards.append(round(r, 6))
 
         # Temperature rescaling to amplify differences
         if self.REWARD_TEMP != 1.0:
             rewards = self._reward_temperature_scale(rewards, self.REWARD_TEMP)
 
-        # Anti-collapse: inject noise when reward variance is too low
-        std_val = self._std(rewards)
-        if std_val < self.MIN_STD and self.NOISE_EPS > 0:
-            import random
-            rewards = [r + random.gauss(0, self.NOISE_EPS) for r in rewards]
+        # Ablation-only: inject Gaussian noise when batch std < MIN_STD.
+        # Default NOISE_EPS=0 makes this a no-op in main runs (see module
+        # docstring).  GRPO's scale_rewards='group' already standardizes
+        # advantages; this hook is only retained for reproducing the
+        # 2026-04-20 reward-collapse diagnostic experiments.
+        rewards = self._inject_std_floor(rewards, self.MIN_STD, self.NOISE_EPS)
 
         # Final clip
         rewards = [round(self._clip01(r), 6) for r in rewards]
@@ -838,7 +901,17 @@ class TopoGatedReward(_SafeCompositeBase):
             #   high-order: outcome (primary signal)
             #   low-order:  δ × format × (1 + ε × q)  (tiebreaker + curriculum)
             r = outcome_scores[i] + delta * fmt_scores[i] * (1.0 + eps * q)
-            rewards.append(round(self._clip01(r), 6))
+            rewards.append(round(r, 6))
+
+        # Ablation-only std-floor (default NOISE_EPS=0 -> no-op).
+        # Kept as a hook for reproducing the gated_qwen35_9b reward_std~=5e-4
+        # collapse diagnostic documented in docs/reward_collapse_diagnosis_2026-04-20.md.
+        rewards = self._inject_std_floor(
+            rewards,
+            RewardConfig.TOPO_GATED_MIN_STD,
+            RewardConfig.TOPO_GATED_NOISE_EPS,
+        )
+        rewards = [round(self._clip01(r), 6) for r in rewards]
 
         self._maybe_log_stats(rewards, "topo_gated")
         return rewards

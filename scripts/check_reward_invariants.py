@@ -136,6 +136,37 @@ def check_composite_range():
     print("  [PASS] TopoCompositeReward: reward={:.4f} in [0,1]".format(rewards[0]))
 
 
+def check_hierarchical_zero_base_floor():
+    """Post-2026-04-23 invariant: when r_base = 0 (outcome=format=length=0),
+    the multiplicative gain must NOT collapse the whole reward to 0.  The
+    BASE_FLOOR (default 0.05) keeps topology gain visible so that ms-swift's
+    group-wise advantage normalization has a non-zero mean to work with.
+
+    Note: std-floor noise injection is OFF by default post 2026-04-23 cleanup;
+    rewards can legitimately be constant across a zero-base batch.  What
+    matters scientifically is that the mean is strictly > 0.
+    """
+    hr = TopoHierarchicalReward()
+    # Four NO_TAGS variants -> outcome/format/length all 0, raw r_base = 0.
+    completions = [
+        [{"role": "assistant", "content": NO_TAGS}],
+        [{"role": "assistant", "content": NO_TAGS + " a"}],
+        [{"role": "assistant", "content": NO_TAGS + " b"}],
+        [{"role": "assistant", "content": NO_TAGS + " c"}],
+    ]
+    solutions = [SOLUTION_WRONG] * 4
+    refs = [None] * 4
+    rewards = hr(completions, solution=solutions, reference_dag=refs)
+    assert len(rewards) == 4
+    mean_r = sum(rewards) / len(rewards)
+    assert mean_r > 0.0, (
+        "expected positive mean reward under BASE_FLOOR (bug fix for "
+        "zero-variance rollout groups); got rewards={}".format(rewards)
+    )
+    print("  [PASS] TopoHierarchicalReward zero-base floor: rewards={} mean={:.4f}".format(
+        [round(r, 4) for r in rewards], mean_r))
+
+
 def main():
     print("=" * 60)
     print("  TopoPRM Reward Invariant Check")
@@ -148,6 +179,7 @@ def main():
         ("OutcomeReward", check_outcome_reward),
         ("TopoHierarchicalReward", check_hierarchical_ordering),
         ("TopoCompositeReward", check_composite_range),
+        ("TopoHierarchicalReward[zero-base floor]", check_hierarchical_zero_base_floor),
     ]
 
     passed = 0

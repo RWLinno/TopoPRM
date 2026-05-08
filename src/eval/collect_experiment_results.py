@@ -13,11 +13,11 @@ PUBLIC_BENCHMARKS = (
     "math500",
     "omni_math",
     "aime2024",
+    "aime2025",
     "cnmo2024",
-    "livecode",
     "gsm8k",
     "mmlu",
-)
+)  # livecode dropped 2026-04-21 (math-only models score ~0%)
 
 
 def _read_json(path: Path) -> dict[str, Any]:

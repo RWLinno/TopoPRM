@@ -140,71 +140,45 @@ Within each stratum, rewards are standardised and asymmetrically clipped:
 \end{equation}
 guaranteeing that answer-correct traces remain non-negative and answer-incorrect traces remain non-positive after shaping.
 
-\subsection{Distillation and Reasoning Compression}
+\subsection{Topology-Guided Self-Distillation for Reasoning Compression}
 \label{sec:compression}
-
-Let $\pi_T$ denote the teacher after Stage~II and $\pi_S$ the student to be trained.
-We first construct a filtered dataset $\mathcal{D}_f$ by retaining only teacher traces whose composite reward exceeds a quality threshold ($R_{\mathrm{total}} > 0.7$).
-Distillation minimises the reverse KL divergence:
-\begin{equation}
-\label{eq:distill}
-\mathcal{L}_{\mathrm{RKL}}=
-\mathbb{E}_{x\sim\mathcal{D}}\left[
-D_{\mathrm{KL}}\!\left(\pi_S(\cdot\mid x)\,\|\,\pi_T(\cdot\mid x)\right)
-\right].
-\end{equation}
-Reverse KL is mode-seeking: it encourages $\pi_S$ to concentrate on high-probability teacher modes rather than averaging over diverse outputs~\citep{sang2026opsdc}.
-In our setting, this compresses graph-enriched teacher reasoning into compact chain-like student reasoning without requiring the student to produce explicit DAG output.
-
-The distillation stage also incorporates length-aware reward shaping during data selection: correct answers receive higher weight as reasoning length decreases (rewarding conciseness), incorrect answers are penalised more heavily as length increases (discouraging verbose but wrong reasoning), and traces exceeding a maximum length threshold are excluded entirely.
-These criteria ensure that the student inherits both structural quality and reasoning efficiency from the teacher.
-
-From an RLVR perspective, this design follows a simple separation
-principle. The training \emph{direction} is determined in Stage~II by
-verifiable task/process rewards (outcome, topology, continuity, format),
-while Stage~III distillation primarily improves \emph{token-level
-efficiency} by concentrating student probability mass on high-quality
-teacher modes. This keeps the optimisation target anchored to
-deterministic verifiable signals, while still benefiting from dense
-token-level compression in the final student model.
-
-\begin{algorithm}[t]
-\caption{TopoPRM Training Pipeline}
-\label{alg:topoprm}
-\begin{algorithmic}[1]
-\Require Base model $\pi_0$, SFT data $\mathcal{D}_{\mathrm{sft}}$, RL prompts $\mathcal{D}_{\mathrm{rl}}$
-\Ensure Teacher $\pi_T$ and optional student $\pi_S$
-\State $\pi_\theta \leftarrow \mathrm{SFT}(\pi_0,\mathcal{D}_{\mathrm{sft}})$ \Comment{Cold-start}
-\For{each GRPO batch on $\mathcal{D}_{\mathrm{rl}}$}
-  \State Sample completions; extract dependency DAGs via $\mathcal{E}$
-  \State Compute $r_{\mathrm{out}},r_{\mathrm{topo}},r_{\mathrm{cont}},r_{\mathrm{fmt}},r_{\mathrm{len}}$
-  \State Aggregate via Eq.~\ref{eq:r_total}; shape via Eq.~\ref{eq:scae_shape}
-  \State Update $\pi_\theta$ using GRPO with shaped rewards
-\EndFor
-\State $\pi_T \leftarrow \pi_\theta$ \Comment{Teacher ready}
-\If{distillation enabled}
-  \State Filter teacher traces by process-aware criteria $\to \mathcal{D}_f$
-  \State Train $\pi_S$ by minimising $\mathcal{L}_{\mathrm{RKL}}$ (Eq.~\ref{eq:distill})
-\EndIf
-\end{algorithmic}
-\end{algorithm}
-
-
-\subsection{Topology-Verified Self-Distillation (TVSD)}
 \label{sec:tvsd}
 
-The plain reverse-KL distillation of Eq.~\ref{eq:distill} suffers from two
-practical issues when the teacher is a strong RLVR-trained policy: (a) very
-few teacher rollouts emit a complete \texttt{<think>$\cdots$<answer>} format
-(in our pilot, only $0.4\%$ of 32B teacher traces close the \texttt{<answer>}
-tag under limited budget), so the student never sees the stopping pattern;
-and (b) the student's own on-policy trajectories are ignored entirely, leading
-to train-test distribution mismatch. To resolve both while staying within the
-verifiable-reward paradigm, we propose \textbf{Topology-Verified
-Self-Distillation (TVSD)}, which upgrades Eq.~\ref{eq:distill} to an
-on-policy setting whose supervision is densified through the same deterministic
-topology / continuity diagnostics used in Eq.~\ref{eq:r_topo}~and~\ref{eq:r_cont}.
-TVSD runs in two short phases on top of the Stage~II teacher.
+\paragraph{Goal.}
+The goal of Stage~III is \emph{not} to surpass the teacher's accuracy.
+Our Stage~II teacher already carries the process-reward signal; a smaller
+student trained from its traces has a strictly weaker capacity ceiling.
+Instead, we target two measurable quantities:
+(i)~\textbf{structural retention}---the student's DAG metrics
+(Acyclic\%, No-Orphan\%, Edge-Keep\%) stay within a small margin of the teacher;
+(ii)~\textbf{token efficiency}---the student produces substantially shorter
+chain-of-thought for the same problem, at the price of only a \emph{mild}
+(1--3 pp absolute) drop in final-answer accuracy on math benchmarks.
+This reframes distillation as a Pareto move on the accuracy--tokens frontier,
+not an accuracy-first objective.
+
+\paragraph{Why pure reverse-KL distillation is insufficient.}
+A naive off-policy distillation that minimises
+$\mathcal{L}_{\mathrm{RKL}} = \mathbb{E}_{x\sim\mathcal{D}_f}
+D_{\mathrm{KL}}(\pi_S(\cdot\!\mid\!x)\,\|\,\pi_T(\cdot\!\mid\!x))$
+over a filtered teacher-trace set $\mathcal{D}_f$ has two blocking issues
+when the teacher is an RLVR-trained policy with long chain-of-thought:
+(a)~very few teacher rollouts emit a complete \texttt{<think>$\cdots$<answer>}
+format under finite budget (in our pilot, only $0.4\%$ of 32B teacher traces
+close the \texttt{<answer>} tag), so the student never learns to stop;
+(b)~the student's own on-policy trajectories are ignored entirely, causing
+train-test distribution mismatch that shows up as length blow-up at inference.
+A legacy 8B RKL student trained under this setup collapses to the
+2048-token generation cap on MATH-500 and loses 10~pp vs. the teacher,
+which we report in Section~\ref{sec:experiments} as the baseline we replace.
+
+\paragraph{Topology-Verified Self-Distillation (TVSD).}
+To address both issues while staying within the verifiable-reward paradigm,
+we propose \textbf{Topology-Verified Self-Distillation (TVSD)}, which
+upgrades pure RKL to an on-policy setting whose supervision is densified
+through the same deterministic topology / continuity diagnostics used in
+Eq.~\ref{eq:r_topo}~and~\ref{eq:r_cont}. TVSD runs in two short phases
+on top of the Stage~II teacher.
 
 \paragraph{Phase~III-A: Topology-Conditioned Self-Refinement.}
 A single model $\pi_\theta$ (initialised from our SFT checkpoint) alternates
@@ -246,7 +220,11 @@ The refined model $\pi_{\mathrm{ref}}$ is fine-tuned with
 This joint objective teaches the model to produce a correct response given a
 structural critique in-context (revision) and also to internalise that
 critique when only the problem is given (generation)---a form of self-training
-where the process signal is converted into an in-context teacher.
+where the process signal is converted into an in-context teacher. A key
+side effect is that revised traces are structurally ``cleaner'' than the
+initial on-policy rollouts: orphan conclusions are re-grounded and redundant
+steps are pruned, so $\pi_{\mathrm{ref}}$ already emits shorter completions
+than $\pi_\theta$ under matched format constraints.
 
 \paragraph{Phase~III-B: Topology-Gated On-Policy Distillation.}
 The refined model is frozen as a verifier-teacher; the generator-student is
@@ -281,13 +259,41 @@ extractor (orphan conclusions, acyclicity violations, continuity breaks).
 Conditioning $P_r$ on $(r_{\mathrm{out}},r_{\mathrm{topo}},r_{\mathrm{cont}})$
 and the specific orphan step index makes the KL signal fire at those tokens
 even when $r_{\mathrm{out}}{=}1$, which is impossible for any outcome-only
-distillation baseline.
+distillation baseline. Two consequences follow:
+(1)~the student's retained acyclicity and no-orphan rates stay within
+$\leq$1--2~pp of the teacher (Section~\ref{sec:experiments}), and
+(2)~the ``cleaner'' revised target distribution encourages the student to
+emit shorter traces than a teacher-free CoT policy would.
 
 \paragraph{Student compression ($\leq$4B).}
-Because Phase~III-B student rollouts are on-policy and format-closed, we can
-compress into a much smaller student without the stopping failure we observed
-for the legacy reverse-KL student in Eq.~\ref{eq:distill}. The same TVSD
-objective is applied with $\pi_\theta$ initialised from Qwen3.5-4B,
-Qwen3.5-2B, or Qwen3.5-0.8B; the teacher remains the 9B refined model.
-This is the route we report in Section~\ref{sec:experiments}.
+Because Phase~III-B student rollouts are on-policy and format-closed, TVSD
+does not suffer the stopping failure that the legacy RKL baseline exhibits.
+The same TVSD objective is applied with $\pi_\theta$ initialised from
+Qwen3.5-4B, Qwen3.5-2B, or Qwen3.5-0.8B; the teacher remains the 9B refined
+model $\pi_{\mathrm{ref}}$. As a sanity baseline we also report an
+SFT-distilled Qwen3.5-4B student trained on filtered teacher traces
+(dataset $\mathcal{D}_f$ with $R_{\mathrm{total}}>0.7$) without the on-policy
+Phase~III-B step; this isolates how much of the structural retention comes
+from TVSD specifically versus from data curation alone.
+
+\begin{algorithm}[t]
+\caption{TopoPRM Training Pipeline (SFT $\to$ GRPO $\to$ TVSD)}
+\label{alg:topoprm}
+\begin{algorithmic}[1]
+\Require Base $\pi_0$, SFT data $\mathcal{D}_{\mathrm{sft}}$, RL prompts $\mathcal{D}_{\mathrm{rl}}$
+\Ensure Teacher $\pi_T$, verifier $\pi_{\mathrm{ref}}$, compact student $\pi_S$
+\State $\pi_\theta \leftarrow \mathrm{SFT}(\pi_0,\mathcal{D}_{\mathrm{sft}})$ \Comment{Cold-start}
+\For{each GRPO batch on $\mathcal{D}_{\mathrm{rl}}$}
+  \State Sample completions; extract DAGs via $\mathcal{E}$
+  \State Compute $r_{\mathrm{out}},r_{\mathrm{topo}},r_{\mathrm{cont}},r_{\mathrm{fmt}},r_{\mathrm{len}}$
+  \State Aggregate (Eq.~\ref{eq:r_total}); shape (Eq.~\ref{eq:scae_shape})
+  \State GRPO update on $\pi_\theta$
+\EndFor
+\State $\pi_T \leftarrow \pi_\theta$
+\If{compression enabled}
+  \State \emph{Phase~III-A:} self-refine $\pi_T$ using $\mathcal{L}_{\mathrm{refine}}$ (Eq.~\ref{eq:srt}) $\to \pi_{\mathrm{ref}}$
+  \State \emph{Phase~III-B:} initialise small student $\pi_S$ from base; optimise $\mathcal{L}_{\mathrm{TVSD}}$ (Eq.~\ref{eq:tvsd})
+\EndIf
+\end{algorithmic}
+\end{algorithm}
 

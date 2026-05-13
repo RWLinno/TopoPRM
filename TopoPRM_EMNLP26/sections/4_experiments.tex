@@ -1,0 +1,119 @@
+\section{Experiments}
+\label{sec:experiments}
+
+\subsection{Setup}
+\label{sec:setup}
+
+\paragraph{Implementation details.}
+We adopt DeepSeek-R1-Distill-Qwen-7B~\citep{deepseekr1} as the primary base model and additionally validate on Qwen3.5-9B~\citep{qwen3team2025} to confirm transferability.
+Training uses HuggingFace TRL~\citep{vonwerra2022trl} with LoRA~\citep{hu2022lora} (rank~64, $\alpha{=}128$, all linear layers).
+SFT runs for 3~epochs with learning rate $5{\times}10^{-5}$ on ${\sim}19{,}500$ public DAG-annotated math samples constructed from GSM8K~\citep{cobbe2021gsm8k} and MATH~\citep{hendrycks2021math} training splits.
+GRPO runs for 200 gradient steps with 4 generations per prompt, group size~4, learning rate $5{\times}10^{-6}$, and KL coefficient $\beta{=}0.04$, using the hierarchical \method reward (Eq.~\ref{eq:r_total}).
+All experiments use 8$\times$NVIDIA A100-SXM4-80GB GPUs.
+Full hyperparameters are in Appendix~\ref{app:details}.
+
+\paragraph{Benchmarks.}
+We evaluate on nine public math and reasoning benchmarks:
+\texttt{GSM8K}, \texttt{MATH-500}, \texttt{Olympiad}, \texttt{Omni-MATH},
+\texttt{AIME\,2024}, \texttt{AIME\,2025}, \texttt{CNMO\,2024}, \texttt{MMLU},
+and \texttt{GPQA-D}.
+All evaluations use one unified \texttt{transformers}-backend protocol with each model's native chat template, shared answer extraction, and shared matching.
+In the main text we report \textbf{accuracy} (pass@1) for readability and direct model comparison.
+Additional metrics (pass@5, maj@5, prm@5, token efficiency) are retained in Appendix~\ref{appx:unified_metrics}.
+We also evaluate on in-domain validation data; full in-domain tables are reported in Appendix~\ref{appx:private_results}.
+
+\paragraph{Baselines.}
+We compare against:
+\emph{(i)}~DeepSeek-R1-Distill-Qwen-7B zero-shot (chat template, no fine-tuning);
+\emph{(ii)}~+ SFT (LoRA fine-tuned on DAG-annotated math data);
+\emph{(iii)}~+ GRPO with outcome-only reward;
+\emph{(iv)}~ablation variants that remove the topology or continuity channel;
+\emph{(v)}~external references including DeepSeek-R1 671B, Qwen3-32B, QwQ-32B, and LIMO.
+A Qwen3.5-9B ablation suite is reported in Appendix~\ref{app:details}.
+
+\paragraph{Metrics.}
+The primary metric in the main text is pass@1 accuracy.
+For completeness, we keep pass@5, maj@5, prm@5, and token-efficiency diagnostics in the appendix.
+For structural analysis, we report DAG diagnostics (acyclicity, orphan-conclusion ratio, directional consistency).
+
+%% ─────────────────────────────────────────────────────────────
+%% RQ1: Main results on public benchmarks
+%% ─────────────────────────────────────────────────────────────
+\subsection{Main Results}
+\label{sec:rq1}
+
+\input{tables/public_results_unified}
+
+\paragraph{Public benchmark accuracy.}
+Table~\ref{tab:public_benchmark_unified} reports unified pass@1 accuracy across nine benchmarks.
+This table is the main quantitative evidence in the paper.
+Compared with base and non-topology variants, topology-aware variants maintain stronger cross-benchmark consistency, particularly on math-heavy subsets where dependency structure is essential.
+For example, in the 9B family, \method variants remain competitive on GSM8K/MATH-500 while improving robustness on general-reasoning transfer benchmarks (MMLU, GPQA-D).
+
+The key claim is not that topology-aware training always maximizes single-benchmark accuracy, but that it improves structural robustness under one evaluation protocol.
+This is consistent with the method design: topology supervision targets failure modes that are weakly observed by outcome-only rewards.
+Detailed multi-sample and reranking metrics are reported in Appendix~\ref{appx:unified_metrics}.
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=0.98\linewidth]{figures/Fig4.Training_Curve.pdf}
+    \caption{GRPO training dynamics. (Top) Composite reward convergence
+    for \method and ablation variants. (Middle) Mean completion length
+    during training, showing progressive reasoning compression without
+    accuracy loss. (Bottom) Dynamic reward weights over training steps.}
+    \label{fig:training_dynamics}
+\end{figure}
+
+\paragraph{Training dynamics.}
+Figure~\ref{fig:training_dynamics} shows the GRPO training curves.
+The composite reward converges stably for \method, while mean completion length decreases during training.
+This pattern indicates that topology-aware supervision removes structurally redundant branches rather than merely shortening outputs.
+The dynamic reward-weight trajectory also shows sustained contribution from topology and continuity channels, which aligns with the anti-collapse analysis in Appendix~\ref{appx:private_results}.
+
+%% ─────────────────────────────────────────────────────────────
+%% RQ2: Ablation studies
+%% ─────────────────────────────────────────────────────────────
+\subsection{Ablation Studies}
+\label{sec:rq2}
+
+We conduct ablation studies on in-domain validation data (7{,}595 mathematical critique examples) where each reward component can be isolated with sufficient statistical power. Full tables are in Appendix~\ref{appx:private_results}.
+
+\paragraph{Reward component ablation.}
+Removing topology causes the largest accuracy drop ($\Delta = -9.9$ points), showing that global dependency regularity is the dominant structural signal.
+Removing continuity yields a smaller but consistent drop ($\Delta = -5.9$), indicating complementary local traceability supervision.
+Outcome-only GRPO shows the largest deficit ($\Delta = -13.4$), confirming that correctness-only supervision is insufficient for long-trajectory optimization.
+
+\paragraph{Aggregation strategy.}
+We compare three aggregation strategies: linear weighted sum, clipped linear, and the proposed hierarchical multiplicative formulation (Eq.~\ref{eq:r_total}).
+Naive linear aggregation leads to severe reward collapse: after ${\sim}$20 gradient steps, the fraction of batches with near-zero reward standard deviation exceeds 93\%.
+The hierarchical formulation mitigates collapse by preserving a correctness-dominant base reward while injecting topology and continuity as multiplicative gain.
+
+\paragraph{Structural quality.}
+Models trained with full \method rewards produce higher acyclicity, fewer orphan conclusions, and stronger direction consistency.
+These improvements reflect better structural traceability under the extracted-graph proxy, rather than proof-level semantic verification (\S\ref{sec:reward_module}).
+Detailed DAG diagnostics are reported in Appendix (Table~\ref{tab:structural_metrics}).
+
+%% ─────────────────────────────────────────────────────────────
+%% RQ3: Efficiency analysis
+%% ─────────────────────────────────────────────────────────────
+\subsection{Efficiency Analysis}
+\label{sec:rq3}
+
+\paragraph{Accuracy--length trade-off.}
+On in-domain validation data, \method achieves 75.5 accuracy points per 1{,}000 tokens, the highest efficiency among all configurations.
+Compared with outcome-only GRPO, \method reduces mean response length by 11.2\% while improving accuracy by $+13.4$ points, indicating that deterministic structural supervision reduces redundant reasoning and unsupported transitions.
+
+\paragraph{Training cost.}
+All GRPO experiments use 8$\times$GPUs with LoRA (rank 64).
+Full \method training (SFT + GRPO) completes in approximately 12 GPU-hours.
+The reward overhead from DAG extraction and topology scoring adds $<$5\% wall-clock time relative to outcome-only GRPO, as the extractor runs on CPU in parallel with GPU-bound generation.
+
+%% ─────────────────────────────────────────────────────────────
+%% RQ4: Scale and compression
+%% ─────────────────────────────────────────────────────────────
+\subsection{Scale and Compression}
+\label{sec:rq4_main}
+
+We summarise two extended analyses and defer detailed tables to the appendix.
+First, \textbf{cross-scale transferability}: extending the ablation to Qwen3.5-9B and Qwen2.5-7B reveals that topology-aware rewards are most effective at larger model scales, where the model has sufficient capacity to produce structurally coherent DAGs. On smaller models, truncation noise and reward-variance collapse reduce the benefit of topology scoring, motivating future work on truncation-robust topology rewards (Appendix~\ref{appx:private_results}).
+Second, \textbf{\framework compression}: the topology-guided self-distillation stage evaluates accuracy--token trade-offs and structural-retention behaviour under a unified protocol (Appendix~\ref{appx:rq5_compression}).

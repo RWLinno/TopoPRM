@@ -66,11 +66,27 @@ _INLINE_MATH_RE = re.compile(
     r"|"
     r"\\\((.+?)\\\)"
 )
+# GSM8K-style "<<expr=result>>" macro markers.
+_GSM8K_MACRO_RE = re.compile(r"<<\s*([^<>]+?)\s*=\s*([^<>]+?)\s*>>")
 _EQUATION_RE = re.compile(
     r"[a-zA-Z\u03b1-\u03c9\u0391-\u03a9\d][a-zA-Z\u03b1-\u03c9\u0391-\u03a9\d\s+\-*/^(){}]*"
     r"[=\u2260<>\u2264\u2265\u2248]"
     r"[a-zA-Z\u03b1-\u03c9\u0391-\u03a9\d\s+\-*/^(){}]+"
 )
+# "... = 72" / "= 72 clips" tail-result pattern used heavily by GSM8K.
+_TAIL_RESULT_RE = re.compile(r"=\s*(-?\d+(?:\.\d+)?)")
+# Quantity mentions: "8 purple flowers", "72 clips". Captures <number, noun>
+# so that later steps referring to the same quantity trigger a virtual edge.
+_QUANTITY_MENTION_RE = re.compile(
+    r"(?<!\d)(-?\d+(?:\.\d+)?)\s+([a-zA-Z][a-zA-Z\u00c0-\u024f\-']{2,20})"
+)
+# Short list of English noun fragments that are too generic to form a
+# distinctive quantity reference. Anything else is kept as-is.
+_QUANTITY_NOUN_STOPSET = {
+    "the", "and", "but", "for", "with", "from", "into", "that", "this",
+    "hours", "hour", "minutes", "minute", "seconds", "second", "days",
+    "day", "times", "time", "years", "year", "percent", "dollars",
+}
 _EXPR_OPERATOR_RE = re.compile(r"[=\u2260<>\u2264\u2265\u2248+\-*/^]|∥|⊥")
 _VAR_ASSIGN_RE = re.compile(
     r"(?:\u8bbe|\u4ee4|let)\s*([a-zA-Z\u03b1-\u03c9\u0391-\u03a9]\w*)\s*[=\uff1d]\s*(.+?)(?:[,\uff0c;\uff1b\u3002]|$)",
@@ -249,7 +265,58 @@ def extract_steps_from_answer(standard_answer: str) -> List[Dict[str, Any]]:
                 "sub_question_id": current_sub_q,
             }
         )
+
+    # P4: sentence-level fallback when no explicit step markers were found.
+    # On natural-language CoT traces (no "Step N:", no bullets, no numbered
+    # lists), the above loop often produces 0 or 1 steps because
+    # _STEP_MARKER_RE strips the only content.  When enabled, we re-segment
+    # the original text on sentence boundaries so the DAG extractor can
+    # still build a multi-node graph with meaningful q_topo.
+    if len(steps) <= 1 and _dag_sentence_fallback_enabled():
+        steps = _sentence_fallback_split(normalized)
+
     return steps
+
+
+def _dag_sentence_fallback_enabled() -> bool:
+    """Check whether the P4 sentence-fallback flag is active."""
+    from src.reward.reward_config import RewardConfig
+    return RewardConfig.DAG_SENTENCE_FALLBACK
+
+
+_SENTENCE_SPLIT_RE = re.compile(r'(?<=[。.!?！？\n])\s*')
+
+
+def _sentence_fallback_split(text: str) -> List[Dict[str, Any]]:
+    """Split text on sentence boundaries with a minimum length filter."""
+    from src.reward.reward_config import RewardConfig
+    min_len = RewardConfig.DAG_SENTENCE_MIN_LEN
+
+    raw_sents = _SENTENCE_SPLIT_RE.split(text)
+    steps: List[Dict[str, Any]] = []
+    buf = ""
+    for sent in raw_sents:
+        sent = sent.strip()
+        if not sent:
+            continue
+        buf += (" " if buf else "") + sent
+        if len(buf) >= min_len:
+            steps.append({
+                "step_id": len(steps),
+                "raw_text": buf,
+                "sub_question_id": None,
+                "fallback": True,
+            })
+            buf = ""
+    # Flush remaining buffer
+    if buf and len(buf) >= min_len // 2:
+        steps.append({
+            "step_id": len(steps),
+            "raw_text": buf,
+            "sub_question_id": None,
+            "fallback": True,
+        })
+    return steps if len(steps) > 1 else []
 
 
 def canonicalize_expression(expr: str) -> str:
@@ -266,12 +333,17 @@ def canonicalize_expression(expr: str) -> str:
 
 def _is_informative_expression(expr: str) -> bool:
     e = expr.strip()
-    if len(e) < 3:
+    if len(e) < 2:
         return False
     if re.fullmatch(r"[a-z\u03b1-\u03c9]", e):
         return False
-    if re.fullmatch(r"\d+(?:\.\d+)?", e):
-        return False
+    # "72_clips", "8_purple-flowers" quantity mentions: accept outright.
+    if re.fullmatch(r"-?\d+(?:\.\d+)?_[a-z\u00c0-\u024f][a-z\u00c0-\u024f\-']+", e):
+        return True
+    # Keep distinctive numeric results (>= 2 digits). Drops "0".."9" which are
+    # too ambiguous to indicate reuse.
+    if re.fullmatch(r"-?\d+(?:\.\d+)?", e):
+        return len(e.lstrip("-").split(".")[0]) >= 2
     if _EXPR_OPERATOR_RE.search(e):
         return True
     if "(" in e and ")" in e and len(e) >= 5:
@@ -299,12 +371,40 @@ def extract_expressions(text: str) -> List[str]:
         expr = m.group(1) or m.group(2)
         if expr:
             exprs_raw.append(expr.strip())
+    # GSM8K macro: <<48/2=24>> → keep both the equation and its numeric result.
+    for m in _GSM8K_MACRO_RE.finditer(text):
+        lhs = m.group(1).strip()
+        rhs = m.group(2).strip()
+        if lhs:
+            exprs_raw.append(f"{lhs}={rhs}")
+        if rhs:
+            exprs_raw.append(rhs)
     for m in _EQUATION_RE.finditer(text):
         candidate = m.group(0).strip()
         if len(candidate) >= 3:
             exprs_raw.append(candidate)
     for m in _VAR_ASSIGN_RE.finditer(text):
         exprs_raw.append(f"{m.group(1)}={m.group(2).strip()}")
+    # "= 72" tail results — keep only distinctive numbers (>= 2 digits) so the
+    # expression index captures chained numeric reuse without flooding on 0/1.
+    for m in _TAIL_RESULT_RE.finditer(text):
+        val = m.group(1)
+        if val and len(val.lstrip("-").split(".")[0]) >= 2:
+            exprs_raw.append(val)
+
+    # "72 clips", "8 purple flowers" — treat <number, noun> as a reusable
+    # quantity reference so subsequent steps mentioning the same quantity
+    # become virtual-edge predecessors.
+    for m in _QUANTITY_MENTION_RE.finditer(text):
+        num, noun = m.group(1), m.group(2).lower()
+        if noun in _QUANTITY_NOUN_STOPSET:
+            continue
+        if len(num.lstrip("-").split(".")[0]) < 2:
+            # skip single-digit-number pairings unless the noun is itself
+            # non-trivial (it usually is, but be conservative).
+            if len(noun) < 5:
+                continue
+        exprs_raw.append(f"{num}_{noun}")
 
     exprs: List[str] = []
     for item in exprs_raw:

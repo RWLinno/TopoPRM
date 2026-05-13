@@ -71,7 +71,14 @@ class ContinuityReward(ORM):
                 if self._is_given_step(step_text):
                     continuous_count += 1
                 elif not cur_exprs and not cur_claims:
-                    continuous_count += 1
+                    # P3 patch: by default we give the benefit of the doubt
+                    # and count an evidence-free step as continuous (this is
+                    # the v1 released behaviour).  When the env var
+                    # ``TOPO_CONT_REQUIRE_EVIDENCE=1`` is set we instead
+                    # treat such steps as broken so that q_cont actually
+                    # provides a gradient on natural-language CoT traces.
+                    if not RewardConfig.CONTINUITY_REQUIRE_EVIDENCE:
+                        continuous_count += 1
                 else:
                     overlaps_expr = bool(cur_exprs & prior_exprs)
                     overlaps_claim = bool(cur_claims & prior_claims)

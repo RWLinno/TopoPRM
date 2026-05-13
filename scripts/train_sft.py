@@ -9,6 +9,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import torch
@@ -17,7 +18,10 @@ from peft import LoraConfig, TaskType
 from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
 from trl import SFTTrainer, SFTConfig
 
-MODEL_ID = "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
+MODEL_ID = os.getenv(
+    "TOPOPRM_BASE_MODEL",
+    "/Knowin/foundation/weilinruan/hf_models/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+)
 DATA_PATH = "data/grpo_ready/train_public.jsonl"
 OUTPUT_DIR = "output/sft_deepseek_r1_7b"
 MAX_SEQ_LEN = 4096
@@ -79,7 +83,7 @@ def main():
         save_strategy="epoch",
         bf16=True,
         gradient_checkpointing=True,
-        report_to="none",
+        report_to="wandb",
         remove_unused_columns=False,
     )
 

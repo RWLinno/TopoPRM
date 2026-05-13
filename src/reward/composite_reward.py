@@ -68,13 +68,22 @@ def _load_ablation_config(path: Optional[str] = None) -> dict:
 class LengthReward(ORM):
     """Length-penalty reward.
 
-    * <= 2000 characters -> 1.0
-    * 2000-4000 characters -> linear decay from 1.0 to 0.0
-    * > 4000 characters -> 0.0
+    Default unit is characters (preserves the v1 released behaviour):
+        * len(text) <= LOW          -> 1.0
+        * LOW < len(text) < HIGH    -> linear decay from 1.0 to 0.0
+        * len(text) >= HIGH         -> 0.0
+
+    Set the env var ``TOPO_LENGTH_UNIT=tokens`` to switch to whitespace-
+    delimited token counts; in that case ``TOPO_LENGTH_LOW`` and
+    ``TOPO_LENGTH_HIGH`` are interpreted as token thresholds.  This is a
+    P5 patch (see docs/method_diagnosis_2026-05-14.md): char-based
+    thresholds saturate at 0.0 on long-CoT traces (AIME ~6k chars/trace),
+    which silently drops the length signal from the hierarchical reward.
     """
 
     LOW: int = RewardConfig.LENGTH_LOW
     HIGH: int = RewardConfig.LENGTH_HIGH
+    UNIT: str = RewardConfig.LENGTH_UNIT
 
     def __call__(
         self,
@@ -84,7 +93,10 @@ class LengthReward(ORM):
         rewards: list[float] = []
         for completion in completions:
             text = completion_to_text(completion)
-            length = len(text)
+            if self.UNIT == "tokens":
+                length = len(text.split())
+            else:
+                length = len(text)
             if length <= self.LOW:
                 rewards.append(1.0)
             elif length >= self.HIGH:
@@ -431,14 +443,26 @@ class TopoHierarchicalReward(_SafeCompositeBase):
 
     @staticmethod
     def _batch_rescale(scores: list[float]) -> list[float]:
-        """Min-max rescale a batch of scores to [0, 1] with epsilon guard."""
+        """Min-max rescale a batch of scores to [0, 1] with epsilon guard.
+
+        When ``TOPO_RESCALE_PATCH`` is enabled (default off), group with
+        true spread below ``TOPO_RESCALE_MIN_SPAN`` (default 0.05) are
+        returned as a constant 0.5 vector instead of being stretched to
+        the full [0, 1] range.  This prevents topology/continuity noise
+        from dominating advantages on outcome-saturated batches
+        (easy GSM8K / MATH500 rollouts); see docs/method_diagnosis.md §R2.
+        """
         if not scores:
             return []
         lo = min(scores)
         hi = max(scores)
         span = hi - lo
-        if span < 1e-8:
-            return [0.5] * len(scores)
+        if RewardConfig.TOPO_RESCALE_PATCH:
+            if span < RewardConfig.TOPO_RESCALE_MIN_SPAN:
+                return [0.5] * len(scores)
+        else:
+            if span < 1e-8:
+                return [0.5] * len(scores)
         return [(s - lo) / span for s in scores]
 
     @staticmethod
@@ -474,13 +498,30 @@ class TopoHierarchicalReward(_SafeCompositeBase):
         cont_scaled = self._batch_rescale(continuity_scores)
 
         floor = max(0.0, float(self.BASE_FLOOR))
+        # P2: switch from additive base (w_o*o + w_f*f + w_l*l) to a truly
+        # multiplicative aggregation where r_base = 0 iff outcome = 0.
+        # Default 'additive' preserves released-checkpoint behaviour.
+        agg_mode = RewardConfig.TOPO_HIER_AGG.lower()
+        if agg_mode not in ("additive", "multiplicative"):
+            agg_mode = "additive"
         rewards: list[float] = []
         for o, f, t, c, l in zip(outcome_scores, format_scores, topo_scaled, cont_scaled, length_scores):
-            r_base = bw["outcome"] * o + bw["format"] * f + bw["length"] * l
-            # Floor on r_base so that topology gain is never multiplied by zero
-            # when outcome=format=length=0 (this was responsible for ~36% of
-            # zero-variance rollout groups in v3b — see method_diagnosis_2026-04-22.md).
-            r_base_floored = max(r_base, floor)
+            if agg_mode == "multiplicative":
+                # Hard correctness primacy: outcome=0 -> r_base=0, so the
+                # topology gain cannot lift answer-incorrect traces above
+                # answer-correct ones.  Format/length become gate factors
+                # in [f_min, 1], where f_min keeps small signal for the
+                # advantage normaliser.
+                f_gate = 0.5 + 0.5 * f
+                l_gate = 0.5 + 0.5 * l
+                r_base = o * f_gate * l_gate
+                r_base_floored = r_base  # no floor in multiplicative mode
+            else:
+                r_base = bw["outcome"] * o + bw["format"] * f + bw["length"] * l
+                # Floor on r_base so that topology gain is never multiplied by zero
+                # when outcome=format=length=0 (this was responsible for ~36% of
+                # zero-variance rollout groups in v3b — see method_diagnosis_2026-04-22.md).
+                r_base_floored = max(r_base, floor)
             gain = 1.0 + alpha * t + (1.0 - alpha) * c
             r = r_base_floored * gain
             rewards.append(round(r, 6))
@@ -739,10 +780,31 @@ class TopoSCAEReward(_SafeCompositeBase):
         neg_norm = self._normalize(neg_vals)
 
         shaped = [0.0] * len(base_rewards)
-        for k, i in enumerate(pos_idx):
-            shaped[i] = round(self._clip(pos_norm[k], self.POS_CLIP[0], self.POS_CLIP[1]), 6)
-        for k, i in enumerate(neg_idx):
-            shaped[i] = round(self._clip(neg_norm[k], self.NEG_CLIP[0], self.NEG_CLIP[1]), 6)
+
+        if RewardConfig.SCAE_PRESERVE_OUTCOME:
+            # P1: preserve outcome magnitude across strata.
+            # B+ shaped values live in [floor_pos, POS_CLIP[1]]
+            # B- shaped values live in [NEG_CLIP[0], -floor_neg]
+            # This guarantees min(B+) > max(B-) when floor_pos > 0 and
+            # floor_neg > 0, so the cross-stratum ordering is never violated.
+            floor_pos = RewardConfig.SCAE_FLOOR_POS
+            floor_neg = RewardConfig.SCAE_FLOOR_NEG
+            clip_hi = self.POS_CLIP[1]
+            clip_lo = self.NEG_CLIP[0]
+            for k, i in enumerate(pos_idx):
+                # Map normalized value from [0, POS_CLIP[1]] to [floor_pos, clip_hi]
+                raw = self._clip(pos_norm[k], self.POS_CLIP[0], clip_hi)
+                shaped[i] = round(floor_pos + (clip_hi - floor_pos) * (raw / clip_hi) if clip_hi > 0 else floor_pos, 6)
+            for k, i in enumerate(neg_idx):
+                # Map normalized value from [NEG_CLIP[0], 0] to [clip_lo, -floor_neg]
+                raw = self._clip(neg_norm[k], clip_lo, self.NEG_CLIP[1])
+                shaped[i] = round(-floor_neg + (-floor_neg - clip_lo) * (raw / clip_lo) if clip_lo < 0 else -floor_neg, 6)
+        else:
+            # Default (v1): raw per-stratum normalized + clipped values.
+            for k, i in enumerate(pos_idx):
+                shaped[i] = round(self._clip(pos_norm[k], self.POS_CLIP[0], self.POS_CLIP[1]), 6)
+            for k, i in enumerate(neg_idx):
+                shaped[i] = round(self._clip(neg_norm[k], self.NEG_CLIP[0], self.NEG_CLIP[1]), 6)
 
         self._maybe_log_stats(shaped, "topo_composite_scae")
         return shaped
@@ -917,6 +979,66 @@ class TopoGatedReward(_SafeCompositeBase):
         return rewards
 
 
+# ---------------------------------------------------------------------------
+# Ablation variants for Table 1
+# ---------------------------------------------------------------------------
+
+class OutcomeOnlyReward(TopoHierarchicalReward):
+    """Ablation: only outcome + format + length, no topology or continuity."""
+
+    def __call__(self, completions, solution=None, reference_dag=None, **kwargs):
+        outcome_scores, format_scores, topo_scores, continuity_scores, length_scores = self._components(
+            completions, solution=solution, reference_dag=reference_dag, **kwargs,
+        )
+        bw = self.BASE_WEIGHTS
+        rewards = []
+        for o, f, l in zip(outcome_scores, format_scores, length_scores):
+            rewards.append(round(bw["outcome"] * o + bw["format"] * f + bw["length"] * l, 6))
+        rewards = [round(self._clip01(r), 6) for r in rewards]
+        self._maybe_log_stats(rewards, "outcome_only")
+        return rewards
+
+
+class NoTopoReward(TopoHierarchicalReward):
+    """Ablation: hierarchical reward but topology component zeroed out."""
+
+    def __call__(self, completions, solution=None, reference_dag=None, **kwargs):
+        outcome_scores, format_scores, topo_scores, continuity_scores, length_scores = self._components(
+            completions, solution=solution, reference_dag=reference_dag, **kwargs,
+        )
+        bw = self.BASE_WEIGHTS
+        cont_scaled = self._batch_rescale(continuity_scores)
+        floor = max(0.0, float(self.BASE_FLOOR))
+        rewards = []
+        for o, f, c, l in zip(outcome_scores, format_scores, cont_scaled, length_scores):
+            r_base = max(bw["outcome"] * o + bw["format"] * f + bw["length"] * l, floor)
+            gain = 1.0 + c
+            rewards.append(round(r_base * gain, 6))
+        rewards = [round(self._clip01(r), 6) for r in rewards]
+        self._maybe_log_stats(rewards, "no_topo")
+        return rewards
+
+
+class NoContinuityReward(TopoHierarchicalReward):
+    """Ablation: hierarchical reward but continuity component zeroed out."""
+
+    def __call__(self, completions, solution=None, reference_dag=None, **kwargs):
+        outcome_scores, format_scores, topo_scores, continuity_scores, length_scores = self._components(
+            completions, solution=solution, reference_dag=reference_dag, **kwargs,
+        )
+        bw = self.BASE_WEIGHTS
+        topo_scaled = self._batch_rescale(topo_scores)
+        floor = max(0.0, float(self.BASE_FLOOR))
+        rewards = []
+        for o, f, t, l in zip(outcome_scores, format_scores, topo_scaled, length_scores):
+            r_base = max(bw["outcome"] * o + bw["format"] * f + bw["length"] * l, floor)
+            gain = 1.0 + t
+            rewards.append(round(r_base * gain, 6))
+        rewards = [round(self._clip01(r), 6) for r in rewards]
+        self._maybe_log_stats(rewards, "no_continuity")
+        return rewards
+
+
 # Register all reward classes in SWIFT's global ``orms`` dict.
 orms["topo_gated"] = TopoGatedReward
 orms["topo_composite"] = TopoCompositeReward
@@ -934,3 +1056,7 @@ orms["topo_format"] = FormatReward
 orms["topo_topo"] = TopoReward
 orms["topo_continuity"] = ContinuityReward
 orms["topo_length"] = LengthReward
+
+orms["outcome_only"] = OutcomeOnlyReward
+orms["no_topo"] = NoTopoReward
+orms["no_continuity"] = NoContinuityReward

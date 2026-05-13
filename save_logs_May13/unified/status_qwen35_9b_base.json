@@ -1,0 +1,73 @@
+{
+  "label": "qwen35_9b_base",
+  "model": "/Knowin/foundation/weilinruan/hf_models/Qwen/Qwen3.5-9B",
+  "adapter": "",
+  "timestamp": "2026-05-12T17:11:53",
+  "running": {},
+  "completed": [
+    {
+      "bench": "aime2024",
+      "gpu": 3,
+      "exit_code": 0,
+      "pass@1": 0.0667,
+      "duration_min": 49.55,
+      "attempt": 1
+    },
+    {
+      "bench": "aime2025",
+      "gpu": 4,
+      "exit_code": 0,
+      "pass@1": 0.0333,
+      "duration_min": 50.5,
+      "attempt": 1
+    },
+    {
+      "bench": "gpqa_diamond",
+      "gpu": 3,
+      "exit_code": 0,
+      "pass@1": 0.2727,
+      "duration_min": 60.0,
+      "attempt": 1
+    },
+    {
+      "bench": "cnmo2024",
+      "gpu": 5,
+      "exit_code": 0,
+      "pass@1": 0.1205,
+      "duration_min": 132.35,
+      "attempt": 1
+    },
+    {
+      "bench": "math500",
+      "gpu": 2,
+      "exit_code": 0,
+      "pass@1": 0.438,
+      "duration_min": 301.26,
+      "attempt": 1
+    },
+    {
+      "bench": "gsm8k",
+      "gpu": 1,
+      "exit_code": 0,
+      "pass@1": 0.671,
+      "duration_min": 393.96,
+      "attempt": 1
+    },
+    {
+      "bench": "omni_math",
+      "gpu": 7,
+      "exit_code": 0,
+      "pass@1": 0.514,
+      "duration_min": 774.43,
+      "attempt": 1
+    },
+    {
+      "bench": "mmlu",
+      "gpu": 3,
+      "exit_code": 0,
+      "pass@1": 0.5287,
+      "duration_min": 113.4,
+      "attempt": 1
+    }
+  ]
+}

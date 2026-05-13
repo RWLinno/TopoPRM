@@ -27,6 +27,7 @@ from datasets import load_dataset
 from peft import PeftModel
 from safetensors.torch import load_file as safe_load_file
 from safetensors.torch import save_file as safe_save_file
+from sympy import simplify, sympify
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from src.eval.unified_benchmark import evaluate_predictions
@@ -48,34 +49,45 @@ def _strip_answer_tag(text: str) -> str:
 def extract_number(text: str) -> str | None:
     """Extract the final numeric answer from a math-style response.
 
-    Priority: <answer> tag > #### > \\boxed{} > last number.
+    Priority: <answer> tag > #### > \\boxed{} > explicit answer phrases > fallback.
+    The returned value may be a symbolic expression (e.g. "\\frac{14}{3}").
     """
     text = _strip_answer_tag(text)
+    text = text.replace("\\left", "").replace("\\right", "")
+    text = re.sub(r"\\text\{([^{}]*)\}", r"\1", text)
+
+    candidates: list[str] = []
     # GSM8K #### gold format
-    m = re.search(r"####\s*([+-]?\d[\d,]*\.?\d*)", text)
+    m = re.search(r"####\s*([^\n]+)", text)
     if m:
-        return m.group(1).replace(",", "").strip()
+        candidates.append(m.group(1).strip())
     # MATH \boxed{...} (handle nested braces best-effort)
     m = re.search(r"\\boxed\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}", text)
     if m:
-        inner = m.group(1).strip()
-        # Further extract a numeric if possible, else return inner
-        num = re.search(r"[-+]?\d*\.?\d+(?:/\d+)?", inner)
-        if num:
-            return num.group(0).replace(",", "")
-        return inner
+        candidates.append(m.group(1).strip())
     # Phrase patterns ("The answer is 42.", "answer = 42")
     for pat in (
-        r"[Tt]he\s+(?:final\s+)?answer\s+is\s*[:=]?\s*([+-]?\d[\d,]*\.?\d*)",
-        r"[Aa]nswer\s*[:=]\s*([+-]?\d[\d,]*\.?\d*)",
+        r"[Tt]he\s+(?:final\s+)?answer\s+is\s*[:=]?\s*([^\n;]+)",
+        r"[Aa]nswer\s*[:=]\s*([^\n;]+)",
     ):
         m = re.search(pat, text)
         if m:
-            out = m.group(1).replace(",", "").rstrip(".")
+            candidates.append(m.group(1).strip())
+    # Last symbolic/number-like token anywhere
+    exprs = re.findall(
+        r"\\frac\{[^{}]+\}\{[^{}]+\}|"
+        r"\([^\(\)\n]*,[^\(\)\n]*\)|"
+        r"[+-]?\d[\d,]*\.?\d*(?:/\d+)?",
+        text,
+    )
+    if exprs:
+        candidates.append(exprs[-1].strip())
+    for c in candidates:
+        # Keep tuple separators while still normalizing thousands separators.
+        out = re.sub(r"(?<=\d),(?=\d)", "", c).strip().rstrip(".")
+        if out:
             return out
-    # Last number anywhere
-    nums = re.findall(r"[+-]?\d[\d,]*\.?\d*", text)
-    return nums[-1].replace(",", "").rstrip(".") if nums else None
+    return None
 
 
 def normalize_answer(ans: str) -> str:
@@ -110,6 +122,47 @@ def normalize_answer(ans: str) -> str:
 def answers_match_numeric(pred: str | None, gold: str) -> bool:
     if pred is None:
         return False
+    pr = str(pred).strip()
+    gr = str(gold).strip()
+
+    def _latex_to_sympy(expr: str) -> str:
+        expr = expr.strip()
+        expr = expr.replace("\\left", "").replace("\\right", "")
+        expr = re.sub(r"\\text\{([^{}]*)\}", r"\1", expr)
+        expr = re.sub(r"\\frac\{([^{}]+)\}\{([^{}]+)\}", r"(\1)/(\2)", expr)
+        expr = expr.replace("^", "**")
+        expr = expr.replace("{", "(").replace("}", ")")
+        expr = expr.replace("$", "").replace("\\,", "")
+        return expr.strip()
+
+    def _parse_seq(expr: str) -> list[str]:
+        s = _latex_to_sympy(expr)
+        if s.startswith("(") and s.endswith(")") and "," in s:
+            inner = s[1:-1]
+            return [x.strip() for x in inner.split(",")]
+        if s.startswith("[") and s.endswith("]") and "," in s:
+            inner = s[1:-1]
+            return [x.strip() for x in inner.split(",")]
+        return []
+
+    def _sym_equal(a: str, b: str) -> bool:
+        try:
+            ea = sympify(_latex_to_sympy(a))
+            eb = sympify(_latex_to_sympy(b))
+            return bool(simplify(ea - eb) == 0)
+        except Exception:
+            return False
+
+    ap = _parse_seq(pr)
+    ag = _parse_seq(gr)
+    if ap or ag:
+        if len(ap) != len(ag) or not ap:
+            return False
+        return all(_sym_equal(x, y) or normalize_answer(x) == normalize_answer(y) for x, y in zip(ap, ag))
+
+    if _sym_equal(pr, gr):
+        return True
+
     pn = normalize_answer(pred)
     gn = normalize_answer(gold)
     if not pn or not gn:
@@ -119,13 +172,54 @@ def answers_match_numeric(pred: str | None, gold: str) -> bool:
     try:
         return abs(float(pn) - float(gn)) < 1e-4
     except Exception:
-        return False
+        pass
+
+    return _sym_equal(pn, gn)
 
 
 def extract_mcq(text: str) -> str | None:
-    """Extract multi-choice (A/B/C/D/E) answer from model output."""
+    """Extract multi-choice (A/B/C/D/E) answer from model output.
+
+    Order:
+      1) <answer>X</answer> block content (sft_style outputs land here).
+      2) Explicit phrase/boxed patterns.
+      3) Last single-letter token A-E.
+
+    NOTE (TODO 2026-05-11): When sft_style=True the model wraps reasoning in
+    <think>...</think><answer>...</answer>; if the <answer> block contains a
+    full sentence like "The answer is A.", we now recurse so the explicit-
+    pattern stage catches it. MMLU still has corner cases (multiple letters
+    cited inside reasoning when <answer> is absent), tracked in
+    docs/2026-05-11-experiment-resync.md.
+    """
+    answer_block = re.search(r"<answer>(.*?)</answer>", text, re.DOTALL)
+    if answer_block:
+        block = answer_block.group(1).strip()
+        for pat in (
+            r"^\s*\(?([A-E])\)?\s*$",
+            r"\\boxed\{\s*([A-E])\s*\}",
+            r"[Tt]he\s+(?:correct\s+)?answer\s+is\s*[:=]?\s*\(?([A-E])\)?",
+            r"[Aa]nswer\s*[:=]\s*\(?([A-E])\)?",
+            r"\b([A-E])\b",
+        ):
+            m = re.search(pat, block, re.MULTILINE)
+            if m:
+                return m.group(1).upper()
+
     text = _strip_answer_tag(text)
-    # Explicit patterns first
+    # Search concluding patterns from the tail first (last ~400 chars),
+    # so a CoT listing like "A is wrong... the answer is C" picks C not A.
+    tail = text[-400:] if len(text) > 400 else text
+    for pat in (
+        r"\\boxed\{\s*([A-E])\s*\}",
+        r"[Ff]inal\s+answer\s*(?:is)?\s*[:=]?\s*\(?([A-E])\)?",
+        r"[Tt]he\s+(?:correct\s+)?answer\s+is\s*[:=]?\s*\(?([A-E])\)?",
+        r"[Aa]nswer\s*[:=]\s*\(?([A-E])\)?",
+        r"(?:choose|pick|select|option)\s+\(?([A-E])\)?",
+    ):
+        matches = list(re.finditer(pat, tail, re.MULTILINE))
+        if matches:
+            return matches[-1].group(1).upper()
     for pat in (
         r"\\boxed\{\s*([A-E])\s*\}",
         r"[Tt]he\s+(?:correct\s+)?answer\s+is\s*[:=]?\s*\(?([A-E])\)?",
@@ -133,12 +227,13 @@ def extract_mcq(text: str) -> str | None:
         r"^\s*\(?([A-E])\)?\s*$",
         r"\b([A-E])\)\s",
     ):
-        m = re.search(pat, text, re.MULTILINE)
-        if m:
-            return m.group(1).upper()
-    # Last-resort single capital letter
-    m = re.search(r"\b([A-E])\b", text)
-    return m.group(1).upper() if m else None
+        matches = list(re.finditer(pat, text, re.MULTILINE))
+        if matches:
+            return matches[-1].group(1).upper()
+    # As a last resort, take the LAST A-E letter in the output rather than
+    # the first, since reasoning traces often restate wrong options earlier.
+    letters = re.findall(r"\b([A-E])\b", text)
+    return letters[-1].upper() if letters else None
 
 
 def answers_match_mcq(pred: str | None, gold: str) -> bool:
@@ -352,20 +447,41 @@ def load_cnmo() -> list[dict]:
 
 
 def _load_math_by_levels(levels: list[int], source_name: str) -> list[dict]:
-    """Load MATH rows filtered by level; gold from 'answer' field."""
+    """Load MATH rows filtered by level; gold from 'answer'/'Answer' field.
+
+    Accepts both lowercase (`problem`/`answer`) and the capitalized
+    (`Problem`/`Answer`) schema produced by scripts/download_benchmarks.py.
+    Level may be an int ("1".."5") or a string like "Level 5".
+    """
     local = Path("data/benchmarks/MATH/test.jsonl")
     if not local.exists():
         return []
     rows = _load_jsonl(local)
+
+    def _normalize_level(raw):
+        if raw is None:
+            return None
+        if isinstance(raw, int):
+            return raw
+        s = str(raw)
+        m = re.search(r"(\d+)", s)
+        return int(m.group(1)) if m else None
+
+    levels_set = set(levels)
     items = []
     for r in rows:
-        if r.get("level") not in levels:
+        lvl = _normalize_level(r.get("level"))
+        if lvl not in levels_set:
             continue
-        q = r.get("problem", r.get("question", ""))
-        gold = r.get("answer", "")
-        if not str(gold).strip():
+        q = r.get("Problem", r.get("problem", r.get("question", "")))
+        gold_raw = r.get("Answer", r.get("answer", ""))
+        gold = str(gold_raw)
+        m = re.search(r"\\boxed\{([^}]+)\}", gold)
+        if m:
+            gold = m.group(1).strip()
+        if not gold.strip():
             continue
-        items.append({"question": str(q), "gold": str(gold), "source": source_name})
+        items.append({"question": str(q), "gold": gold, "source": source_name})
     return items
 
 
@@ -410,10 +526,12 @@ def _format_mmlu_q(row) -> tuple[str, str]:
     choices = row.get("choices", [])
     if not choices and "options" in row:
         choices = row["options"]
-    q = row.get("question", "")
+    q = row.get("question") or row.get("Problem") or row.get("problem") or ""
     opts = "\n".join(f"{chr(65+i)}. {c}" for i, c in enumerate(choices))
     q_text = f"{q}\n\n{opts}"
-    gold = row.get("answer", "")
+    gold = row.get("answer")
+    if gold is None:
+        gold = row.get("Answer", "")
     if isinstance(gold, int):
         gold = "ABCDE"[gold] if 0 <= gold < 5 else str(gold)
     return q_text, str(gold)
@@ -453,7 +571,13 @@ def load_gpqa_diamond() -> list[dict]:
         import random
         items = []
         for r in rows:
-            q = str(r.get("question", r.get("Question", "")))
+            q = str(
+                r.get("question")
+                or r.get("Question")
+                or r.get("Problem")
+                or r.get("problem")
+                or ""
+            )
             correct = str(r.get("answer", r.get("Correct Answer", "")))
             opts = [
                 correct,
@@ -734,6 +858,7 @@ def run_benchmark(
     fewshot: bool = False,
     temperature: float = 0.7,
     top_p: float = 0.95,
+    save_solutions: bool = False,
 ) -> tuple[dict, list[dict]]:
     if k_values is None:
         k_values = [1, 5]
@@ -846,6 +971,13 @@ def run_benchmark(
             ),
             "prm_scores": prm_scores,
         })
+        if save_solutions:
+            # Full generated text for DAG extraction / qualitative analysis.
+            # "response" = first sample (used for pass@1); "responses_all" = every
+            # sample when num_samples_per_item > 1.
+            results[-1]["response"] = raw_preds[0] if raw_preds else ""
+            if len(raw_preds) > 1:
+                results[-1]["responses_all"] = list(raw_preds)
 
     gold_answers = [str(it["gold"]) for it in items]
     metrics = evaluate_predictions(
@@ -892,9 +1024,13 @@ def main():
     parser.add_argument("--model", required=True)
     parser.add_argument("--adapter", default="")
     parser.add_argument("--label", required=True)
-    parser.add_argument("--benchmarks", nargs="+", default=["gsm8k", "math500"])
+    parser.add_argument("--benchmarks", nargs="+", default=["gsm8k", "math500"],
+                        help="Benchmarks to evaluate. mmlu is intentionally NOT in the default. "
+                             "When using --sft_style, mmlu/gpqa_diamond require a different MCQ "
+                             "extractor (TODO: parse <answer>X</answer> blocks); the runner will "
+                             "auto-skip mmlu in sft_style mode unless --allow_mmlu_sft_style is set.")
     parser.add_argument("--batch_size", type=int, default=4)
-    parser.add_argument("--max_new_tokens", type=int, default=1024)
+    parser.add_argument("--max_new_tokens", type=int, default=8192)
     parser.add_argument("--num_samples_per_item", type=int, default=1)
     parser.add_argument("--k_values", nargs="+", type=int, default=[1, 5])
     parser.add_argument("--max_items", type=int, default=0)
@@ -907,9 +1043,33 @@ def main():
                         help="Prepend 1-3 few-shot CoT demonstrations")
     parser.add_argument("--temperature", type=float, default=0.7)
     parser.add_argument("--top_p", type=float, default=0.95)
+    parser.add_argument(
+        "--save_solutions",
+        action="store_true",
+        help="Also write the full model response (raw <think>...<answer>) to "
+        "each row of <label>_<bench>_details.jsonl as 'response'. Required "
+        "for tutorials/render_dag_cases.py --from-rollout.",
+    )
     parser.add_argument("--force_overwrite", action="store_true",
                         help="Re-run even if <label>_<bench>_metrics.json already exists")
+    parser.add_argument("--allow_mmlu_sft_style", action="store_true",
+                        help="Override the safety skip for MMLU when sft_style=True. "
+                             "Known issue: chat+sft_style on MCQ benches produces verbose <think>/<answer> "
+                             "outputs that extract_mcq cannot parse, yielding ~0%% accuracy. "
+                             "Until the MCQ extractor is taught to consume <answer>...</answer> blocks, "
+                             "we skip mmlu by default in sft_style runs. See "
+                             "docs/2026-05-11-experiment-resync.md for the open TODO.")
     args = parser.parse_args()
+
+    if args.sft_style and not args.allow_mmlu_sft_style:
+        mmlu_in = [b for b in args.benchmarks if b == "mmlu"]
+        if mmlu_in:
+            print("[warn] sft_style=True + benchmark=mmlu is known to extract 0%% with the "
+                  "current MCQ extractor; skipping. Pass --allow_mmlu_sft_style to override.")
+            args.benchmarks = [b for b in args.benchmarks if b != "mmlu"]
+            if not args.benchmarks:
+                print("[skip-all] only mmlu was requested and it was filtered out; exiting.")
+                return
 
     # Skip-if-exists pre-filter: drop benches whose metrics.json already exists,
     # unless --force_overwrite is set.  If this empties the list we exit early
@@ -984,6 +1144,7 @@ def main():
             fewshot=args.fewshot,
             temperature=args.temperature,
             top_p=args.top_p,
+            save_solutions=args.save_solutions,
         )
         elapsed = time.time() - t0
 

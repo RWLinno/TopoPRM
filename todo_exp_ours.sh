@@ -23,7 +23,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --help|-h)
-            echo "Usage: bash todo_exp_ours.sh [--phase all|invariants|archive|data|train|eval|sync] [--mode ours|legacy]"
+            echo "Usage: bash todo_exp_ours.sh [--phase all|invariants|archive|data|train|eval|sync] [--mode ours|legacy|v2]"
             exit 0
             ;;
         *)
@@ -35,6 +35,19 @@ done
 
 export PATH="/mnt/users/conda_env/${CONDA_ENV}/bin:$PATH"
 mkdir -p logs output/eval output/analysis
+
+# ─── v2 mode: load all P0–P5 patch env vars ───────────────────────────────
+if [[ "$MODE" == "v2" ]]; then
+    V2_ENV="configs/grpo_topoprm_v2.env"
+    if [[ -f "$V2_ENV" ]]; then
+        set -a
+        # shellcheck disable=SC1090
+        source <(grep -v '^\s*#' "$V2_ENV" | grep -v '^\s*$')
+        set +a
+    fi
+    echo "[mode=v2] All P0–P5 patches loaded from $V2_ENV"
+fi
+# ───────────────────────────────────────────────────────────────────────────
 
 echo "============================================================"
 echo "TopoPRM Unified Orchestrator"

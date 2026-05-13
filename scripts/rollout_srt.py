@@ -45,16 +45,19 @@ def load_prompts(path: Path, max_n: int = 0) -> list[dict[str, Any]]:
                 continue
             d = json.loads(line)
             messages = d.get("messages", [])
-            # Extract user question from last user message
+            # Extract user question from last user message.
             user_text = ""
             for m in messages:
                 if m.get("role") == "user":
                     user_text = m.get("content", "")
             if not user_text:
+                # Support public GRPO records with a direct "question" field.
+                user_text = d.get("question", "")
+            if not user_text:
                 continue
             out.append({
                 "problem": user_text,
-                "solution": d.get("solution", ""),
+                "solution": d.get("solution", d.get("standard_answer", d.get("final_answer", ""))),
                 "reference_dag": d.get("reference_dag"),
             })
             if max_n and len(out) >= max_n:

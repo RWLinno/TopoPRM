@@ -2,8 +2,8 @@
 # Input: data/srt_ready/train.jsonl (output of src/distill/build_srt_data.py)
 # - Each record is a full chat turn with either revision or generation loss tag
 # - Both loss types are summed per Eq. eq:srt (equal weight)
-model: /mnt/data/huggingface_downloads/models/qwen/Qwen3.5-9B
-resume_from_checkpoint: output/sft_qwen35_9b/v0-20260407-011328/checkpoint-626
+model: /Knowin/foundation/weilinruan/hf_models/Qwen/Qwen3.5-9B
+resume_from_checkpoint: ""
 
 dataset:
   - data/srt_ready/train.jsonl
@@ -30,6 +30,7 @@ save_steps: 100
 save_total_limit: 3
 report_to:
   - tensorboard
+  - wandb
 logging_steps: 10
 
 output_dir: output/srt_9b

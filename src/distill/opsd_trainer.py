@@ -87,10 +87,13 @@ def load_prompts(path: Path, split: str, max_n: int = 0) -> list[dict]:
         msgs = d.get("messages", [])
         user_text = next((m["content"] for m in msgs if m.get("role") == "user"), "")
         if not user_text:
+            # Support public GRPO records with a direct "question" field.
+            user_text = d.get("question", "")
+        if not user_text:
             continue
         out.append({
             "problem": user_text,
-            "solution": d.get("solution", ""),
+            "solution": d.get("solution", d.get("standard_answer", d.get("final_answer", ""))),
             "reference_dag": d.get("reference_dag"),
         })
         if max_n and len(out) >= max_n:

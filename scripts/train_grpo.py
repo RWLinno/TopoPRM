@@ -10,6 +10,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+from datetime import datetime
 import json
 import os
 import sys
@@ -24,7 +25,10 @@ from trl import GRPOConfig, GRPOTrainer
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from src.reward.composite_reward import TopoHierarchicalReward
 
-MODEL_ID = "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
+MODEL_ID = os.getenv(
+    "TOPOPRM_BASE_MODEL",
+    "/Knowin/foundation/weilinruan/hf_models/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+)
 DATA_PATH = "data/grpo_ready/train_public.jsonl"
 OUTPUT_DIR = "output/grpo_topoprm_deepseek_r1_7b"
 MAX_COMPLETION_LEN = 4096
@@ -60,17 +64,24 @@ def reward_function(completions: list[str], **kwargs) -> list[float]:
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--model", default=MODEL_ID, help="Base model path or HF model id")
     parser.add_argument("--sft_adapter", default="", help="Path to SFT LoRA adapter")
+    parser.add_argument("--report_to", default="wandb", help="Trainer report target")
+    parser.add_argument("--max_steps", type=int, default=200, help="Training max steps")
+    parser.add_argument("--num_generations", type=int, default=4, help="Number of generations per prompt")
+    parser.add_argument("--max_completion_len", type=int, default=MAX_COMPLETION_LEN, help="Max completion tokens")
     args = parser.parse_args()
 
-    print(f"Loading tokenizer: {MODEL_ID}")
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, trust_remote_code=True)
+    run_name = f"grpo_dr1_7b_topoprm_{datetime.now().strftime('%m%d')}"
+
+    print(f"Loading tokenizer: {args.model}")
+    tokenizer = AutoTokenizer.from_pretrained(args.model, trust_remote_code=True)
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
 
-    print(f"Loading model: {MODEL_ID}")
+    print(f"Loading model: {args.model}")
     model = AutoModelForCausalLM.from_pretrained(
-        MODEL_ID,
+        args.model,
         torch_dtype=torch.bfloat16,
         device_map="auto",
         trust_remote_code=True,
@@ -95,9 +106,9 @@ def main():
 
     grpo_config = GRPOConfig(
         output_dir=OUTPUT_DIR,
-        max_completion_length=MAX_COMPLETION_LEN,
-        num_generations=4,
-        max_steps=200,
+        max_completion_length=args.max_completion_len,
+        num_generations=args.num_generations,
+        max_steps=args.max_steps,
         per_device_train_batch_size=1,
         gradient_accumulation_steps=4,
         learning_rate=5e-6,
@@ -106,7 +117,8 @@ def main():
         save_steps=50,
         bf16=True,
         gradient_checkpointing=True,
-        report_to="none",
+        report_to=args.report_to,
+        run_name=run_name,
         remove_unused_columns=False,
     )
 

@@ -1,0 +1,71 @@
+# DAPO — Decoupled clip and dynamic sampling for GRPO
+# Paper: https://arxiv.org/abs/2503.14476
+# Entry: scripts/run_swift_rlhf.sh dapo_dr1_7b
+#
+# DAPO is a drop-in variant of GRPO. In ms-swift it's selected by:
+#   --rlhf_type grpo  --loss_type dapo  --epsilon_high 0.28
+# plus dynamic sampling (drop std=0 groups) and token-level normalization.
+#
+# We deliberately mirror grpo_hierarchical_qwen25_7b.yaml hyperparameters so
+# the comparison Base / +SFT / +GRPO / +DAPO / +OPD / +TopoPRM is
+# apples-to-apples.
+
+model: /Knowin/foundation/weilinruan/hf_models/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
+
+dataset:
+  - data/grpo_ready/train_public.jsonl
+
+# DAPO selection ------------------------------------------------------------
+loss_type: dapo
+epsilon: 0.20          # low clip
+epsilon_high: 0.28     # higher upper clip — the "Decoupled clip" in DAPO
+# Dynamic sampling: drop groups whose reward std == 0 so gradient signal is
+# preserved. ms-swift flag name:
+dynamic_sampling: true
+
+# Reward: start from outcome-only so the DAPO vs TopoPRM comparison stays
+# clean. Flip to topo_hierarchical if you want DAPO+TopoPRM joint ablation.
+external_plugins:
+  - src/reward/composite_reward.py
+reward_funcs:
+  - outcome_only
+
+num_generations: 4
+temperature: 0.8
+max_completion_length: 1024
+top_p: 0.95
+
+use_vllm: true
+vllm_mode: colocate
+vllm_gpu_memory_utilization: 0.6
+vllm_max_model_len: 5120
+vllm_enable_prefix_caching: false
+sleep_level: 1
+offload_model: true
+offload_optimizer: true
+
+train_type: lora
+lora_rank: 64
+lora_alpha: 128
+target_modules: all-linear
+lora_dropout: 0.05
+
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+learning_rate: 5e-6
+num_train_epochs: 1
+lr_scheduler_type: cosine
+warmup_ratio: 0.05
+weight_decay: 0.01
+max_length: 4096
+bf16: true
+gradient_checkpointing: true
+
+save_steps: 50
+save_total_limit: 3
+report_to:
+  - tensorboard
+  - wandb
+logging_steps: 5
+
+output_dir: output/dapo_dr1_7b

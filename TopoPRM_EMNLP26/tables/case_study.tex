@@ -1,0 +1,24 @@
+% Table: Case study — teacher vs \framework student reasoning traces.
+\begin{table}[!htb]
+\centering
+\caption{Case study comparing teacher and \framework-student traces on the same prompt.}
+\label{tab:case_study}
+\vspace{2pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}p{2.2cm} p{5.5cm} p{5.5cm}@{}}
+\toprule
+& \textbf{Teacher (TopoPRM)} & \textbf{Student (\framework)} \\
+\midrule
+Problem & \multicolumn{2}{p{11cm}}{High-school algebra problem requiring multi-step substitution and verification (same prompt hash for both rows).} \\
+\midrule
+\# Steps & {$\sim$}14 & {$\sim$}9 \\
+\# Tokens & {$\sim$}612 & {$\sim$}428 \\
+Score-Acc & {$\sim$}0.93 & {$\sim$}0.91 \\
+\midrule
+Key reasoning &
+  Core conclusion supported by an explicit minimal chain of derivations and substitutions. &
+  Preserves key support edges while compressing redundant branches and intermediate restatements. \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

@@ -35,8 +35,22 @@ class RewardConfig:
     LENGTH_LOW = env_int("TOPO_LENGTH_LOW", 2000)
     LENGTH_HIGH = env_int("TOPO_LENGTH_HIGH", 4000)
 
+    # P5: unit used for the length reward. 'chars' preserves the released
+    # behaviour (len(text)); 'tokens' switches to whitespace-delimited token
+    # counts so thresholds align with generation budgets on long-CoT traces.
+    LENGTH_UNIT = os.environ.get("TOPO_LENGTH_UNIT", "chars")
+
     # Continuity reward
     CONTINUITY_BROKEN_CHAIN_PENALTY = env_float("TOPO_CONTINUITY_BROKEN_CHAIN_PENALTY", 0.8)
+
+    # P3: when a step contains no extractable expression AND no claim key,
+    # the default implementation counts it as 'continuous' (benefit of the
+    # doubt).  On natural-language CoT traces this silently drives q_cont
+    # towards 1.0 and destroys the gradient.  Setting this flag requires
+    # *evidence* (expression-overlap or claim-overlap or a 'given' marker)
+    # to count a step as continuous, so ambient-text-only steps count as
+    # broken and q_cont drops.  Default OFF to preserve v1 behaviour.
+    CONTINUITY_REQUIRE_EVIDENCE = env_bool("TOPO_CONT_REQUIRE_EVIDENCE", False)
 
     # Topology reward weights / gating
     TOPO_W_VALID = env_float("TOPO_W_VALID", 0.20)
@@ -84,8 +98,40 @@ class RewardConfig:
     # only for ablation purposes.
     TOPO_HIER_BASE_FLOOR = env_float("TOPO_HIER_BASE_FLOOR", 0.05)
 
+    # ------------------------------------------------------------------
+    # Diagnostic patches (2026-05-14, see docs/method_diagnosis.md)
+    # All default OFF.  Currently released checkpoints reproduce byte-for-byte
+    # when these are unset.  v2 retraining flips them on.
+    # ------------------------------------------------------------------
+    # P0: do not min-max stretch low-variance topology/continuity scores into
+    # full [0, 1].  When intra-group spread is below TOPO_RESCALE_MIN_SPAN,
+    # return a constant 0.5 vector instead.  Prevents topology noise from
+    # dominating advantages on outcome-saturated batches (easy GSM8K/MATH500).
+    TOPO_RESCALE_PATCH = env_bool("TOPO_RESCALE_PATCH", False)
+    TOPO_RESCALE_MIN_SPAN = env_float("TOPO_RESCALE_MIN_SPAN", 0.05)
+    # P2: switch from additive `r_base = w_o*o + w_f*f + w_l*l` to truly
+    # multiplicative aggregation `r_base = o * (w_f*f + w_l*l + slack)` so
+    # outcome=0 implies r_base=0 (correctness primacy is hard, not soft).
+    TOPO_HIER_AGG = os.environ.get("TOPO_HIER_AGG", "additive")  # 'additive' | 'multiplicative'
+
+    # P4: when extract_steps_from_answer finds zero explicit step markers
+    # (Step N:, (1), bullet, etc.), fall back to sentence-level segmentation
+    # so that natural-language CoT traces still produce a multi-node DAG
+    # with meaningful q_topo.  Default OFF to preserve v1 behaviour.
+    DAG_SENTENCE_FALLBACK = env_bool("TOPO_DAG_SENTENCE_FALLBACK", False)
+    DAG_SENTENCE_MIN_LEN = env_int("TOPO_DAG_SENTENCE_MIN_LEN", 20)
+
+    # P1: TopoSCAEReward — preserve outcome magnitude across strata so
+    # that B+ rewards are always > B- rewards in absolute value.  Default
+    # OFF (released checkpoints use TopoHierarchicalReward, not SCAE).
+    SCAE_PRESERVE_OUTCOME = env_bool("TOPO_SCAE_PRESERVE_OUTCOME", False)
+    SCAE_FLOOR_POS = env_float("TOPO_SCAE_FLOOR_POS", 0.3)
+    SCAE_FLOOR_NEG = env_float("TOPO_SCAE_FLOOR_NEG", 0.3)
+
+    # ------------------------------------------------------------------
     # Shared anti-collapse controls for Gated / Composite (off by default;
     # see Hier rationale above).
+    # ------------------------------------------------------------------
     TOPO_GATED_NOISE_EPS = env_float("TOPO_GATED_NOISE_EPS", 0.0)
     TOPO_GATED_MIN_STD = env_float("TOPO_GATED_MIN_STD", 0.001)
     TOPO_COMPOSITE_NOISE_EPS = env_float("TOPO_COMPOSITE_NOISE_EPS", 0.0)

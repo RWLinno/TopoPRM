@@ -1,0 +1,110 @@
+% =============================================================================
+% Appendix table: detailed unified metrics (pass@1/pass@5/maj@5/prm@5/tokens)
+% on GSM8K, MATH-500, AIME'24, Omni-MATH.
+% All numbers come from output/eval/<label>_<bench>_metrics.json (eval 2026-05-09 .. 2026-05-12).
+% The "Acc/kTok" column is 100 * pass@1 / (avg_tokens / 1000), i.e. accuracy
+% points per 1,000 generation tokens (higher = more token-efficient).
+% =============================================================================
+\begin{table*}[!htb]
+\centering
+\caption{Detailed unified metrics across our measured configurations
+(\texttt{num\_samples}=5, native chat template, same extractor). \textbf{Cor}
+= correct count; \textbf{Err} = error count; \textbf{Tok} = mean generation
+tokens; \textbf{Acc/kTok} = pass@1 points per 1\,000 tokens (higher is more
+token-efficient). Best within each block in \textbf{bold}.}
+\label{tab:unified_metrics}
+\vspace{2pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l c c c c c c c c c@{}}
+\toprule
+& & \multicolumn{8}{c}{\textbf{GSM8K}} \\
+\cmidrule(lr){3-10}
+\textbf{Model} & \textbf{Params}
+  & pass@1 & pass@5 & maj@5 & prm@5 & F1 & Cor/Err & Tok & Acc/kTok \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{10}{@{}l}{\textit{DR1-7B family}} \\
+DR1-7B (base, measured)              & 7B & 60.8           & 80.8           & 64.2           & 60.8           & 60.8 & 800/519  & 617 & 98.5  \\
+\quad + SFT                          & 7B & 73.8           & 91.5           & 80.2           & 73.7           & 73.8 & 970/349  & 634 & 116.4 \\
+\quad + GRPO (outcome-only)          & 7B & \textbf{85.1}  & 94.0           & \textbf{88.3}  & \textbf{85.1}  & 85.1 & 1120/199 & 674 & 126.3 \\
+\quad + GRPO (w/o topology)          & 7B & 84.5           & 93.9           & 87.5           & 84.5           & 84.5 & 1113/206 & 686 & 123.2 \\
+\quad + GRPO (w/o continuity)        & 7B & \textbf{85.1}  & \textbf{94.2}  & 87.9           & 85.1           & 85.1 & 1121/198 & 640 & \underline{133.0} \\
+\rowcolor{blue!5}
+\quad + TopoPRM (hierarchical)       & 7B & 84.3           & 93.6           & 88.3           & 84.3           & 84.3 & 1110/209 & 679 & 124.2 \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{10}{@{}l}{\textit{9B family (our unified protocol)}} \\
+Qwen3.5-9B (base)                    & 9B & 67.1           & --             & --             & --             & 67.1 & 850/469  & 1536 & 43.7 \\
+\bottomrule
+\end{tabular}%
+}
+\vspace{6pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l c c c c c c c c c@{}}
+\toprule
+& & \multicolumn{8}{c}{\textbf{MATH-500}} \\
+\cmidrule(lr){3-10}
+\textbf{Model} & \textbf{Params}
+  & pass@1 & pass@5 & maj@5 & prm@5 & F1 & Cor/Err & Tok & Acc/kTok \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{10}{@{}l}{\textit{DR1-7B family}} \\
+DR1-7B (base, measured)              & 7B & \textbf{68.4}  & 70.6           & 67.4           & \textbf{68.4}  & 68.4 & 322/178 & 4957 & 13.8 \\
+\quad + SFT                          & 7B & 36.8           & 54.8           & 43.4           & 36.8           & 36.8 & 185/315 & 3731 & 9.9  \\
+\quad + GRPO (outcome-only)          & 7B & 67.4           & 72.6           & 67.4           & 67.4           & 67.4 & 318/182 & 6001 & 11.2 \\
+\quad + GRPO (w/o topology)          & 7B & \textbf{68.8}  & \textbf{73.2}  & \textbf{68.8}  & \textbf{68.8}  & 68.8 & 324/176 & 5973 & 11.5 \\
+\quad + GRPO (w/o continuity)        & 7B & 66.4           & 71.8           & 67.8           & 66.4           & 66.4 & 312/188 & 6088 & 10.9 \\
+\rowcolor{blue!5}
+\quad + TopoPRM (hierarchical)       & 7B & 66.6           & 72.8           & 68.2           & 66.6           & 66.6 & 314/186 & 6053 & 11.0 \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{10}{@{}l}{\textit{9B family (our unified protocol)}} \\
+Qwen3.5-9B (base)                    & 9B & 43.8           & --             & --             & --             & 43.8 & 203/297 & 3072 & 14.3 \\
+\bottomrule
+\end{tabular}%
+}
+\vspace{6pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l c c c c c c c c c@{}}
+\toprule
+& & \multicolumn{8}{c}{\textbf{AIME 2024}} \\
+\cmidrule(lr){3-10}
+\textbf{Model} & \textbf{Params}
+  & pass@1 & pass@5 & maj@5 & prm@5 & F1 & Cor/Err & Tok & Acc/kTok \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{10}{@{}l}{\textit{DR1-7B family}} \\
+DR1-7B (base, measured)              & 7B & 46.7           & \textbf{46.7}  & 36.7           & 46.7           & 46.7 & 10/20 & 8138 & 5.7 \\
+\quad + SFT                          & 7B & 0.0            & 3.3            & 0.0            & 0.0            & 0.0  & 0/30  & 4301 & 0.0 \\
+\quad + GRPO (outcome-only)          & 7B & 46.7           & 36.7           & 33.3           & 46.7           & 46.7 & 9/21  & 8192 & 5.7 \\
+\quad + GRPO (w/o topology)          & 7B & 36.7           & \textbf{46.7}  & 33.3           & 36.7           & 36.7 & 8/22  & 8192 & 4.5 \\
+\quad + GRPO (w/o continuity)        & 7B & 36.7           & 40.0           & 33.3           & 36.7           & 36.7 & 8/22  & 8192 & 4.5 \\
+\rowcolor{blue!5}
+\quad + TopoPRM (hierarchical)       & 7B & \textbf{50.0}  & 40.0           & 33.3           & \textbf{50.0}  & 50.0 & 10/20 & 8192 & \textbf{6.1} \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{10}{@{}l}{\textit{9B family}} \\
+Qwen3.5-9B (base)                    & 9B & 6.7            & --             & --             & --             & 6.7  & 1/29  & 4096 & 1.6 \\
+\bottomrule
+\end{tabular}%
+}
+\vspace{6pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l c c c c c c c c c@{}}
+\toprule
+& & \multicolumn{8}{c}{\textbf{Omni-MATH (500 subset)}} \\
+\cmidrule(lr){3-10}
+\textbf{Model} & \textbf{Params}
+  & pass@1 & pass@5 & maj@5 & prm@5 & F1 & Cor/Err & Tok & Acc/kTok \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{10}{@{}l}{\textit{DR1-7B family}} \\
+DR1-7B (base, measured)              & 7B & \textbf{72.8}  & --             & --             & \textbf{72.8}  & 72.8 & 348/152 & 4720 & 15.4 \\
+\quad + SFT                          & 7B & 48.0           & --             & --             & 48.0           & 48.0 & 235/265 & 7114 & 6.7  \\
+\quad + GRPO (outcome-only)          & 7B & 72.0           & --             & --             & 72.0           & 72.0 & 347/153 & 3562 & \underline{20.2} \\
+\rowcolor{blue!5}
+\quad + TopoPRM (hierarchical)       & 7B & 72.2           & --             & --             & 72.2           & 72.2 & 348/152 & 3529 & \textbf{20.5} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}

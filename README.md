@@ -98,6 +98,91 @@ python3 scripts/bench_transformers.py --model deepseek-ai/DeepSeek-R1-Distill-Qw
   --label topoprm --use_chat_template --sft_style
 ```
 
+## Unified 9-Benchmark Evaluation (one-click, multi-GPU)
+
+Run the full nine-benchmark unified protocol in a single command. The
+orchestrator schedules `scripts/bench_transformers.py` across the GPUs
+you hand it, runs fast benches first so the paper table gets real
+numbers ASAP, retries failed benches once with reduced batch size, and
+writes a live status dashboard to `logs/unified/status_<LABEL>.json`.
+
+```bash
+# Base model (foreground)
+bash scripts/run_unified_eval.sh \
+    /Knowin/foundation/weilinruan/hf_models/Qwen/Qwen3.5-9B "" qwen35_9b_base
+
+# Base model (background; returns immediately)
+RUN_IN_BACKGROUND=1 GPUS=1,2,3,4,5,6,7 \
+    bash scripts/run_unified_eval.sh \
+    /Knowin/foundation/weilinruan/hf_models/Qwen/Qwen3.5-9B "" qwen35_9b_base
+
+# +SFT adapter (Qwen3.5-9B base + your adapter)
+SFT_STYLE=1 RUN_IN_BACKGROUND=1 \
+    bash scripts/run_unified_eval.sh \
+    /Knowin/foundation/weilinruan/hf_models/Qwen/Qwen3.5-9B \
+    output/sft_qwen35_9b/<run>/checkpoint-<N> qwen35_9b_sft
+
+# Monitor status (refreshes every 10s, Ctrl-C to exit)
+bash scripts/watch_unified_eval.sh qwen35_9b_base
+```
+
+Env overrides (all optional): `GPUS=1,2,3`, `BENCHMARKS="gsm8k math500"`,
+`NUM_SAMPLES=1`, `KS=1`, `FORCE=1` (re-run even if metrics.json exists),
+`SFT_STYLE=1`, `RUN_IN_BACKGROUND=1`.
+
+**Outputs**
+- Per-bench metrics: `output/eval/<LABEL>_<BENCH>_metrics.json` (`pass@1` is
+  the canonical number, already a fraction).
+- Per-bench details: `output/eval/<LABEL>_<BENCH>_details.jsonl`.
+- Per-bench stdout/stderr: `logs/unified/<LABEL>_<BENCH>.log`.
+- Orchestrator log + status: `logs/unified/orchestrator_<LABEL>_*.log` and
+  `logs/unified/status_<LABEL>.json`.
+
+**Benchmark cost ranking (Qwen3.5-9B on A100-80GB, single GPU per bench; measured 2026-05-12)**
+
+| bench          | size  | measured wall-clock | pass@1 (base) | notes                               |
+|----------------|-------|---------------------|---------------|-------------------------------------|
+| aime2024       | 30    | 46 min              | 6.7%          | every sample hits 4k tokens         |
+| aime2025       | 30    | 47 min              | 3.3%          | same, almost no correct answers     |
+| gpqa_diamond   | 198   | 58 min              | 27.3%         | MCQ, 1536 mnt                       |
+| mmlu (1500-cap)| 1500  | 2.1 h               | 52.9%         | 768 mnt; extractor updated          |
+| cnmo2024 (→AMC23) | 83 | 2.2 h               | 12.0%         | AMC23 proxy, 4k mnt                 |
+| gsm8k          | 1319  | ~5 h                | 67.1%         | batched, 1536 mnt                   |
+| math500        | 500   | ~5 h                | 43.8%         | 3072 mnt                            |
+| olympiadbench  | 500   | ≈12.9 h             | 29.8%         | 4k mnt, hardest tier                |
+| omni_math      | 500   | ≈12.9 h             | 51.4%         | 4k mnt                              |
+
+Caps are set via `BENCH_CONFIG` in
+`scripts/unified_eval_orchestrator.py` to keep wall-clock bounded.
+
+**Filling the paper table**
+
+After one or more benches complete, fold the real numbers into
+`topoprm_paper/tables/public_results_unified.tex`:
+
+```bash
+# Dry-run preview
+python3 scripts/fill_paper_table.py --label qwen35_9b_base --row "Qwen3.5-9B (base)"
+
+# Apply changes
+python3 scripts/fill_paper_table.py --label qwen35_9b_base --row "Qwen3.5-9B (base)" --write
+python3 scripts/fill_paper_table.py --label qwen35_9b_sft  --row "+ SFT"             --write
+```
+
+Only benches with a real `<label>_<bench>_metrics.json` are touched; the
+script refuses to overwrite a cell it can't back up with a JSON.
+
+**Cleanup**
+
+Once results are filled, prune failed/stale logs while preserving
+auditable evidence (anything with a matching `metrics.json`):
+
+```bash
+bash scripts/cleanup_unified_logs.sh            # dry-run
+CONFIRM=1 bash scripts/cleanup_unified_logs.sh  # actually delete
+```
+
+
 ## GUI: DAG Visualization
 
 ```bash

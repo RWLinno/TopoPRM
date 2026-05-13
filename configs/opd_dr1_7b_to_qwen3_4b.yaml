@@ -1,0 +1,63 @@
+# On-Policy Distillation (OPD) — teacher != student, large → small
+# Reference: ms-swift/examples/train/on_policy_distillation.sh
+#            (Thinking Machines on-policy distillation, rlhf_type=gkd with
+#            seq_kd=false, lmbda=1, beta=1)
+# Entry: scripts/run_swift_rlhf.sh opd_dr1_7b_to_qwen3_4b
+#
+# Teacher: DR1-Distill-Qwen-7B (optionally + TopoPRM GRPO adapter)
+# Student: Qwen3-4B-Base, LoRA-tuned
+#
+# This is an alternative to the repo-native src/distill/opsd_trainer.py path.
+# Prefer this config when you want the ms-swift Distributed / vLLM engine
+# and the standard GKD implementation.
+
+model: /Knowin/foundation/weilinruan/hf_models/Qwen/Qwen3-4B
+teacher_model: /Knowin/foundation/weilinruan/hf_models/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
+
+# Set by scripts/run_swift_rlhf.sh if TEACHER_ADAPTER is exported:
+#   --teacher_adapters output/grpo_topoprm_deepseek_r1_7b/final
+# so the teacher can be "DR1-7B + TopoPRM" instead of vanilla DR1-7B.
+
+tuner_type: lora
+lora_rank: 64
+lora_alpha: 128
+target_modules: all-linear
+
+dataset:
+  - data/grpo_ready/train_public.jsonl
+
+# GKD / OPD loss knobs — mirrors the Thinking Machines recipe exactly.
+# rlhf_type is supplied by the launcher so this file stays generic.
+seq_kd: false
+lmbda: 1.0
+beta: 1.0
+temperature: 1.0
+
+# Rollout / generation
+max_length: 16000
+max_completion_length: 8192
+use_vllm: true
+vllm_mode: colocate
+vllm_gpu_memory_utilization: 0.6
+vllm_max_model_len: 10240
+sleep_level: 1
+
+# Optimization (single-epoch, 1000 steps ~matches paper schedule)
+num_train_epochs: 1
+max_steps: 1000
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 4
+learning_rate: 1e-5
+lr_scheduler_type: cosine
+warmup_ratio: 0.05
+weight_decay: 0.01
+bf16: true
+gradient_checkpointing: true
+
+save_steps: 200
+save_total_limit: 3
+report_to:
+  - tensorboard
+  - wandb
+logging_steps: 5
+output_dir: output/opd_dr1_7b_to_qwen3_4b

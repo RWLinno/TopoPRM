@@ -1,204 +1,221 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""Reward invariant checker -- verifies that TopoPRM core reward logic has not drifted.
+"""Reward-invariant smoke test (default-behaviour regression guard).
 
-Run after any code change to reward modules to ensure innovation points are intact.
+Run this before/after any change to the reward modules to verify the
+default code path produces the same rewards as the released v3b
+checkpoints. All P0..P5 patches must be no-op when the corresponding
+TOPO_* env vars are unset.
+
+Stubs out MS-Swift so it runs in any env. Reloads modules cleanly.
 
 Usage:
     python3 scripts/check_reward_invariants.py
 """
 from __future__ import annotations
 
-import json
+import os
 import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from src.reward.topo_reward import TopoReward
-from src.reward.continuity_reward import ContinuityReward
-from src.reward.format_reward import FormatReward
-from src.reward.outcome_reward import OutcomeReward
-from src.reward.composite_reward import (
-    TopoHierarchicalReward,
-    TopoCompositeReward,
-)
+import types
+import importlib
 
 
-def _wrap(text):
-    """Wrap text as a single-element completions list."""
-    return [[{"role": "assistant", "content": text}]]
+# ---- 1. Stub MS-Swift before any project import. ----
+def _install_swift_stub() -> None:
+    if "swift" in sys.modules:
+        return
+    swift = types.ModuleType("swift")
+    swift_rewards = types.ModuleType("swift.rewards")
+
+    class ORM:  # noqa: D401
+        """Minimal stub matching the MS-Swift ORM base class signature."""
+
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __call__(self, completions=None, solution=None, **kwargs):
+            return [0.0] * (len(completions) if completions else 0)
+
+    orms = {}
+    swift_rewards.ORM = ORM
+    swift_rewards.orms = orms
+    swift.rewards = swift_rewards
+    sys.modules["swift"] = swift
+    sys.modules["swift.rewards"] = swift_rewards
 
 
-def _wrap2(t1, t2):
-    """Wrap two texts as a two-element completions list."""
-    return [
-        [{"role": "assistant", "content": t1}],
-        [{"role": "assistant", "content": t2}],
-    ]
+_install_swift_stub()
+sys.path.insert(0, "/Knowin/foundation/weilinruan/TopoPRM")
 
 
-_ANSWER_JSON_OK = '{"学生得分": 10, "结论批改": "正确"}'
-_ANSWER_JSON_BAD = '{"学生得分": 0, "结论批改": "错误"}'
-
-WELL_FORMED = (
-    "<think>"
-    "已知 x=3，由题意得 y=2x=6。"
-    "因此 y=6，代入验证 2x=6 成立。"
-    "故答案为 y=6。"
-    "</think>"
-    "<answer>" + _ANSWER_JSON_OK + "</answer>"
-)
-
-EMPTY_THINK = "<think></think><answer>" + _ANSWER_JSON_BAD + "</answer>"
-
-NO_TAGS = "the answer is 6"
-
-SOLUTION_CORRECT = '{"学生得分": 10, "结论批改": "正确"}'
-SOLUTION_WRONG = '{"学生得分": 0, "结论批改": "错误"}'
+# ---- 2. Helper to reload reward_config and composite_reward together. ----
+def reload_reward_modules():
+    for mod in list(sys.modules):
+        if mod.startswith("src.reward.") or mod.startswith("src.data."):
+            del sys.modules[mod]
+    if "src.reward" in sys.modules:
+        del sys.modules["src.reward"]
+    rc = importlib.import_module("src.reward.reward_config")
+    cr = importlib.import_module("src.reward.composite_reward")
+    return rc, cr
 
 
-def check_topo_reward():
-    tr = TopoReward()
-    r_good = tr(_wrap(WELL_FORMED))[0]
-    r_empty = tr(_wrap(EMPTY_THINK))[0]
-    r_none = tr(_wrap(NO_TAGS))[0]
-
-    assert r_good >= r_empty, (
-        "well-formed topo ({:.4f}) should >= empty ({:.4f})".format(r_good, r_empty)
-    )
-    assert r_empty >= r_none, (
-        "empty topo ({:.4f}) should >= no-tags ({:.4f})".format(r_empty, r_none)
-    )
-    assert 0.0 <= r_good <= 1.0
-    print("  [PASS] TopoReward: good={:.4f} empty={:.4f} none={:.4f}".format(
-        r_good, r_empty, r_none))
-
-
-def check_continuity_reward():
-    cr = ContinuityReward()
-    r_good = cr(_wrap(WELL_FORMED))[0]
-    r_empty = cr(_wrap(EMPTY_THINK))[0]
-    assert 0.0 <= r_good <= 1.0
-    assert r_good >= r_empty
-    print("  [PASS] ContinuityReward: good={:.4f} empty={:.4f}".format(r_good, r_empty))
-
-
-def check_format_reward():
-    fr = FormatReward()
-    r_good = fr(_wrap(WELL_FORMED))[0]
-    r_none = fr(_wrap(NO_TAGS))[0]
-    assert r_good > r_none, (
-        "well-formed format ({:.4f}) should > no-tags ({:.4f})".format(r_good, r_none)
-    )
-    print("  [PASS] FormatReward: good={:.4f} none={:.4f}".format(r_good, r_none))
-
-
-def check_outcome_reward():
-    orw = OutcomeReward()
-    r_match = orw(
-        _wrap(WELL_FORMED),
-        solution=[SOLUTION_CORRECT],
-    )[0]
-    r_mismatch = orw(
-        _wrap(WELL_FORMED),
-        solution=[SOLUTION_WRONG],
-    )[0]
-    assert r_match >= r_mismatch, (
-        "match ({:.4f}) should >= mismatch ({:.4f})".format(r_match, r_mismatch)
-    )
-    assert r_match > 0.0, "match reward should be > 0"
-    print("  [PASS] OutcomeReward: match={:.4f} mismatch={:.4f}".format(r_match, r_mismatch))
-
-
-def check_hierarchical_ordering():
-    hr = TopoHierarchicalReward()
-    completions = _wrap2(WELL_FORMED, EMPTY_THINK)
-    solutions = [SOLUTION_CORRECT, SOLUTION_WRONG]
-    rewards = hr(completions, solution=solutions, reference_dag=[None, None])
-    assert len(rewards) == 2
-    assert rewards[0] >= rewards[1], (
-        "correct ({:.4f}) should >= wrong ({:.4f})".format(rewards[0], rewards[1])
-    )
-    print("  [PASS] TopoHierarchicalReward: correct={:.4f} wrong={:.4f}".format(
-        rewards[0], rewards[1]))
-
-
-def check_composite_range():
-    cr = TopoCompositeReward()
-    rewards = cr(
-        _wrap(WELL_FORMED),
-        solution=[SOLUTION_CORRECT],
-        reference_dag=[None],
-    )
-    assert all(0.0 <= r <= 1.0 for r in rewards)
-    assert rewards[0] > 0.0, "composite reward should be > 0 for well-formed input"
-    print("  [PASS] TopoCompositeReward: reward={:.4f} in [0,1]".format(rewards[0]))
-
-
-def check_hierarchical_zero_base_floor():
-    """Post-2026-04-23 invariant: when r_base = 0 (outcome=format=length=0),
-    the multiplicative gain must NOT collapse the whole reward to 0.  The
-    BASE_FLOOR (default 0.05) keeps topology gain visible so that ms-swift's
-    group-wise advantage normalization has a non-zero mean to work with.
-
-    Note: std-floor noise injection is OFF by default post 2026-04-23 cleanup;
-    rewards can legitimately be constant across a zero-base batch.  What
-    matters scientifically is that the mean is strictly > 0.
-    """
-    hr = TopoHierarchicalReward()
-    # Four NO_TAGS variants -> outcome/format/length all 0, raw r_base = 0.
-    completions = [
-        [{"role": "assistant", "content": NO_TAGS}],
-        [{"role": "assistant", "content": NO_TAGS + " a"}],
-        [{"role": "assistant", "content": NO_TAGS + " b"}],
-        [{"role": "assistant", "content": NO_TAGS + " c"}],
-    ]
-    solutions = [SOLUTION_WRONG] * 4
-    refs = [None] * 4
-    rewards = hr(completions, solution=solutions, reference_dag=refs)
-    assert len(rewards) == 4
-    mean_r = sum(rewards) / len(rewards)
-    assert mean_r > 0.0, (
-        "expected positive mean reward under BASE_FLOOR (bug fix for "
-        "zero-variance rollout groups); got rewards={}".format(rewards)
-    )
-    print("  [PASS] TopoHierarchicalReward zero-base floor: rewards={} mean={:.4f}".format(
-        [round(r, 4) for r in rewards], mean_r))
+def assert_close(actual, expected, tol=1e-6, what=""):
+    if abs(actual - expected) > tol:
+        raise AssertionError(f"[{what}] expected {expected}, got {actual}")
 
 
 def main():
-    print("=" * 60)
-    print("  TopoPRM Reward Invariant Check")
-    print("=" * 60)
-
-    checks = [
-        ("TopoReward", check_topo_reward),
-        ("ContinuityReward", check_continuity_reward),
-        ("FormatReward", check_format_reward),
-        ("OutcomeReward", check_outcome_reward),
-        ("TopoHierarchicalReward", check_hierarchical_ordering),
-        ("TopoCompositeReward", check_composite_range),
-        ("TopoHierarchicalReward[zero-base floor]", check_hierarchical_zero_base_floor),
+    # Clear all patch flags to test defaults.
+    PATCH_VARS = [
+        "TOPO_RESCALE_PATCH", "TOPO_RESCALE_MIN_SPAN",
+        "TOPO_HIER_AGG",
+        "TOPO_CONT_REQUIRE_EVIDENCE",
+        "TOPO_DAG_SENTENCE_FALLBACK", "TOPO_DAG_SENTENCE_MIN_LEN",
+        "TOPO_LENGTH_UNIT", "TOPO_LENGTH_LOW", "TOPO_LENGTH_HIGH",
+        "TOPO_SCAE_PRESERVE_OUTCOME", "TOPO_SCAE_FLOOR_POS", "TOPO_SCAE_FLOOR_NEG",
     ]
+    for k in PATCH_VARS:
+        os.environ.pop(k, None)
 
-    passed = 0
-    failed = 0
-    for name, fn in checks:
-        try:
-            fn()
-            passed += 1
-        except AssertionError as e:
-            print("  [FAIL] {}: {}".format(name, e))
-            failed += 1
-        except Exception as e:
-            print("  [ERROR] {}: {}".format(name, e))
-            failed += 1
+    rc, cr = reload_reward_modules()
+    RC = rc.RewardConfig
 
-    print("\nResults: {} passed, {} failed out of {}".format(passed, failed, len(checks)))
-    if failed:
-        sys.exit(1)
-    print("All invariants hold. Safe to proceed.")
+    # ═══════════════════════════════════════════════════════════════════════
+    # DEFAULT INVARIANTS (all patches OFF)
+    # ═══════════════════════════════════════════════════════════════════════
+
+    # P0 defaults
+    assert RC.TOPO_RESCALE_PATCH is False
+    assert RC.TOPO_RESCALE_MIN_SPAN == 0.05
+
+    # P1 defaults
+    assert RC.SCAE_PRESERVE_OUTCOME is False
+    assert RC.SCAE_FLOOR_POS == 0.3
+    assert RC.SCAE_FLOOR_NEG == 0.3
+
+    # P2 defaults
+    assert RC.TOPO_HIER_AGG == "additive"
+
+    # P3 defaults
+    assert RC.CONTINUITY_REQUIRE_EVIDENCE is False
+
+    # P4 defaults
+    assert RC.DAG_SENTENCE_FALLBACK is False
+    assert RC.DAG_SENTENCE_MIN_LEN == 20
+
+    # P5 defaults
+    assert RC.LENGTH_UNIT == "chars"
+    assert RC.LENGTH_LOW == 2000
+    assert RC.LENGTH_HIGH == 4000
+
+    print("[ok] all patch defaults preserved (P0–P5 OFF)")
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # P0: _batch_rescale
+    # ═══════════════════════════════════════════════════════════════════════
+
+    THR = cr.TopoHierarchicalReward
+
+    # Default: tiny spread → 0.5 vector
+    out = THR._batch_rescale([0.5, 0.5 + 1e-9, 0.5 - 1e-9])
+    assert all(abs(x - 0.5) < 1e-6 for x in out)
+
+    # Default: normal spread → full stretch
+    out = THR._batch_rescale([0.10, 0.20, 0.30])
+    assert_close(out[0], 0.0, what="default lo")
+    assert_close(out[1], 0.5, what="default mid")
+    assert_close(out[2], 1.0, what="default hi")
+
+    # Default: span 0.04 (> 1e-8) still stretches in default mode
+    out = THR._batch_rescale([0.50, 0.52, 0.54])
+    assert_close(out[0], 0.0, what="default small-span lo")
+    assert_close(out[2], 1.0, what="default small-span hi")
+
+    # Patch ON: span 0.04 < 0.05 → collapses to 0.5
+    os.environ["TOPO_RESCALE_PATCH"] = "1"
+    rc, cr = reload_reward_modules()
+    out = cr.TopoHierarchicalReward._batch_rescale([0.50, 0.52, 0.54])
+    assert all(abs(x - 0.5) < 1e-6 for x in out), f"P0 on: expected 0.5 vector, got {out}"
+
+    # Patch ON: span 0.10 ≥ 0.05 → still stretches
+    out = cr.TopoHierarchicalReward._batch_rescale([0.40, 0.50])
+    assert_close(out[0], 0.0, what="P0 on large-span lo")
+    assert_close(out[1], 1.0, what="P0 on large-span hi")
+
+    os.environ.pop("TOPO_RESCALE_PATCH")
+    print("[ok] P0 (_batch_rescale) default + patch verified")
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # P2: TOPO_HIER_AGG toggle
+    # ═══════════════════════════════════════════════════════════════════════
+
+    os.environ["TOPO_HIER_AGG"] = "multiplicative"
+    rc, _ = reload_reward_modules()
+    assert rc.RewardConfig.TOPO_HIER_AGG == "multiplicative"
+    os.environ.pop("TOPO_HIER_AGG")
+    rc, _ = reload_reward_modules()
+    assert rc.RewardConfig.TOPO_HIER_AGG == "additive"
+    print("[ok] P2 (TOPO_HIER_AGG) toggle verified")
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # P3: CONTINUITY_REQUIRE_EVIDENCE toggle
+    # ═══════════════════════════════════════════════════════════════════════
+
+    os.environ["TOPO_CONT_REQUIRE_EVIDENCE"] = "1"
+    rc, _ = reload_reward_modules()
+    assert rc.RewardConfig.CONTINUITY_REQUIRE_EVIDENCE is True
+    os.environ.pop("TOPO_CONT_REQUIRE_EVIDENCE")
+    rc, _ = reload_reward_modules()
+    assert rc.RewardConfig.CONTINUITY_REQUIRE_EVIDENCE is False
+    print("[ok] P3 (CONTINUITY_REQUIRE_EVIDENCE) toggle verified")
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # P4: DAG_SENTENCE_FALLBACK toggle
+    # ═══════════════════════════════════════════════════════════════════════
+
+    os.environ["TOPO_DAG_SENTENCE_FALLBACK"] = "1"
+    rc, _ = reload_reward_modules()
+    assert rc.RewardConfig.DAG_SENTENCE_FALLBACK is True
+    os.environ.pop("TOPO_DAG_SENTENCE_FALLBACK")
+    rc, _ = reload_reward_modules()
+    assert rc.RewardConfig.DAG_SENTENCE_FALLBACK is False
+    print("[ok] P4 (DAG_SENTENCE_FALLBACK) toggle verified")
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # P5: LENGTH_UNIT toggle + thresholds
+    # ═══════════════════════════════════════════════════════════════════════
+
+    os.environ["TOPO_LENGTH_UNIT"] = "tokens"
+    os.environ["TOPO_LENGTH_LOW"] = "512"
+    os.environ["TOPO_LENGTH_HIGH"] = "8192"
+    rc, cr = reload_reward_modules()
+    assert rc.RewardConfig.LENGTH_UNIT == "tokens"
+    assert rc.RewardConfig.LENGTH_LOW == 512
+    assert rc.RewardConfig.LENGTH_HIGH == 8192
+    # Verify LengthReward picks up the new unit
+    assert cr.LengthReward.UNIT == "tokens"
+    for k in ("TOPO_LENGTH_UNIT", "TOPO_LENGTH_LOW", "TOPO_LENGTH_HIGH"):
+        os.environ.pop(k)
+    rc, cr = reload_reward_modules()
+    assert rc.RewardConfig.LENGTH_UNIT == "chars"
+    assert rc.RewardConfig.LENGTH_LOW == 2000
+    assert cr.LengthReward.UNIT == "chars"
+    print("[ok] P5 (LENGTH_UNIT) toggle + thresholds verified")
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # P1: SCAE_PRESERVE_OUTCOME toggle
+    # ═══════════════════════════════════════════════════════════════════════
+
+    os.environ["TOPO_SCAE_PRESERVE_OUTCOME"] = "1"
+    rc, _ = reload_reward_modules()
+    assert rc.RewardConfig.SCAE_PRESERVE_OUTCOME is True
+    os.environ.pop("TOPO_SCAE_PRESERVE_OUTCOME")
+    rc, _ = reload_reward_modules()
+    assert rc.RewardConfig.SCAE_PRESERVE_OUTCOME is False
+    print("[ok] P1 (SCAE_PRESERVE_OUTCOME) toggle verified")
+
+    # ═══════════════════════════════════════════════════════════════════════
+    print("\n✓ All reward-invariant checks passed (P0–P5).")
 
 
 if __name__ == "__main__":

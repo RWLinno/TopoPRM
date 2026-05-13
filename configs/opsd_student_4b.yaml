@@ -1,12 +1,12 @@
 # OPSD student distillation: teacher = 9B SRT, student = Qwen3.5-4B
 # Student rollouts are on-policy; teacher provides per-token targets.
-student_base: /mnt/data/huggingface_downloads/models/qwen/Qwen3.5-4B
+student_base: /Knowin/foundation/weilinruan/hf_models/Qwen/Qwen3.5-4B
 student_adapter: ""   # empty = use base directly
 
-teacher_base: /mnt/data/huggingface_downloads/models/qwen/Qwen3.5-9B
-teacher_adapter: output/srt_9b/final
+teacher_base: /Knowin/foundation/weilinruan/hf_models/Qwen/Qwen3.5-9B
+teacher_adapter: ""   # set to output/srt_9b/final when Stage III-A is ready
 
-dataset: data/grpo_ready/train.jsonl
+dataset: data/grpo_ready/train_public.jsonl
 dataset_split: D2
 
 num_train_epochs: 1

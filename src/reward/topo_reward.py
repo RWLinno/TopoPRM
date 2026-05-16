@@ -6,6 +6,7 @@ from typing import Any, Optional
 from swift.rewards import ORM, orms
 
 import os
+import statistics
 
 from src.dag.graph import ReasoningDAG
 from src.data.build_dag import build_dag_from_answer, extract_steps_from_answer
@@ -116,6 +117,9 @@ class TopoReward(ORM):
 
     REQUIRE_VALID_DAG: bool = RewardConfig.TOPO_REQUIRE_VALID_DAG
     LOG_EVERY: int = RewardConfig.TOPO_VERIFY_LOG_EVERY
+    QTOPO_SELF_NORM: bool = RewardConfig.TOPO_QTOPO_SELF_NORM
+    QTOPO_TARGET_VAR: float = RewardConfig.TOPO_QTOPO_TARGET_VAR
+    QTOPO_MIN_SPREAD: float = RewardConfig.TOPO_QTOPO_MIN_SPREAD
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__()
@@ -329,6 +333,58 @@ class TopoReward(ORM):
             return 0.0
         return self._safe_clip01(score)
 
+    def _maybe_self_normalize_rewards(self, rewards: list[float], rows: list[dict[str, float]]) -> list[float]:
+        """Optional post-pass when q_topo is nearly constant in a batch.
+
+        This remains off by default. It reweights lambda terms by per-component
+        spread and recomputes r_topo only when variance collapses below the
+        configured target.
+        """
+        if not self.QTOPO_SELF_NORM or len(rewards) < 2 or len(rows) != len(rewards):
+            return rewards
+        try:
+            cur_var = statistics.pvariance(rewards)
+        except statistics.StatisticsError:
+            return rewards
+        if cur_var >= self.QTOPO_TARGET_VAR:
+            return rewards
+
+        comps = {
+            "term_base": self.LAMBDA_BASE,
+            "term_acyclic": self.LAMBDA_ACYCLIC,
+            "term_orphan": self.LAMBDA_ORPHAN,
+            "term_delta": self.LAMBDA_DELTA,
+            "term_kappa": self.LAMBDA_KAPPA,
+        }
+        spreads: dict[str, float] = {}
+        for k in comps:
+            vals = [float(r.get(k, 0.0)) for r in rows]
+            try:
+                spreads[k] = max(statistics.pstdev(vals), self.QTOPO_MIN_SPREAD)
+            except statistics.StatisticsError:
+                spreads[k] = self.QTOPO_MIN_SPREAD
+
+        scaled = {k: max(0.0, comps[k] * spreads[k]) for k in comps}
+        denom = sum(scaled.values())
+        if denom <= 1e-12:
+            return rewards
+
+        out: list[float] = []
+        for i, row in enumerate(rows):
+            valid = float(row.get("valid_dag", 0.0))
+            if self.REQUIRE_VALID_DAG and valid < 1.0:
+                out.append(0.0)
+                continue
+            numer = (
+                scaled["term_base"] * float(row.get("indicator_non_empty", 0.0))
+                + scaled["term_acyclic"] * float(row.get("indicator_acyclic", 0.0))
+                + scaled["term_orphan"] * float(row.get("indicator_no_orphan", 0.0))
+                + scaled["term_delta"] * float(row.get("delta", 0.0))
+                + scaled["term_kappa"] * float(row.get("kappa", 0.0))
+            )
+            out.append(self._safe_clip01(numer / denom))
+        return out
+
     def _parse_ref(self, raw: Any) -> Optional[ReasoningDAG]:
         if raw is None:
             return None
@@ -377,6 +433,11 @@ class TopoReward(ORM):
             row.update(terms.as_dict())
             diag_rows.append(row)
             self.last_diagnostics.append(row)
+
+        rewards = self._maybe_self_normalize_rewards(rewards, diag_rows)
+        if len(self.last_diagnostics) == len(rewards):
+            for i, r in enumerate(rewards):
+                self.last_diagnostics[i]["r_topo"] = float(r)
 
         if self.LOG_EVERY:
             self._num_calls += 1

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import re
 from typing import Any
 
@@ -9,55 +8,51 @@ from src.reward.utils import completion_to_text
 
 
 class FormatReward(ORM):
-    """Format-compliance reward.
+    """Format-compliance reward for math reasoning benchmarks.
 
-    Checks whether the model output follows the expected
-    ``<think>…</think><answer>…</answer>`` structure with a valid JSON
-    payload inside ``<answer>``.
+    Checks whether the model output follows a recognizable reasoning format:
+      - <think>...</think> followed by a final answer (\\boxed{} or explicit statement)
+      - Or at least contains structured step-by-step reasoning with a boxed answer.
 
-    Scoring rubric (progressive curriculum)
-    --------------
-    * ``<think>`` present **and** ``<answer>`` with valid JSON → **1.0**
-    * ``<answer>`` with valid JSON (but no ``<think>``) → **0.5**
-    * ``<think>`` present but no ``<answer>`` (e.g. truncated) → **0.1**
-    * Anything else → **0.0**
-
-    The 0.1 partial credit for ``<think>``-only outputs provides a
-    curriculum signal: the model first learns to enter reasoning mode,
-    then learns to produce a parseable answer block.
+    Scoring rubric (progressive):
+      1.0 — has <think> block AND \\boxed{} answer
+      0.8 — has \\boxed{} answer with multi-step reasoning (no explicit <think>)
+      0.5 — has \\boxed{} answer only (minimal reasoning)
+      0.3 — has <think> but no \\boxed{} (reasoning without conclusion)
+      0.1 — has some step-by-step structure but no boxed answer
+      0.0 — unstructured or empty
     """
 
-    @staticmethod
-    def _has_think(text: str) -> bool:
-        return bool(re.search(r"<think>", text))
+    _THINK_RE = re.compile(r"<think>", re.IGNORECASE)
+    _THINK_CLOSE_RE = re.compile(r"</think>", re.IGNORECASE)
+    _BOXED_RE = re.compile(r"\\boxed\{")
+    _STEP_MARKERS = re.compile(
+        r"(step\s*\d|first|second|third|therefore|thus|hence|so\s+the|"
+        r"we\s+(get|have|find|know|can)|let\s+|since\s+|because\s+)",
+        re.IGNORECASE,
+    )
 
-    @staticmethod
-    def _has_answer_json(text: str) -> bool:
-        m = re.search(r"<answer>\s*(.*?)\s*</answer>", text, re.DOTALL)
-        if m is None:
-            return False
-        try:
-            json.loads(m.group(1))
-            return True
-        except json.JSONDecodeError:
-            return False
-
-    def __call__(
-        self,
-        completions: list,
-        **kwargs: Any,
-    ) -> list[float]:
-        """Return a format-compliance reward per completion."""
+    def __call__(self, completions: list, **kwargs: Any) -> list[float]:
         rewards: list[float] = []
         for completion in completions:
             text = completion_to_text(completion)
-            has_answer = self._has_answer_json(text)
-            has_think = self._has_think(text)
-            if has_answer and has_think:
+            if not text.strip():
+                rewards.append(0.0)
+                continue
+
+            has_think = bool(self._THINK_RE.search(text))
+            has_boxed = bool(self._BOXED_RE.search(text))
+            has_steps = len(self._STEP_MARKERS.findall(text)) >= 2
+
+            if has_think and has_boxed:
                 rewards.append(1.0)
-            elif has_answer:
+            elif has_boxed and has_steps:
+                rewards.append(0.8)
+            elif has_boxed:
                 rewards.append(0.5)
             elif has_think:
+                rewards.append(0.3)
+            elif has_steps:
                 rewards.append(0.1)
             else:
                 rewards.append(0.0)

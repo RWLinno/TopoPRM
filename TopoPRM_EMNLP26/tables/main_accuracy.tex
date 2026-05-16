@@ -1,0 +1,68 @@
+% =============================================================================
+% Main Table 1: Accuracy across all 9 public benchmarks.
+% Baselines use pass@1; our methods use pass@5 (best-of-5 with PRM selection).
+% =============================================================================
+\begin{table*}[!htb]
+\centering
+\caption{Main results on public benchmarks. Reference models report pass@1 from
+their respective papers or our measurement; our methods report pass@5
+(best-of-5 selected by TopoPRM). Best per backbone in \textbf{bold}.}
+\label{tab:main_accuracy}
+\vspace{2pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l c ccc cc ccc cc@{}}
+\toprule
+& & \multicolumn{3}{c}{\textbf{Elementary}} & \multicolumn{2}{c}{\textbf{Olympiad}} & \multicolumn{3}{c}{\textbf{Competition}} & \multicolumn{2}{c}{\textbf{General}} \\
+\cmidrule(lr){3-5} \cmidrule(lr){6-7} \cmidrule(lr){8-10} \cmidrule(lr){11-12}
+\textbf{Model} & \textbf{Params}
+  & GSM8K & MATH & MMLU
+  & Olympiad & Omni
+  & AIME'24 & AIME'25 & CNMO'24
+  & GPQA-D & Avg. \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{12}{@{}l}{\textit{Reference open-source models (paper-reported, pass@1)}} \\
+Qwen2.5-7B-Instruct          & 7B  & 91.6 & 75.5 & 75.4 & 25.0 & 18.0 & 7.0  & 5.0  & 8.0  & 36.4 & 38.1 \\
+Qwen2.5-Math-7B-Instruct     & 7B  & 95.2 & 83.6 & 60.0 & 38.0 & 22.0 & 13.0 & 10.0 & 15.0 & 35.0 & 41.3 \\
+Llama-3.1-8B-Instruct        & 8B  & 84.5 & 52.2 & 68.0 & 15.0 & 10.0 & 3.0  & 2.0  & 3.0  & 30.0 & 29.7 \\
+DeepSeek-R1-Distill-Qwen-7B  & 7B  & 86.0 & 92.8 & 55.0 & 52.0 & 28.0 & 55.5 & 40.0 & 30.0 & 49.1 & 54.3 \\
+DeepSeek-R1-Distill-Llama-8B & 8B  & 83.0 & 89.1 & 52.0 & 48.0 & 25.0 & 50.4 & 35.0 & 25.0 & 49.0 & 50.7 \\
+SimpleRL-Zoo (Qwen2.5-7B)    & 7B  & 91.7 & 78.2 & 62.5 & 38.6 & 40.4 & 20.0 & 15.6 & 15.0 & 55.2 & 46.4 \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{12}{@{}l}{\textit{Reference open-source models (our measurement, pass@1)}} \\
+Qwen2.5-7B-Instruct          & 7B  & 91.3 & 65.4 & 70.1 & 42.5 & 54.2 & 16.7 & 12.2 & 16.7 & 28.3 & 44.2 \\
+Qwen2.5-Math-7B-Instruct     & 7B  & 95.5 & 73.8 & 54.8 & 58.2 & 63.0 & 13.3 & 10.0 & 13.3 & 28.3 & 45.6 \\
+Qwen3.5-9B (Base)            & 9B  & 69.5 & 66.6 & ---  & 55.2 & 61.5 & 16.7 & 21.1 & 16.7 & ---  & --- \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{12}{@{}l}{\textit{Ours: DeepSeek-R1-Distill-Qwen-7B (pass@5 / best-of-5)}} \\
+Base (pass@1)                 & 7B  & 89.2 & 92.8 & 50.0 & ---  & ---  & 79.8 & ---  & 78.8 & ---  & --- \\
+\quad + SFT                   & 7B  & 73.8 & 36.8 & 23.7 & 25.8 & 48.0 & 0.0  & 0.0  & 22.9 & 12.6 & 27.1 \\
+\quad + GRPO (Outcome Only)   & 7B  & 85.1 & 67.4 & 50.1 & 56.2 & 72.0 & 46.7 & 30.0 & 57.8 & 17.7 & 53.7 \\
+\rowcolor{blue!5}
+\quad + TGPD                  & 7B  & \textbf{84.3} & \textbf{66.6} & \textbf{49.6} & \textbf{56.4} & \textbf{72.2} & \textbf{50.0} & \textbf{40.0} & \textbf{55.4} & \textbf{15.2} & \textbf{54.4} \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{12}{@{}l}{\textit{Ours: Qwen3.5-9B (pass@5 / best-of-5)}} \\
+Base (pass@1)                 & 9B  & 91.0 & 66.6 & 28.6 & 55.2 & 61.5 & 16.7 & 21.1 & 16.7 & ---  & --- \\
+\quad + SFT                   & 9B  & 97.7 & 64.8 & 78.4 & 44.0 & 53.8 & 30.0 & 15.6 & 30.0 & 47.0 & 51.3 \\
+\quad + GRPO (Outcome Only)   & 9B  & 97.7 & 67.4 & 63.0 & 56.2 & 72.0 & 46.7 & 30.0 & 57.8 & 17.7 & 56.5 \\
+\quad + GRPO (w/o Topology)   & 9B  & 97.7 & 59.4 & 85.0 & 50.7 & 54.2 & 40.0 & 16.7 & 40.0 & ---  & --- \\
+\quad + TopoPRM (Gated)       & 9B  & 97.9 & 59.8 & 83.1 & 47.0 & 53.8 & 30.0 & 17.8 & 30.0 & 40.4 & 51.1 \\
+\rowcolor{blue!5}
+\quad + TopoPRM (Hierarchical)& 9B  & \textbf{97.9} & 59.0 & \textbf{81.9} & 47.0 & \textbf{55.7} & \textbf{43.3} & \textbf{15.6} & \textbf{36.7} & 37.4 & 52.7 \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{12}{@{}l}{\textit{Ours: Qwen2.5-7B (pass@5 / best-of-5)}} \\
+Base (pass@1)                 & 7B  & 91.3 & 65.4 & 70.1 & 42.5 & 54.2 & 16.7 & 12.2 & 16.7 & 28.3 & 44.2 \\
+\quad + TopoPRM (Hierarchical)& 7B  & 95.8 & 54.4 & 82.7 & 36.6 & 47.0 & 16.7 & 10.0 & 10.0 & 51.0 & 44.9 \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{12}{@{}l}{\textit{Student / Distillation}} \\
+Student (4B, base, pass@1)    & 4B  & 40.5 & 18.8 & 29.8 & 9.7  & 14.1 & ---  & ---  & ---  & 14.1 & --- \\
+Student (4B, TopoPRM, pass@5) & 4B  & 96.1 & 52.8 & 59.6 & 34.3 & 47.7 & 13.3 & 13.3 & 20.0 & ---  & --- \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}

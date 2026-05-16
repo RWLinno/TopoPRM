@@ -120,6 +120,30 @@ class RewardConfig:
     # with meaningful q_topo.  Default OFF to preserve v1 behaviour.
     DAG_SENTENCE_FALLBACK = env_bool("TOPO_DAG_SENTENCE_FALLBACK", False)
     DAG_SENTENCE_MIN_LEN = env_int("TOPO_DAG_SENTENCE_MIN_LEN", 20)
+    DAG_EXTRA_STEP_MARKERS = env_bool("TOPO_DAG_EXTRA_STEP_MARKERS", False)
+    DAG_LATEX_EXPR = env_bool("TOPO_DAG_LATEX_EXPR", False)
+    DAG_BARRIER_STRICT = env_bool("TOPO_DAG_BARRIER_STRICT", False)
+    DAG_BARRIER_MIN_OVERLAP = env_float("TOPO_DAG_BARRIER_MIN_OVERLAP", 0.20)
+
+    # Hybrid DAG extraction: rule-based bootstrap plus local pretrained-LLM
+    # refinement for implicit semantic dependencies.  This is intended for
+    # offline data preprocessing / DAG caching.  Keep it OFF in online GRPO
+    # reward calls and evaluation unless cached DAGs are being materialized;
+    # otherwise every completion would trigger an LLM forward pass.
+    DAG_LLM_REFINE = env_bool("TOPO_DAG_LLM_REFINE", False)
+    DAG_LLM_MODEL = os.environ.get(
+        "TOPO_DAG_LLM_MODEL",
+        "/Knowin/foundation/weilinruan/hf_models/Qwen/Qwen2.5-Math-1.5B-Instruct",
+    )
+    DAG_LLM_DEVICE = os.environ.get("TOPO_DAG_LLM_DEVICE", "auto")
+    DAG_LLM_MAX_STEPS = env_int("TOPO_DAG_LLM_MAX_STEPS", 16)
+    DAG_LLM_MAX_NEW_TOKENS = env_int("TOPO_DAG_LLM_MAX_NEW_TOKENS", 512)
+
+    # Optional low-variance stabilizer for topology rewards. When enabled, a
+    # per-batch post-pass reweights lambda terms by observed component spread.
+    TOPO_QTOPO_SELF_NORM = env_bool("TOPO_QTOPO_SELF_NORM", False)
+    TOPO_QTOPO_TARGET_VAR = env_float("TOPO_QTOPO_TARGET_VAR", 0.05)
+    TOPO_QTOPO_MIN_SPREAD = env_float("TOPO_QTOPO_MIN_SPREAD", 1e-3)
 
     # P1: TopoSCAEReward — preserve outcome magnitude across strata so
     # that B+ rewards are always > B- rewards in absolute value.  Default

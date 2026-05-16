@@ -16,6 +16,25 @@ from src.dag.graph import DOUBLE_BARRIER_EDGE, VIRTUAL_EDGE, ReasoningDAG
 from src.dag.node import LocalVerdict, Node, StepType
 
 logger = logging.getLogger(__name__)
+_LOCAL_LLM_CLIENT: Any = None
+_LOCAL_LLM_LOAD_ATTEMPTED = False
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if raw is None or raw == "":
+        return default
+    return raw not in {"0", "false", "False", "no", "NO"}
+
+
+def _env_int(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None or raw == "":
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        return default
 
 _SUB_Q_PATTERNS: List[re.Pattern] = [
     re.compile(r"【小题(\d+)】"),
@@ -49,6 +68,37 @@ _INLINE_STEP_SPLIT_RE = re.compile(
     r"(?=(?:^|[\s。；;.])(?:step\s*\d+|步骤\s*\d+|[（(]?\d+[)）][、.．:]?|第\s*\d+\s*步[:：]?))",
     re.IGNORECASE,
 )
+# Lines that are pure formatting / delimiters and should not become DAG nodes.
+# Filtering is opt-in via TOPO_DAG_FILTER_FORMATTING=1 to preserve legacy behaviour.
+_FORMATTING_NOISE_RE = re.compile(
+    r"^(?:"
+    r"</?think>"                                 # think tags
+    r"|\\\[|\\\]|\\\(|\\\)"                       # LaTeX delimiters
+    r"|\\boxed\s*\{?"                              # \boxed
+    r"|\\text\s*\{[^}]*\}\s*"                     # \text{...}
+    r"|\*+\s*final\s+answer\s*[:：]?\s*\*+"      # **Final Answer:**
+    r"|\*+[^*]+\*+\s*[:：]?$"                     # bold-only headings
+    r"|[-=*_]{3,}"                                 # markdown rules
+    r"|#{1,6}\s+.*"                                # markdown headings
+    r"|[\\\[\]\{\}\(\)\$]+"                       # symbol-only lines
+    r"|\d+\s*\\?\s*\.?\s*\*+\s*[A-Za-z][^*]*\*+\s*[:：]?\s*$"   # "1. **Total Eggs Laid:**"
+    r")\s*$",
+    re.IGNORECASE,
+)
+_EXTRA_STEP_MARKER_RE = re.compile(
+    r"^\s*(?:"
+    r"(?:so|next|then|finally|after that|therefore|thus|hence)\s*[:：,\-]?"
+    r"|"
+    r"(?:step)\s*[:：]"
+    r"|"
+    r"(?:\-\s+|\*\s+)"
+    r")\s*",
+    re.IGNORECASE,
+)
+_INLINE_EXTRA_STEP_SPLIT_RE = re.compile(
+    r"(?=(?:\b(?:first|second|third|next|then|so|finally|therefore|thus|hence)\b\s*[:,]?))",
+    re.IGNORECASE,
+)
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[。！？!?;；])\s+")
 
 _LATEX_CMD_RE = re.compile(r"\\[A-Za-z]+")
@@ -65,6 +115,10 @@ _INLINE_MATH_RE = re.compile(
     r"\$([^$]+)\$"
     r"|"
     r"\\\((.+?)\\\)"
+)
+_LATEX_EXPR_RE = re.compile(
+    r"\\(?:frac|sqrt|sum|prod|int|cdot|times|leq|geq|neq|pm|mp)\b(?:\{[^{}]{1,64}\}){0,3}",
+    re.IGNORECASE,
 )
 # GSM8K-style "<<expr=result>>" macro markers.
 _GSM8K_MACRO_RE = re.compile(r"<<\s*([^<>]+?)\s*=\s*([^<>]+?)\s*>>")
@@ -179,6 +233,10 @@ def _split_inline_steps(line: str) -> List[str]:
         punct_parts = [p.strip() for p in re.split(r"[；;]+", line) if p.strip()]
         if len(punct_parts) > 1:
             return punct_parts
+    if len(parts) <= 1 and _dag_extra_step_markers_enabled():
+        extra = [p.strip(" \t;；") for p in _INLINE_EXTRA_STEP_SPLIT_RE.split(line) if p and p.strip(" \t;；")]
+        if len(extra) > 1:
+            return extra
     return parts
 
 
@@ -248,6 +306,8 @@ def extract_steps_from_answer(standard_answer: str) -> List[Dict[str, Any]]:
     current_sub_q: Optional[int] = None
     for line in lines:
         line = _STEP_MARKER_RE.sub("", line).strip()
+        if _dag_extra_step_markers_enabled():
+            line = _EXTRA_STEP_MARKER_RE.sub("", line).strip()
         if not line:
             continue
         sq = _detect_sub_question(line)
@@ -257,6 +317,8 @@ def extract_steps_from_answer(standard_answer: str) -> List[Dict[str, Any]]:
         if not line:
             continue
         if _looks_incomplete_fragment(line):
+            continue
+        if _dag_filter_formatting_enabled() and _is_formatting_noise(line):
             continue
         steps.append(
             {
@@ -280,8 +342,44 @@ def extract_steps_from_answer(standard_answer: str) -> List[Dict[str, Any]]:
 
 def _dag_sentence_fallback_enabled() -> bool:
     """Check whether the P4 sentence-fallback flag is active."""
-    from src.reward.reward_config import RewardConfig
-    return RewardConfig.DAG_SENTENCE_FALLBACK
+    return _env_bool("TOPO_DAG_SENTENCE_FALLBACK", False)
+
+
+def _dag_extra_step_markers_enabled() -> bool:
+    """Enable extended English step-marker normalization (R1/QwQ style)."""
+    return _env_bool("TOPO_DAG_EXTRA_STEP_MARKERS", False)
+
+
+def _dag_latex_expr_enabled() -> bool:
+    """Enable richer LaTeX expression extraction for competition math."""
+    return _env_bool("TOPO_DAG_LATEX_EXPR", False)
+
+
+def _dag_barrier_strict_enabled() -> bool:
+    """Enable strict implicit-block fallback (reduce fallback domination)."""
+    return _env_bool("TOPO_DAG_BARRIER_STRICT", False)
+
+
+def _dag_filter_formatting_enabled() -> bool:
+    """Filter LaTeX delimiters / </think> / markdown chrome out of step list."""
+    return _env_bool("TOPO_DAG_FILTER_FORMATTING", False)
+
+
+def _dag_seq_when_no_dep_only() -> bool:
+    """Add a sequential weak edge ONLY if neither side has any structural edge."""
+    return _env_bool("TOPO_DAG_SEQ_WHEN_NO_DEP_ONLY", False)
+
+
+def _is_formatting_noise(line: str) -> bool:
+    t = line.strip()
+    if not t:
+        return True
+    if _FORMATTING_NOISE_RE.match(t):
+        return True
+    # purely-symbolic single token with no alphabetic char
+    if len(t) <= 3 and not re.search(r"[A-Za-z\u4e00-\u9fff]", t):
+        return True
+    return False
 
 
 _SENTENCE_SPLIT_RE = re.compile(r'(?<=[。.!?！？\n])\s*')
@@ -289,8 +387,7 @@ _SENTENCE_SPLIT_RE = re.compile(r'(?<=[。.!?！？\n])\s*')
 
 def _sentence_fallback_split(text: str) -> List[Dict[str, Any]]:
     """Split text on sentence boundaries with a minimum length filter."""
-    from src.reward.reward_config import RewardConfig
-    min_len = RewardConfig.DAG_SENTENCE_MIN_LEN
+    min_len = _env_int("TOPO_DAG_SENTENCE_MIN_LEN", 20)
 
     raw_sents = _SENTENCE_SPLIT_RE.split(text)
     steps: List[Dict[str, Any]] = []
@@ -371,6 +468,9 @@ def extract_expressions(text: str) -> List[str]:
         expr = m.group(1) or m.group(2)
         if expr:
             exprs_raw.append(expr.strip())
+    if _dag_latex_expr_enabled():
+        for m in _LATEX_EXPR_RE.finditer(text):
+            exprs_raw.append(m.group(0).strip())
     # GSM8K macro: <<48/2=24>> → keep both the equation and its numeric result.
     for m in _GSM8K_MACRO_RE.finditer(text):
         lhs = m.group(1).strip()
@@ -526,6 +626,7 @@ def build_dependency_edges_by_rules(
             and prev is not None
             and _same_sub_question(prev.sub_question_id, step.sub_question_id)
             and step.step_type in (StepType.DERIVATION, StepType.CONCLUSION)
+            and _should_add_implicit_block_edge(prev, step)
         ):
             edges.append((prev.step_id, step.step_id, DOUBLE_BARRIER_EDGE, "implicit_block"))
             evidences.append(
@@ -535,15 +636,240 @@ def build_dependency_edges_by_rules(
     return edges, evidences
 
 
+def _should_add_implicit_block_edge(prev: ParsedStep, step: ParsedStep) -> bool:
+    """Gate implicit fallback edges to avoid dominating the edge mix."""
+    if not _dag_barrier_strict_enabled():
+        return True
+
+    # In strict mode, only add implicit fallback when the current step lacks
+    # explicit structural evidence and there is at least weak textual carry-over.
+    if step.exprs or step.claim_keys:
+        return False
+    if prev.step_id >= step.step_id:
+        return False
+    overlap = _overlap_ratio(prev.normalized_text, step.normalized_text)
+    min_overlap = float(os.environ.get("TOPO_DAG_BARRIER_MIN_OVERLAP", "0.2") or 0.2)
+    has_prev_signal = bool(prev.exprs or prev.claim_keys or prev.variables)
+    return has_prev_signal and overlap >= min_overlap
+
+
 def build_dependency_edges_by_llm(
     nodes: List[ParsedStep],
     llm_client: Any = None,
 ) -> Tuple[List[Tuple[int, int, str, str]], List[EdgeEvidence]]:
-    if llm_client is None:
-        logger.debug("No LLM client -- falling back to rule-based edges")
-        return build_dependency_edges_by_rules(nodes)
-    logger.warning("LLM dependency detection not yet implemented; using rules")
-    return build_dependency_edges_by_rules(nodes)
+    """Hybrid edge builder: rule bootstrap + LLM semantic refinement.
+
+    Rule-derived expression/claim/variable edges remain the auditable base.
+    A local pretrained LLM can add additional forward-only semantic edges for
+    implicit dependencies that do not surface as exact symbolic reuse.  Invalid
+    or unavailable LLM outputs never block DAG construction; they only trigger
+    a warning and return the rule-based graph.
+    """
+    rule_edges, rule_evidences = build_dependency_edges_by_rules(nodes)
+    # LLM refinement is deliberately opt-in.  It belongs in offline
+    # preprocessing where refined DAGs can be cached, not in per-completion
+    # GRPO reward calls.
+    if not _env_bool("TOPO_DAG_LLM_REFINE", False):
+        return rule_edges, rule_evidences
+    if len(nodes) < 2:
+        return rule_edges, rule_evidences
+    max_steps = _env_int("TOPO_DAG_LLM_MAX_STEPS", 16)
+    if len(nodes) > max_steps:
+        logger.warning(
+            "LLM DAG refinement skipped: %d steps exceeds TOPO_DAG_LLM_MAX_STEPS=%d; using rule edges.",
+            len(nodes),
+            max_steps,
+        )
+        return rule_edges, rule_evidences
+
+    client = llm_client or _get_local_llm_client()
+    if client is None:
+        logger.warning("LLM DAG refinement unavailable; using rule-based dependency edges.")
+        return rule_edges, rule_evidences
+
+    try:
+        llm_edges, llm_evidences = _infer_dependency_edges_with_llm(nodes, client)
+    except Exception as exc:
+        logger.warning("LLM DAG refinement failed (%s); using rule-based dependency edges.", exc)
+        return rule_edges, rule_evidences
+
+    seen = {(s, t, dep) for s, t, _etype, dep in rule_edges}
+    merged_edges = list(rule_edges)
+    merged_evidences = list(rule_evidences)
+    for edge, ev in zip(llm_edges, llm_evidences):
+        key = (edge[0], edge[1], edge[3])
+        if key in seen:
+            continue
+        seen.add(key)
+        merged_edges.append(edge)
+        merged_evidences.append(ev)
+    return merged_edges, merged_evidences
+
+
+class _LocalHFDependencyClient:
+    def __init__(self, model_path: str, device: str, max_new_tokens: int) -> None:
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+        import torch
+
+        self.tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+        kwargs: Dict[str, Any] = {"trust_remote_code": True}
+        if device == "auto":
+            kwargs["device_map"] = "auto"
+        else:
+            kwargs["device_map"] = {"": device}
+        kwargs["torch_dtype"] = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+        self.model = AutoModelForCausalLM.from_pretrained(model_path, **kwargs)
+        self.max_new_tokens = max_new_tokens
+
+    def generate(self, prompt: str) -> str:
+        messages = [
+            {"role": "system", "content": "You extract dependency edges between reasoning steps. Return JSON only."},
+            {"role": "user", "content": prompt},
+        ]
+        if hasattr(self.tokenizer, "apply_chat_template"):
+            text = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        else:
+            text = f"{messages[0]['content']}\n\n{messages[1]['content']}\nJSON:"
+        inputs = self.tokenizer(text, return_tensors="pt").to(self.model.device)
+        out = self.model.generate(
+            **inputs,
+            max_new_tokens=self.max_new_tokens,
+            do_sample=False,
+            temperature=None,
+            top_p=None,
+        )
+        decoded = self.tokenizer.decode(out[0][inputs["input_ids"].shape[-1]:], skip_special_tokens=True)
+        return decoded.strip()
+
+
+def _get_local_llm_client() -> Any:
+    global _LOCAL_LLM_CLIENT, _LOCAL_LLM_LOAD_ATTEMPTED
+    if _LOCAL_LLM_CLIENT is not None:
+        return _LOCAL_LLM_CLIENT
+    if _LOCAL_LLM_LOAD_ATTEMPTED:
+        return None
+    _LOCAL_LLM_LOAD_ATTEMPTED = True
+
+    model_path = os.environ.get(
+        "TOPO_DAG_LLM_MODEL",
+        "/Knowin/foundation/weilinruan/hf_models/Qwen/Qwen2.5-Math-1.5B-Instruct",
+    )
+    if not model_path or not Path(model_path).exists():
+        logger.warning("LLM DAG refinement model not found at %s; using rule-based fallback.", model_path)
+        return None
+    try:
+        _LOCAL_LLM_CLIENT = _LocalHFDependencyClient(
+            model_path=model_path,
+            device=os.environ.get("TOPO_DAG_LLM_DEVICE", "auto"),
+            max_new_tokens=_env_int("TOPO_DAG_LLM_MAX_NEW_TOKENS", 512),
+        )
+    except Exception as exc:
+        logger.warning("Failed to load local LLM DAG refiner (%s); using rule-based fallback.", exc)
+        _LOCAL_LLM_CLIENT = None
+    return _LOCAL_LLM_CLIENT
+
+
+def _dependency_prompt(nodes: List[ParsedStep]) -> str:
+    rows = []
+    for n in nodes:
+        rows.append(
+            {
+                "id": n.step_id,
+                "text": n.raw_text,
+                "type": n.step_type.value,
+                "exprs": n.exprs[:8],
+                "claims": n.claims[:4],
+                "variables": n.variables[:8],
+            }
+        )
+    return (
+        "Task: identify implicit semantic dependencies between reasoning steps that are NOT already captured "
+        "by exact symbolic reuse. Add an edge i -> j only if step j semantically depends on an intermediate "
+        "result, latent claim, sub-goal, or assumption introduced in step i.\n"
+        "\n"
+        "Output STRICT JSON only. No prose, no markdown, no comments. The output MUST be a JSON array.\n"
+        "Each item MUST be an object with exactly these keys:\n"
+        "  - source: integer step id\n"
+        "  - target: integer step id\n"
+        "  - dep_type: one of [\"llm_semantic\", \"llm_subgoal\"]\n"
+        "  - confidence: float in [0,1] reflecting how confident you are in this implicit edge\n"
+        "  - evidence: a short English phrase (<= 24 words) explaining the semantic link\n"
+        "\n"
+        "Hard constraints:\n"
+        "  - source and target must both be valid step ids from the input\n"
+        "  - source < target (forward-only, no cycles)\n"
+        "  - no self edges\n"
+        "  - skip dependencies that are already obvious from shared expressions, variables, or claim keys; "
+        "    only output IMPLICIT semantic dependencies\n"
+        "  - if no implicit dependency exists, output []\n"
+        "\n"
+        "Worked example.\n"
+        "Input steps (parsed):\n"
+        "[\n"
+        "  {\"id\":0,\"text\":\"Let n be a positive integer.\",\"type\":\"definition\",\"exprs\":[],\"claims\":[],\"variables\":[\"n\"]},\n"
+        "  {\"id\":1,\"text\":\"Assume n is even.\",\"type\":\"definition\",\"exprs\":[],\"claims\":[\"n is even\"],\"variables\":[\"n\"]},\n"
+        "  {\"id\":2,\"text\":\"Then n^2 is even by parity.\",\"type\":\"derivation\",\"exprs\":[],\"claims\":[\"n^2 is even\"],\"variables\":[\"n\"]},\n"
+        "  {\"id\":3,\"text\":\"Compute n^2 - n = n(n-1).\",\"type\":\"computation\",\"exprs\":[\"n^2-n=n(n-1)\"],\"claims\":[],\"variables\":[\"n\"]},\n"
+        "  {\"id\":4,\"text\":\"So n(n-1) is even.\",\"type\":\"conclusion\",\"exprs\":[],\"claims\":[\"n(n-1) is even\"],\"variables\":[\"n\"]}\n"
+        "]\n"
+        "Expected output (only IMPLICIT dependencies, e.g. step 4 reuses the parity argument from step 1):\n"
+        "[\n"
+        "  {\"source\":1,\"target\":4,\"dep_type\":\"llm_semantic\",\"confidence\":0.85,\"evidence\":\"step 4 reuses the parity assumption introduced in step 1\"}\n"
+        "]\n"
+        "\n"
+        f"Now process the following steps:\nSteps:\n{json.dumps(rows, ensure_ascii=False, indent=2)}"
+    )
+
+
+def _extract_json_array(text: str) -> list[Any]:
+    text = text.strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?", "", text).strip()
+        text = re.sub(r"```$", "", text).strip()
+    start = text.find("[")
+    end = text.rfind("]")
+    if start < 0 or end < start:
+        raise ValueError("LLM output does not contain a JSON array")
+    return json.loads(text[start:end + 1])
+
+
+def _infer_dependency_edges_with_llm(
+    nodes: List[ParsedStep],
+    llm_client: Any,
+) -> Tuple[List[Tuple[int, int, str, str]], List[EdgeEvidence]]:
+    prompt = _dependency_prompt(nodes)
+    raw = llm_client.generate(prompt) if hasattr(llm_client, "generate") else llm_client(prompt)
+    rows = _extract_json_array(str(raw))
+    valid_ids = {n.step_id for n in nodes}
+    edges: List[Tuple[int, int, str, str]] = []
+    evidences: List[EdgeEvidence] = []
+    seen: set[tuple[int, int]] = set()
+    allowed_dep_types = {"llm_semantic", "llm_subgoal"}
+    for item in rows:
+        if not isinstance(item, dict):
+            continue
+        try:
+            src = int(item.get("source"))
+            tgt = int(item.get("target"))
+        except (TypeError, ValueError):
+            continue
+        if src not in valid_ids or tgt not in valid_ids or src >= tgt or (src, tgt) in seen:
+            continue
+        dep_type = str(item.get("dep_type", "llm_semantic"))
+        if dep_type not in allowed_dep_types:
+            dep_type = "llm_semantic"
+        try:
+            confidence = float(item.get("confidence", 0.5))
+        except (TypeError, ValueError):
+            confidence = 0.5
+        confidence = max(0.0, min(1.0, confidence))
+        seen.add((src, tgt))
+        evidence = str(item.get("evidence", "llm semantic dependency"))[:160]
+        if confidence > 0:
+            evidence = f"[conf={confidence:.2f}] {evidence}"
+        edges.append((src, tgt, VIRTUAL_EDGE, dep_type))
+        evidences.append(EdgeEvidence(src, tgt, VIRTUAL_EDGE, dep_type, evidence))
+    return edges, evidences
 
 
 def _should_add_seq_edge(dag: ReasoningDAG, src_id: int, tgt_id: int) -> bool:
@@ -565,6 +891,14 @@ def _should_add_seq_edge(dag: ReasoningDAG, src_id: int, tgt_id: int) -> bool:
         et = data.get("edge_type", "")
         if dag.is_virtual_edge(et):
             return False
+    if _dag_seq_when_no_dep_only():
+        # Stricter: require the source to also have no structural in-edge,
+        # so chains form only across nodes with no symbolic carry.
+        for u, v, data in dag.graph.in_edges(src_id, data=True):
+            _ = (u, v)
+            et = data.get("edge_type", "")
+            if dag.is_virtual_edge(et) or et == DOUBLE_BARRIER_EDGE:
+                return False
     return True
 
 
@@ -712,7 +1046,7 @@ def parse_answer_to_dag_debug(
             }
         )
 
-    dep_edges, evidences = build_dependency_edges_by_rules(parsed_steps)
+    dep_edges, evidences = build_dependency_edges_by_llm(parsed_steps)
     for src_id, tgt_id, edge_type, dep_type in dep_edges:
         if edge_type == VIRTUAL_EDGE:
             dag.add_dependency_edge(src_id, tgt_id, dep_type)

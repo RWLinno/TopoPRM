@@ -66,19 +66,13 @@ def _load_ablation_config(path: Optional[str] = None) -> dict:
 
 
 class LengthReward(ORM):
-    """Length-penalty reward.
+    """Long-CoT-friendly length reward.
 
-    Default unit is characters (preserves the v1 released behaviour):
-        * len(text) <= LOW          -> 1.0
-        * LOW < len(text) < HIGH    -> linear decay from 1.0 to 0.0
-        * len(text) >= HIGH         -> 0.0
-
-    Set the env var ``TOPO_LENGTH_UNIT=tokens`` to switch to whitespace-
-    delimited token counts; in that case ``TOPO_LENGTH_LOW`` and
-    ``TOPO_LENGTH_HIGH`` are interpreted as token thresholds.  This is a
-    P5 patch (see docs/method_diagnosis_2026-05-14.md): char-based
-    thresholds saturate at 0.0 on long-CoT traces (AIME ~6k chars/trace),
-    which silently drops the length signal from the hierarchical reward.
+    Design goal for English math reasoning:
+      - Penalize only *very short* outputs that usually skip reasoning.
+      - Keep 2000-4000 token traces near max score (no long-CoT suppression).
+      - Slightly reward efficient completions when they still produce
+        explicit final answers (boxed format).
     """
 
     LOW: int = RewardConfig.LENGTH_LOW
@@ -90,6 +84,9 @@ class LengthReward(ORM):
         completions: list,
         **kwargs: Any,
     ) -> list[float]:
+        import re
+
+        boxed_re = re.compile(r"\\boxed\{")
         rewards: list[float] = []
         for completion in completions:
             text = completion_to_text(completion)
@@ -97,12 +94,30 @@ class LengthReward(ORM):
                 length = len(text.split())
             else:
                 length = len(text)
-            if length <= self.LOW:
-                rewards.append(1.0)
-            elif length >= self.HIGH:
-                rewards.append(0.0)
+
+            # Backward-compatible fallback for old char-based configs where
+            # LOW/HIGH were set to very large values; use robust token-like
+            # thresholds for long-CoT training instead.
+            low = self.LOW
+            high = self.HIGH
+            if self.UNIT != "tokens" and low > 512:
+                low = 100
+                high = 4096
+
+            # Only punish extremely short traces (<~100 tokens).
+            if length < low:
+                rewards.append(max(0.0, length / max(1.0, float(low))))
+            elif length <= high:
+                # Keep broad plateau for useful reasoning lengths.
+                base = 1.0
+                # Encourage concise success traces with explicit final answer.
+                if boxed_re.search(text) and length <= int(0.65 * high):
+                    base = min(1.0, base + 0.05)
+                rewards.append(base)
             else:
-                rewards.append(1.0 - (length - self.LOW) / (self.HIGH - self.LOW))
+                # Soft tail decay for extremely long outputs only.
+                tail = min(0.2, (length - high) / max(1.0, float(high)))
+                rewards.append(max(0.8, 1.0 - tail))
         return rewards
 
 

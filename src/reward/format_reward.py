@@ -25,6 +25,7 @@ class FormatReward(ORM):
 
     _THINK_RE = re.compile(r"<think>", re.IGNORECASE)
     _THINK_CLOSE_RE = re.compile(r"</think>", re.IGNORECASE)
+    _THINK_BLOCK_RE = re.compile(r"<think>(.*?)</think>", re.IGNORECASE | re.DOTALL)
     _BOXED_RE = re.compile(r"\\boxed\{")
     _STEP_MARKERS = re.compile(
         r"(step\s*\d|first|second|third|therefore|thus|hence|so\s+the|"
@@ -41,17 +42,31 @@ class FormatReward(ORM):
                 continue
 
             has_think = bool(self._THINK_RE.search(text))
+            has_think_close = bool(self._THINK_CLOSE_RE.search(text))
             has_boxed = bool(self._BOXED_RE.search(text))
             has_steps = len(self._STEP_MARKERS.findall(text)) >= 2
+            think_match = self._THINK_BLOCK_RE.search(text)
+            think_tokens = len(think_match.group(1).split()) if think_match else 0
+            total_tokens = len(text.split())
+            chain_tokens = max(think_tokens, total_tokens)
 
-            if has_think and has_boxed:
-                rewards.append(1.0)
+            # Progressive long-CoT shaping:
+            # - Prefer well-formed <think>...</think> + boxed answer.
+            # - Give extra gain to longer chains to support AIME-like traces.
+            if has_think and has_think_close and has_boxed:
+                chain_bonus = min(0.2, chain_tokens / 2000.0)
+                step_bonus = 0.05 if has_steps else 0.0
+                rewards.append(min(1.0, 0.75 + chain_bonus + step_bonus))
+            elif has_think and has_boxed:
+                chain_bonus = min(0.15, chain_tokens / 2200.0)
+                rewards.append(min(0.95, 0.70 + chain_bonus))
             elif has_boxed and has_steps:
-                rewards.append(0.8)
+                chain_bonus = min(0.2, total_tokens / 1800.0)
+                rewards.append(min(0.85, 0.55 + chain_bonus))
             elif has_boxed:
                 rewards.append(0.5)
             elif has_think:
-                rewards.append(0.3)
+                rewards.append(0.35 if has_think_close else 0.25)
             elif has_steps:
                 rewards.append(0.1)
             else:

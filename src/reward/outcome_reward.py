@@ -23,6 +23,7 @@ class OutcomeReward(ORM):
 
     _BOXED_RE = re.compile(r"\\boxed\{([^}]*(?:\{[^}]*\}[^}]*)*)\}")
     _LAST_NUM_RE = re.compile(r"(?:=\s*|is\s+|answer\s+is\s+)([-+]?\d*\.?\d+)")
+    _HASH_ANS_RE = re.compile(r"####\s*([^\n]+)")
     _PLAIN_NUM_RE = re.compile(r"([-+]?\d+\.?\d*)\s*$")
 
     @classmethod
@@ -42,6 +43,36 @@ class OutcomeReward(ORM):
             return matches[-1].strip()
         return None
 
+    @classmethod
+    def _extract_ground_truth(cls, value: Any) -> Optional[str]:
+        """Extract comparable GT answer from mixed dataset fields."""
+        if value is None:
+            return None
+        if isinstance(value, dict):
+            # Prefer explicit short answer when present.
+            for key in ("final_answer", "answer", "solution", "standard_answer"):
+                gt = cls._extract_ground_truth(value.get(key))
+                if gt:
+                    return gt
+            return None
+        if isinstance(value, list):
+            for item in value:
+                gt = cls._extract_ground_truth(item)
+                if gt:
+                    return gt
+            return None
+
+        text = str(value).strip()
+        if not text:
+            return None
+        boxed = cls._extract_answer(text)
+        if boxed:
+            return boxed
+        hash_ans = cls._HASH_ANS_RE.findall(text)
+        if hash_ans:
+            return hash_ans[-1].strip()
+        return text
+
     @staticmethod
     def _verify_equivalence(prediction: str, ground_truth: str) -> bool:
         """Check mathematical equivalence using math_verify."""
@@ -55,8 +86,6 @@ class OutcomeReward(ORM):
         gt_clean = ground_truth.strip().rstrip(".").strip()
         return pred_clean == gt_clean
 
-    _DEBUG_LOGGED: bool = False
-
     def __call__(
         self,
         completions: list,
@@ -64,13 +93,6 @@ class OutcomeReward(ORM):
         **kwargs: Any,
     ) -> list[float]:
         """Return 1.0 for correct answer, 0.0 otherwise."""
-        if not OutcomeReward._DEBUG_LOGGED:
-            OutcomeReward._DEBUG_LOGGED = True
-            print(f"[OutcomeReward DEBUG] solution type={type(solution).__name__}, "
-                  f"value={str(solution)[:200]}", flush=True)
-            if completions:
-                sample = completion_to_text(completions[0])
-                print(f"[OutcomeReward DEBUG] completion[0]={sample[:200]}", flush=True)
         if solution is None:
             return [0.0] * len(completions)
 
@@ -80,11 +102,11 @@ class OutcomeReward(ORM):
         for i, completion in enumerate(completions):
             text = completion_to_text(completion)
             gt = solutions[i] if i < len(solutions) else None
-            if gt is None or str(gt).strip() == "":
+            gt_str = self._extract_ground_truth(gt)
+            if not gt_str:
                 rewards.append(0.0)
                 continue
 
-            gt_str = str(gt).strip()
             pred = self._extract_answer(text)
             if pred is None:
                 rewards.append(0.0)

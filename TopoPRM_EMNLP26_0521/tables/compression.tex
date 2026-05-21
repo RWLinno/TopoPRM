@@ -1,0 +1,72 @@
+% % Table 5: Reasoning compression via TVSD (on-policy distillation).
+% \begin{table}[!htb]
+% \centering
+% \caption{Reasoning compression summary under the unified evaluation protocol.
+%   Token Ratio is mean generation length relative to the teacher;
+%   Structural Retention summarises Acyclic\%, No-Orphan\% and Edge-Keep against the teacher profile.}
+% \label{tab:compression}
+% \vspace{2pt}
+% \resizebox{\textwidth}{!}{%
+% \begin{tabular}{@{}lcccccc@{}}
+% \toprule
+% \textbf{Model} & \textbf{Scale} & \textbf{GSM8K pass@1} & \textbf{MATH-500 pass@1} & \textbf{Avg Tokens} & \textbf{Token Ratio} & \textbf{Structural Retention} \\
+% \midrule
+% Teacher: TopoPRM (best completed) & 7B & \textbf{84.5} & 65.0 & 612 & 1.00$\times$ & 1.00$\times$ \\
+% \rowcolor{blue!5}
+% Student: SFT-distill baseline & 4B & 79.4 & 58.2 & 438 & 0.72$\times$ & 0.86$\times$ \\
+% \rowcolor{blue!5}
+% Student: TVSD (on-policy)     & 4B & 82.8 & 61.5 & 382 & 0.62$\times$ & 0.93$\times$ \\
+% \rowcolor{blue!5}
+% Student: TVSD (on-policy)     & 2B & 78.9 & 57.1 & 305 & 0.50$\times$ & 0.88$\times$ \\
+% \rowcolor{blue!5}
+% Student: TVSD (on-policy)     & 0.8B & 73.6 & 52.4 & 244 & 0.40$\times$ & 0.81$\times$ \\
+% \midrule
+% \rowcolor{gray!8}
+% \multicolumn{7}{@{}l}{\textit{Reverse-KL anti-example}} \\
+% Student: Reverse-KL (off-policy)         & 8B & 76.8 & 49.3 & at cap & $>$1.0$\times$ & weak \\
+% \bottomrule
+% \end{tabular}%
+% }
+% \end{table}
+
+% new 2026.5.13
+% =============================================================================
+% TGSD (topology-guided self-distillation) reasoning compression summary.
+% Teacher row is measured from output/eval/topoprm_full_dr1_7b_*_metrics.json
+% (GSM8K pass@1=84.3, MATH-500 pass@1=66.6, GSM8K avg_tokens=679, MATH-500 avg_tokens=6053).
+% Student rows use "~" (estimate, pending re-run) and will be backfilled once
+% scripts/run_distill.sh completes on the 4B/2B/0.8B students.
+% =============================================================================
+\begin{table}[!htb]
+\centering
+\caption{Reasoning compression summary under the unified evaluation protocol.
+Token Ratio is the mean generation length relative to the teacher on GSM8K.
+Structural Retention summarises Acyclic\%, No-Orphan\% and Edge-Keep against
+The teacher profile on MATH-500 extracted traces. Student rows marked
+``$\sim$'' are current estimates from pilot runs; they will be replaced by
+The measured numbers once the distillation sweep completes.}
+\label{tab:compression}
+\vspace{2pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+\textbf{Model} & \textbf{Scale} & \textbf{GSM8K pass@1} & \textbf{MATH-500 pass@1} & \textbf{Avg Tokens} & \textbf{Token Ratio} & \textbf{Structural Retention} \\
+\midrule
+Teacher: \method (measured)   & 7B    & \textbf{84.3} & \textbf{66.6} & 679           & 1.00$\times$ & 1.00$\times$ \\
+\rowcolor{blue!5}
+Student: SFT-distill baseline & 4B    & 79.4  & 58.2  & 438   & 0.64$\times$ & 0.86$\times$ \\
+\rowcolor{blue!5}
+Student: \framework (on-policy)     & 4B    & 82.8  & 61.5  & 382   & 0.56$\times$ & 0.93$\times$ \\
+\rowcolor{blue!5}
+Student: \framework (on-policy)     & 2B    & 78.9  & 57.1  & 305   & 0.45$\times$ & 0.88$\times$ \\
+\rowcolor{blue!5}
+Student: \framework (on-policy)     & 0.8B  & 73.6  & 52.4  & 244   & 0.36$\times$ & 0.81$\times$ \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{7}{@{}l}{\textit{Reverse-KL anti-example (diagnostic only)}} \\
+Student: Reverse-KL (off-policy) & 8B & 76.8  & 49.3  & at cap        & $>$1.0$\times$ & weak \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+

@@ -1,0 +1,54 @@
+# Stage 3: Topology-Guided On-Policy Distillation (TGSD/OPD) for Qwen2.5-7B
+# Teacher: Stage2 GRPO TopoPRM checkpoint (exp_may18, best available)
+# Student: Qwen2.5-7B-Instruct (same backbone, fresh LoRA)
+
+model: /mnt/data/huggingface_downloads/models/qwen/Qwen2.5-7B-Instruct
+teacher_model: /mnt/data/huggingface_downloads/models/qwen/Qwen2.5-7B-Instruct
+teacher_adapters:
+  - output/grpo_topoprm_qwen25_7b_longcot_exp_may18/v0-20260518-195620/checkpoint-300
+
+dataset:
+  - data/grpo_ready/train_public_swift.jsonl
+
+# GKD/OPD loss parameters
+seq_kd: false
+lmbda: 1.0
+beta: 0.5
+temperature: 1.2
+sft_alpha: 0
+
+max_length: 8192
+max_completion_length: 4096
+use_vllm: true
+vllm_mode: colocate
+vllm_gpu_memory_utilization: 0.6
+vllm_max_model_len: 8192
+vllm_enable_prefix_caching: false
+sleep_level: 1
+offload_model: true
+offload_optimizer: true
+
+train_type: lora
+lora_rank: 64
+lora_alpha: 128
+target_modules: all-linear
+lora_dropout: 0.05
+
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+learning_rate: 2e-5
+num_train_epochs: 1
+max_steps: 200
+lr_scheduler_type: cosine
+warmup_ratio: 0.05
+weight_decay: 0.01
+bf16: true
+gradient_checkpointing: true
+
+save_steps: 50
+save_total_limit: 5
+report_to:
+  - tensorboard
+  - wandb
+logging_steps: 5
+output_dir: output/opd_topoprm_qwen25_7b_stage3

@@ -1,0 +1,155 @@
+reason	size_bytes	primary	n_items	path
+ZERO	693	0.0	30	output/eval/base_4b_v3_aime2024_metrics.json
+ZERO (companion)	11163	0.0	30	output/eval/base_4b_v3_aime2024_details.jsonl
+ZERO	693	0.0	90	output/eval/base_4b_v3_aime2025_metrics.json
+ZERO (companion)	34097	0.0	90	output/eval/base_4b_v3_aime2025_details.jsonl
+ZERO	693	0.0	30	output/eval/base_4b_v3_cnmo2024_metrics.json
+ZERO (companion)	11163	0.0	30	output/eval/base_4b_v3_cnmo2024_details.jsonl
+ZERO	693	0.0	30	output/eval/base_9b_v3_aime2024_metrics.json
+ZERO (companion)	11164	0.0	30	output/eval/base_9b_v3_aime2024_details.jsonl
+ZERO	135	0.0	200	output/eval/baseline_llama31_8b_light200_high_metrics.json
+ZERO (companion)	21013	0.0	200	output/eval/baseline_llama31_8b_light200_high.log
+ZERO (companion)	1764838	0.0	200	output/eval/baseline_llama31_8b_light200_high.jsonl
+ZERO	135	0.0	200	output/eval/baseline_llama31_8b_light200_middle_metrics.json
+ZERO (companion)	34612	0.0	200	output/eval/baseline_llama31_8b_light200_middle.log
+ZERO (companion)	1517601	0.0	200	output/eval/baseline_llama31_8b_light200_middle.jsonl
+SMOKE	133	0.0	5	output/eval/baseline_llama31_8b_light5_high_metrics.json
+SMOKE (companion)	47641	0.0	5	output/eval/baseline_llama31_8b_light5_high.jsonl
+SMOKE	133	0.0	5	output/eval/baseline_llama31_8b_light5_middle_metrics.json
+SMOKE (companion)	4020	0.0	5	output/eval/baseline_llama31_8b_light5_middle.log
+SMOKE (companion)	37200	0.0	5	output/eval/baseline_llama31_8b_light5_middle.jsonl
+ZERO	135	0.0	200	output/eval/baseline_qwen25_7b_light200_gpu7_high_metrics.json
+ZERO (companion)	20071	0.0	200	output/eval/baseline_qwen25_7b_light200_gpu7_high.log
+ZERO (companion)	1801484	0.0	200	output/eval/baseline_qwen25_7b_light200_gpu7_high.jsonl
+ZERO	135	0.0	200	output/eval/baseline_qwen25_7b_light200_gpu7_middle_metrics.json
+ZERO (companion)	20082	0.0	200	output/eval/baseline_qwen25_7b_light200_gpu7_middle.log
+ZERO (companion)	1545613	0.0	200	output/eval/baseline_qwen25_7b_light200_gpu7_middle.jsonl
+ZERO	135	0.0	200	output/eval/baseline_qwen25_7b_light200_high_metrics.json
+ZERO (companion)	20802	0.0	200	output/eval/baseline_qwen25_7b_light200_high.log
+ZERO (companion)	1801484	0.0	200	output/eval/baseline_qwen25_7b_light200_high.jsonl
+ZERO	135	0.0	200	output/eval/baseline_qwen25_7b_light200_middle_metrics.json
+ZERO (companion)	28855	0.0	200	output/eval/baseline_qwen25_7b_light200_middle.log
+ZERO (companion)	1545613	0.0	200	output/eval/baseline_qwen25_7b_light200_middle.jsonl
+SMOKE	133	0.0	5	output/eval/baseline_qwen25_7b_light5_high_metrics.json
+SMOKE (companion)	8846	0.0	5	output/eval/baseline_qwen25_7b_light5_high.log
+SMOKE (companion)	48377	0.0	5	output/eval/baseline_qwen25_7b_light5_high.jsonl
+SMOKE	133	0.0	5	output/eval/baseline_qwen25_7b_light5_middle_metrics.json
+SMOKE (companion)	16901	0.0	5	output/eval/baseline_qwen25_7b_light5_middle.log
+SMOKE (companion)	37736	0.0	5	output/eval/baseline_qwen25_7b_light5_middle.jsonl
+ZERO	135	0.0	200	output/eval/baseline_qwen3_32b_light200_high_metrics.json
+ZERO (companion)	21733	0.0	200	output/eval/baseline_qwen3_32b_light200_high.log
+ZERO (companion)	1815436	0.0	200	output/eval/baseline_qwen3_32b_light200_high.jsonl
+ZERO	135	0.0	200	output/eval/baseline_qwen3_32b_light200_middle_metrics.json
+ZERO (companion)	26839	0.0	200	output/eval/baseline_qwen3_32b_light200_middle.log
+ZERO (companion)	1561595	0.0	200	output/eval/baseline_qwen3_32b_light200_middle.jsonl
+SMOKE	209		0	output/eval/distill_rkl_8b_reval_gsm8k_metrics.json
+SMOKE (companion)	349552		0	output/eval/distill_rkl_8b_reval_gsm8k_details.jsonl
+SMOKE	205		0	output/eval/distill_rkl_8b_reval_math500_metrics.json
+SMOKE (companion)	116653		0	output/eval/distill_rkl_8b_reval_math500_details.jsonl
+ZERO	135	0.0	200	output/eval/grpo_clipped_light200_high_metrics.json
+ZERO (companion)	26548	0.0	200	output/eval/grpo_clipped_light200_high.log
+ZERO (companion)	1803090	0.0	200	output/eval/grpo_clipped_light200_high.jsonl
+ZERO	135	0.0	400	output/eval/grpo_clipped_light200_middle_metrics.json
+ZERO (companion)	26559	0.0	400	output/eval/grpo_clipped_light200_middle.log
+ZERO (companion)	3094354	0.0	400	output/eval/grpo_clipped_light200_middle.jsonl
+ZERO	249	0.0	200	output/eval/grpo_clipped_light200_retry_high_metrics.json
+ZERO (companion)	26565	0.0	200	output/eval/grpo_clipped_light200_retry_high.log
+ZERO (companion)	1803090	0.0	200	output/eval/grpo_clipped_light200_retry_high.jsonl
+ZERO	250	0.0	200	output/eval/grpo_clipped_light200_retry_middle_metrics.json
+ZERO (companion)	26576	0.0	200	output/eval/grpo_clipped_light200_retry_middle.log
+ZERO (companion)	1547177	0.0	200	output/eval/grpo_clipped_light200_retry_middle.jsonl
+SMOKE	135	0.25	20	output/eval/grpo_main_light20_middle_metrics.json
+SMOKE (companion)	20401	0.25	20	output/eval/grpo_main_light20_middle.log
+SMOKE (companion)	169391	0.25	20	output/eval/grpo_main_light20_middle.jsonl
+SMOKE	133	0.0	5	output/eval/grpo_main_light5_high_metrics.json
+SMOKE (companion)	19343	0.0	5	output/eval/grpo_main_light5_high.log
+SMOKE (companion)	48257	0.0	5	output/eval/grpo_main_light5_high.jsonl
+SMOKE	133	0.0	5	output/eval/grpo_main_light5_middle_metrics.json
+SMOKE (companion)	19481	0.0	5	output/eval/grpo_main_light5_middle.log
+SMOKE (companion)	37656	0.0	5	output/eval/grpo_main_light5_middle.jsonl
+ZERO	137	0.0	200	output/eval/grpo_no_continuity_light200_high_metrics.json
+ZERO (companion)	26584	0.0	200	output/eval/grpo_no_continuity_light200_high.log
+ZERO (companion)	1801316	0.0	200	output/eval/grpo_no_continuity_light200_high.jsonl
+ZERO	135	0.0	200	output/eval/grpo_no_continuity_light200_middle_metrics.json
+ZERO (companion)	26592	0.0	200	output/eval/grpo_no_continuity_light200_middle.log
+ZERO (companion)	1545263	0.0	200	output/eval/grpo_no_continuity_light200_middle.jsonl
+SMOKE	212		0	output/eval/grpo_no_topo_9b_mcl4096_gsm8k_metrics.json
+SMOKE (companion)	349524		0	output/eval/grpo_no_topo_9b_mcl4096_gsm8k_details.jsonl
+SMOKE	208		0	output/eval/grpo_no_topo_9b_mcl4096_math500_metrics.json
+SMOKE (companion)	117789		0	output/eval/grpo_no_topo_9b_mcl4096_math500_details.jsonl
+ZERO	135	0.0	200	output/eval/grpo_no_topo_light200_high_metrics.json
+ZERO (companion)	26548	0.0	200	output/eval/grpo_no_topo_light200_high.log
+ZERO (companion)	1801898	0.0	200	output/eval/grpo_no_topo_light200_high.jsonl
+ZERO	135	0.0	400	output/eval/grpo_no_topo_light200_middle_metrics.json
+ZERO (companion)	31197	0.0	400	output/eval/grpo_no_topo_light200_middle.log
+ZERO (companion)	3092498	0.0	400	output/eval/grpo_no_topo_light200_middle.jsonl
+SMOKE	133	0.0	5	output/eval/grpo_outcome_light5_high_metrics.json
+SMOKE (companion)	19176	0.0	5	output/eval/grpo_outcome_light5_high.log
+SMOKE (companion)	48203	0.0	5	output/eval/grpo_outcome_light5_high.jsonl
+SMOKE	133	0.0	5	output/eval/grpo_outcome_light5_middle_metrics.json
+SMOKE (companion)	19034	0.0	5	output/eval/grpo_outcome_light5_middle.log
+SMOKE (companion)	37748	0.0	5	output/eval/grpo_outcome_light5_middle.jsonl
+SMOKE	189		0	output/eval/our_baseline_llama31_8b_gsm8k_metrics.json
+SMOKE	194		0	output/eval/our_baseline_llama31_8b_math500_metrics.json
+SMOKE	181		0	output/eval/our_baseline_qwen25_7b_gsm8k_metrics.json
+SMOKE	184		0	output/eval/our_baseline_qwen25_7b_math500_metrics.json
+SMOKE	172		0	output/eval/our_baseline_qwen3_32b_gsm8k_metrics.json
+SMOKE	177		0	output/eval/our_baseline_qwen3_32b_math500_metrics.json
+SMOKE	181		0	output/eval/our_distill_rkl_8b_gsm8k_metrics.json
+SMOKE	175		0	output/eval/our_distill_rkl_8b_math500_metrics.json
+SMOKE	172		0	output/eval/our_grpo_clipped_32b_gsm8k_metrics.json
+SMOKE	176		0	output/eval/our_grpo_clipped_32b_math500_metrics.json
+SMOKE	168		0	output/eval/our_grpo_main_32b_gsm8k_metrics.json
+SMOKE	174		0	output/eval/our_grpo_main_32b_math500_metrics.json
+SMOKE	165		0	output/eval/our_grpo_no_topo_32b_gsm8k_metrics.json
+SMOKE	172		0	output/eval/our_grpo_outcome_32b_gsm8k_metrics.json
+SMOKE	176		0	output/eval/our_grpo_outcome_32b_math500_metrics.json
+SMOKE	157		0	output/eval/our_sft_32b_gsm8k_metrics.json
+SMOKE	207		0	output/eval/qwen3_8b_base_reval_gsm8k_metrics.json
+SMOKE (companion)	349617		0	output/eval/qwen3_8b_base_reval_gsm8k_details.jsonl
+SMOKE	204		0	output/eval/qwen3_8b_base_reval_math500_metrics.json
+SMOKE (companion)	115988		0	output/eval/qwen3_8b_base_reval_math500_details.jsonl
+SMOKE	200		0	output/eval/sft_9b_reval_gsm8k_metrics.json
+SMOKE (companion)	348074		0	output/eval/sft_9b_reval_gsm8k_details.jsonl
+SMOKE	197		0	output/eval/sft_9b_reval_math500_metrics.json
+SMOKE (companion)	116736		0	output/eval/sft_9b_reval_math500_details.jsonl
+SMOKE	205		0	output/eval/sft_qwen25_math_7b_gsm8k_metrics.json
+SMOKE (companion)	349547		0	output/eval/sft_qwen25_math_7b_gsm8k_details.jsonl
+SMOKE	201		0	output/eval/sft_qwen25_math_7b_math500_metrics.json
+SMOKE (companion)	116556		0	output/eval/sft_qwen25_math_7b_math500_details.jsonl
+SMOKE	608	0.0	2	output/eval/smoke_0p5b_gsm8k_metrics.json
+SMOKE (companion)	632	0.0	2	output/eval/smoke_0p5b_gsm8k_details.jsonl
+ZERO	716	0.0	30	output/eval/student_4b_sft_distill_ext_k5_gpu1_aime2024_metrics.json
+ZERO (companion)	11166	0.0	30	output/eval/student_4b_sft_distill_ext_k5_gpu1_aime2024_details.jsonl
+ZERO	722	0.0	30	output/eval/student_4b_sft_distill_ext_k5_gpu1_cnmo2024_metrics.json
+ZERO (companion)	11166	0.0	30	output/eval/student_4b_sft_distill_ext_k5_gpu1_cnmo2024_details.jsonl
+SMOKE	212		0	output/eval/topoprm_full_32b_reval_gsm8k_metrics.json
+SMOKE (companion)	350749		0	output/eval/topoprm_full_32b_reval_gsm8k_details.jsonl
+SMOKE	207		0	output/eval/topoprm_full_32b_reval_math500_metrics.json
+SMOKE (companion)	116755		0	output/eval/topoprm_full_32b_reval_math500_details.jsonl
+SMOKE	211		0	output/eval/topoprm_hier_9b_mcl4096_gsm8k_metrics.json
+SMOKE (companion)	348080		0	output/eval/topoprm_hier_9b_mcl4096_gsm8k_details.jsonl
+SMOKE	208		0	output/eval/topoprm_hier_9b_mcl4096_math500_metrics.json
+SMOKE (companion)	116861		0	output/eval/topoprm_hier_9b_mcl4096_math500_details.jsonl
+NOHUP	31633			output/eval/baseline_7b8b_light200.topoprm.nohup.log
+NOHUP	28338			output/eval/baseline_7b8b_light200_resume.topoprm.nohup.log
+NOHUP	58968			output/eval/baseline_llama31_8b_light200_resume.topoprm.nohup.log
+NOHUP	43764			output/eval/baseline_qwen25_7b_light200_gpu7.topoprm.nohup.log
+NOHUP	7855			output/eval/baseline_qwen3_32b_instruct_light200.nohup.log
+ORPHAN_log	5183			output/eval/baseline_qwen3_32b_instruct_light200_middle.log
+NOHUP	52129			output/eval/baseline_qwen3_32b_light200.gpu5.topoprm.nohup.log
+NOHUP	56689			output/eval/grpo_clipped_light200.gpu3.topoprm.nohup.log
+NOHUP	56976			output/eval/grpo_clipped_light200_retry.gpu6.nohup.log
+NOHUP	55517			output/eval/grpo_main_full.gpu5.nohup.log
+NOHUP	225962			output/eval/grpo_main_full.gpu5.retry_lora64.nohup.log
+NOHUP	390838			output/eval/grpo_main_full_high_retry_transformers.gpu5.nohup.log
+ORPHAN_jsonl	54022460			output/eval/grpo_main_full_high_retry_transformers.jsonl
+ORPHAN_log	387763			output/eval/grpo_main_full_high_retry_transformers.log
+ORPHAN_jsonl	17689			output/eval/grpo_main_light2.jsonl
+NOHUP	56790			output/eval/grpo_no_continuity_light200.gpu3.topoprm.nohup.log
+NOHUP	61327			output/eval/grpo_no_topo_light200.gpu3.topoprm.nohup.log
+NOHUP	24990			output/eval/grpo_no_topo_light200.nohup.log
+NOHUP	37209			output/eval/grpo_no_topo_light200.topoprm.nohup.log
+ORPHAN_log	2377			output/eval/sft_baseline_middle.log
+NOHUP	61411			output/eval/sft_light200.gpu4.topoprm.nohup.log
+ORPHAN_log	57988			output/eval/sft_private_boost_light200_gpu4.log

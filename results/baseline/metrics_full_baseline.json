@@ -1,0 +1,223 @@
+{
+  "ref_qwen25_7b_instruct_B": {
+    "aime2024": {
+      "n_items": 30,
+      "error_count": 25,
+      "correct_count": 5,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 0.1667,
+      "pass@1": 0.1667,
+      "maj@1": 0.1667,
+      "pass@5": 0.3,
+      "maj@5": 0.2,
+      "avg_tokens": 1378.2,
+      "prm@1": 0.1667,
+      "prm@5": 0.1667,
+      "accuracy": 0.1667,
+      "accuracy_pct": 16.67,
+      "correct": 5,
+      "error": 25,
+      "num_samples": 30,
+      "pass_at_k": {
+        "1": 0.1667,
+        "5": 0.3
+      },
+      "maj_at_k": {
+        "1": 0.1667,
+        "5": 0.2
+      },
+      "prm_at_k": {
+        "1": 0.1667,
+        "5": 0.1667
+      },
+      "elapsed_sec": 1508.0,
+      "backend": "transformers",
+      "label": "ref_qwen25_7b_instruct_B",
+      "num_samples_per_item": 5,
+      "k_values": [
+        1,
+        5
+      ],
+      "use_chat_template": true,
+      "sft_style": false,
+      "fewshot": false
+    },
+    "gsm8k": {
+      "n_items": 1319,
+      "error_count": 135,
+      "correct_count": 1184,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 0.9128,
+      "pass@1": 0.9128,
+      "maj@1": 0.8976,
+      "pass@5": 0.9507,
+      "maj@5": 0.9113,
+      "avg_tokens": 377.0,
+      "prm@1": 0.9128,
+      "prm@5": 0.9128,
+      "accuracy": 0.9128,
+      "accuracy_pct": 91.28,
+      "correct": 1204,
+      "error": 115,
+      "num_samples": 1319,
+      "pass_at_k": {
+        "1": 0.9128,
+        "5": 0.9507
+      },
+      "maj_at_k": {
+        "1": 0.8976,
+        "5": 0.9113
+      },
+      "prm_at_k": {
+        "1": 0.9128,
+        "5": 0.9128
+      },
+      "elapsed_sec": 10270.7,
+      "backend": "transformers",
+      "label": "ref_qwen25_7b_instruct_B",
+      "num_samples_per_item": 5,
+      "k_values": [
+        1,
+        5
+      ],
+      "use_chat_template": true,
+      "sft_style": false,
+      "fewshot": false
+    },
+    "math500": {
+      "n_items": 500,
+      "error_count": 192,
+      "correct_count": 308,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 0.654,
+      "pass@1": 0.654,
+      "maj@1": 0.616,
+      "pass@5": 0.73,
+      "maj@5": 0.646,
+      "avg_tokens": 884.7,
+      "prm@1": 0.654,
+      "prm@5": 0.654,
+      "accuracy": 0.654,
+      "accuracy_pct": 65.4,
+      "correct": 327,
+      "error": 173,
+      "num_samples": 500,
+      "pass_at_k": {
+        "1": 0.654,
+        "5": 0.73
+      },
+      "maj_at_k": {
+        "1": 0.616,
+        "5": 0.646
+      },
+      "prm_at_k": {
+        "1": 0.654,
+        "5": 0.654
+      },
+      "elapsed_sec": 8663.0,
+      "backend": "transformers",
+      "label": "ref_qwen25_7b_instruct_B",
+      "num_samples_per_item": 5,
+      "k_values": [
+        1,
+        5
+      ],
+      "use_chat_template": true,
+      "sft_style": false,
+      "fewshot": false
+    }
+  },
+  "ref_qwen25_math_7b_instruct_B": {
+    "gsm8k": {
+      "n_items": 1319,
+      "error_count": 70,
+      "correct_count": 1249,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 0.9545,
+      "pass@1": 0.9545,
+      "maj@1": 0.9469,
+      "pass@5": 0.9712,
+      "maj@5": 0.956,
+      "avg_tokens": 425.9,
+      "prm@1": 0.9545,
+      "prm@5": 0.9545,
+      "accuracy": 0.9545,
+      "accuracy_pct": 95.45,
+      "correct": 1259,
+      "error": 60,
+      "num_samples": 1319,
+      "pass_at_k": {
+        "1": 0.9545,
+        "5": 0.9712
+      },
+      "maj_at_k": {
+        "1": 0.9469,
+        "5": 0.956
+      },
+      "prm_at_k": {
+        "1": 0.9545,
+        "5": 0.9545
+      },
+      "elapsed_sec": 11154.4,
+      "backend": "transformers",
+      "label": "ref_qwen25_math_7b_instruct_B",
+      "num_samples_per_item": 5,
+      "k_values": [
+        1,
+        5
+      ],
+      "use_chat_template": true,
+      "sft_style": false,
+      "fewshot": false
+    }
+  },
+  "sft_qwen35_9b_B": {
+    "gsm8k": {
+      "n_items": 1319,
+      "error_count": 113,
+      "correct_count": 1206,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 0.9196,
+      "pass@1": 0.9196,
+      "maj@1": 0.9143,
+      "pass@5": 0.9765,
+      "maj@5": 0.9333,
+      "avg_tokens": 644.1,
+      "prm@1": 0.9196,
+      "prm@5": 0.9113,
+      "accuracy": 0.9196,
+      "accuracy_pct": 91.96,
+      "correct": 1213,
+      "error": 106,
+      "num_samples": 1319,
+      "pass_at_k": {
+        "1": 0.9196,
+        "5": 0.9765
+      },
+      "maj_at_k": {
+        "1": 0.9143,
+        "5": 0.9333
+      },
+      "prm_at_k": {
+        "1": 0.9196,
+        "5": 0.9113
+      },
+      "elapsed_sec": 34349.8,
+      "backend": "transformers",
+      "label": "sft_qwen35_9b_B",
+      "num_samples_per_item": 5,
+      "k_values": [
+        1,
+        5
+      ],
+      "use_chat_template": true,
+      "sft_style": true,
+      "fewshot": false
+    }
+  }
+}

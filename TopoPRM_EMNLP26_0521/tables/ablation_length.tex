@@ -1,0 +1,102 @@
+% % Table 4: Accuracy--length trade-off across reward configurations.
+% \begin{table}[!htb]
+% \centering
+% \caption{Accuracy--length trade-off across reward configurations on the in-domain validation set.
+%   Avg-Len reports mean prediction tokens; Acc/kTok measures accuracy points per 1{,}000 tokens.}
+% \label{tab:ablation_length}
+% \vspace{2pt}
+% \resizebox{\textwidth}{!}{%
+% \begin{tabular}{@{}l cc cc cc@{}}
+% \toprule
+% & \multicolumn{2}{c}{\textbf{Middle School}}
+% & \multicolumn{2}{c}{\textbf{High School}}
+% & \multicolumn{2}{c}{\textbf{Efficiency}} \\
+% \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+% \textbf{Reward Configuration}
+%   & Acc & Len & Acc & Len & Acc/kTok$\uparrow$ & Len-Red.$\downarrow$ \\
+% \midrule
+% \rowcolor{blue!5}
+% TopoPRM (full)        & \textbf{37.2} & \textbf{364} & \textbf{22.3} & \textbf{424} & \textbf{75.5} & --- \\
+% \quad w/o Continuity  & 27.5 & 379 & 20.0 & 436 & 58.4 & $-3.9\%$ \\
+% \quad w/o Topology    & 23.0 & 397 & 16.5 & 460 & 46.2 & $-8.3\%$ \\
+% Outcome Only          & 19.5 & 410 & 13.0 & 475 & 36.8 & $-11.2\%$ \\
+% \midrule
+% Qwen3-32B (base)     & 16.0 & 1\,200 & 7.0 & 1\,240 & 9.4  & $-69.7\%$ \\
+% \bottomrule
+% \end{tabular}%
+% }
+% \end{table}
+
+% % =============================================================================
+% % Accuracy-length trade-off on the in-domain critique validation set (Qwen3-32B).
+% % Complements tab:ablation_reward which covers PUBLIC benchmarks (DR1-7B).
+% % Data from output/eval_private/qwen3_32b_*_{metrics,details}.json.
+% % =============================================================================
+% \begin{table}[!htb]
+% \centering
+% \caption{Accuracy--length trade-off across reward configurations on the
+% \emph{in-domain critique} validation set (Qwen3-32B base). Avg-Len reports
+% mean prediction tokens; Acc/kTok measures Overall-Acc points per 1\,000
+% tokens (higher is more token-efficient); Len-Red.\ is length reduction
+% relative to TopoPRM full.}
+% \label{tab:ablation_length}
+% \vspace{2pt}
+% \resizebox{\textwidth}{!}{%
+% \begin{tabular}{@{}l cc cc cc@{}}
+% \toprule
+% & \multicolumn{2}{c}{\textbf{Middle School}}
+% & \multicolumn{2}{c}{\textbf{High School}}
+% & \multicolumn{2}{c}{\textbf{Efficiency}} \\
+% \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+% \textbf{Reward Configuration}
+%   & Acc & Len & Acc & Len & Acc/kTok$\uparrow$ & Len-Red.$\downarrow$ \\
+% \midrule
+% \rowcolor{blue!5}
+% TopoPRM (full)        & \textbf{37.2} & 364   & \textbf{22.3} & 424   & \textbf{75.5} & --- \\
+% \quad w/o Continuity  & 27.5          & 379   & 20.0          & 436   & 58.4          & $+4.1\%$ \\
+% \quad w/o Topology    & 23.0          & 397   & 16.5          & 460   & 46.2          & $+9.0\%$ \\
+% Outcome Only          & 19.5          & 410   & 13.0          & 475   & 36.8          & $+12.6\%$ \\
+% \midrule
+% Qwen3-32B (base)      & 16.0          & 1\,200 & 7.0          & 1\,240 & 9.4          & $+230\%$ \\
+% \bottomrule
+% \end{tabular}%
+% }
+% \end{table}
+
+% % =============================================================================
+% % Accuracy-length trade-off on the in-domain critique validation set (Qwen3-32B).
+% % Complements tab:ablation_reward which covers PUBLIC benchmarks (DR1-7B).
+% % Data from output/eval_private/qwen3_32b_*_{metrics,details}.json.
+% % =============================================================================
+% new 2026.5.13
+\begin{table}[!htb]
+\centering
+\caption{Accuracy--length trade-off across reward configurations on the
+\emph{in-domain critique} validation set (Qwen3-32B base). Avg-Len reports
+mean prediction tokens; Acc/kTok measures Overall-Acc points per 1\,000
+tokens (higher is more token-efficient); Len-Red.\ is length reduction
+relative to TopoPRM full.}
+\label{tab:ablation_length}
+\vspace{2pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l cc cc cc@{}}
+\toprule
+& \multicolumn{2}{c}{\textbf{Middle School}}
+& \multicolumn{2}{c}{\textbf{High School}}
+& \multicolumn{2}{c}{\textbf{Efficiency}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+\textbf{Reward Configuration}
+  & Acc & Len & Acc & Len & Acc/kTok$\uparrow$ & Len-Red.$\downarrow$ \\
+\midrule
+\rowcolor{blue!5}
+TopoPRM (full)        & \textbf{37.2} & 364   & \textbf{22.3} & 424   & \textbf{75.5} & --- \\
+\quad w/o Continuity  & 27.5          & 379   & 20.0          & 436   & 58.4          & $+4.1\%$ \\
+\quad w/o Topology    & 23.0          & 397   & 16.5          & 460   & 46.2          & $+9.0\%$ \\
+Outcome Only          & 19.5          & 410   & 13.0          & 475   & 36.8          & $+12.6\%$ \\
+\midrule
+Qwen3-32B (base)      & 16.0          & 1\,200 & 7.0          & 1\,240 & 9.4          & $+230\%$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+

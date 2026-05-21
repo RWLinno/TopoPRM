@@ -58,15 +58,15 @@ FAST_BENCHES = {"gsm8k", "math500", "aime2024", "aime2025", "cnmo2024"}
 SLOW_BENCHES = {"olympiadbench", "omni_math", "gpqa_diamond", "mmlu"}
 
 BENCH_CONFIG = {
-    "gsm8k":          {"max_new_tokens": 1536, "max_items": 0,   "batch_size": 4, "est_min": 45},
-    "math500":        {"max_new_tokens": 3072, "max_items": 0,   "batch_size": 4, "est_min": 60},
+    "gsm8k":          {"max_new_tokens": 4096, "max_items": 0,   "batch_size": 2, "est_min": 90},
+    "math500":        {"max_new_tokens": 4096, "max_items": 0,   "batch_size": 2, "est_min": 90},
     "aime2024":       {"max_new_tokens": 4096, "max_items": 0,   "batch_size": 2, "est_min": 25},
     "aime2025":       {"max_new_tokens": 4096, "max_items": 0,   "batch_size": 2, "est_min": 25},
     "cnmo2024":       {"max_new_tokens": 4096, "max_items": 0,   "batch_size": 2, "est_min": 40},
     "olympiadbench":  {"max_new_tokens": 4096, "max_items": 500, "batch_size": 2, "est_min": 120},
     "omni_math":      {"max_new_tokens": 4096, "max_items": 500, "batch_size": 2, "est_min": 150},
-    "gpqa_diamond":   {"max_new_tokens": 1536, "max_items": 0,   "batch_size": 4, "est_min": 35},
-    "mmlu":           {"max_new_tokens": 768,  "max_items": 1500,"batch_size": 8, "est_min": 100},
+    "gpqa_diamond":   {"max_new_tokens": 4096, "max_items": 0,   "batch_size": 2, "est_min": 60},
+    "mmlu":           {"max_new_tokens": 4096, "max_items": 1500,"batch_size": 2, "est_min": 200},
 }
 
 

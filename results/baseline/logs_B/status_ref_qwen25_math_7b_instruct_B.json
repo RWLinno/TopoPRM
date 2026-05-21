@@ -1,0 +1,73 @@
+{
+  "label": "ref_qwen25_math_7b_instruct_B",
+  "model": "/mnt/data/huggingface_downloads/models/qwen/Qwen2.5-Math-7B-Instruct",
+  "adapter": "",
+  "timestamp": "2026-05-15T09:06:36",
+  "running": {},
+  "completed": [
+    {
+      "bench": "gsm8k",
+      "gpu": 2,
+      "exit_code": 0,
+      "pass@1": 0.9545,
+      "duration_min": 189.06,
+      "attempt": 1
+    },
+    {
+      "bench": "math500",
+      "gpu": 2,
+      "exit_code": 0,
+      "pass@1": 0.738,
+      "duration_min": 198.87,
+      "attempt": 1
+    },
+    {
+      "bench": "aime2024",
+      "gpu": 2,
+      "exit_code": 0,
+      "pass@1": 0.1333,
+      "duration_min": 45.06,
+      "attempt": 1
+    },
+    {
+      "bench": "aime2025",
+      "gpu": 2,
+      "exit_code": 0,
+      "pass@1": 0.1,
+      "duration_min": 107.08,
+      "attempt": 1
+    },
+    {
+      "bench": "cnmo2024",
+      "gpu": 2,
+      "exit_code": 0,
+      "pass@1": 0.1333,
+      "duration_min": 41.76,
+      "attempt": 1
+    },
+    {
+      "bench": "olympiadbench",
+      "gpu": 2,
+      "exit_code": 0,
+      "pass@1": 0.5821,
+      "duration_min": 109.82,
+      "attempt": 1
+    },
+    {
+      "bench": "omni_math",
+      "gpu": 2,
+      "exit_code": 0,
+      "pass@1": 0.6298,
+      "duration_min": 202.06,
+      "attempt": 1
+    },
+    {
+      "bench": "gpqa_diamond",
+      "gpu": 2,
+      "exit_code": 0,
+      "pass@1": 0.2828,
+      "duration_min": 87.52,
+      "attempt": 1
+    }
+  ]
+}

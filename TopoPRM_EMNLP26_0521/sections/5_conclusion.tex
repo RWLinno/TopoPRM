@@ -1,0 +1,13 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented topology-aware reward model \method, with its post-training framework \framework that treats long reasoning traces as latent dependency DAGs and reuses the same structural diagnostics for both reward shaping and compression. A graph encoding extractor yields implicit process rewards, a correctness-first hierarchical aggregation bounds structural credit through stratified clipping, and topology-conditioned on-policy distillation targets the critical dependency chain as the compression objective. The pipeline addresses failure modes that outcome-only supervision cannot distinguish, yet requires no human step labels, no learned verifier, and no graph-format decoding.
+
+%We discuss limitations and future extensions in Appendix~\ref{appx:limitations_future}.
+
+\section{Limitations and Future Work}
+\label{sec:limitations_future}
+\method provides a structural process signal rather than a proof-level verifier. Consequently, locally plausible yet semantically wrong steps can still receive positive structural credit, capping the headroom of topology-aware rewards on adversarial benchmarks such as AIME and CNMO where a single invalid deduction decides the outcome.
+%TopoPRM方法提供的是一种结构信号，而非证明级别的验证器。局部看似合理但语义上错误的步骤仍可能获得积极的结构信用，这限制了在诸如美国数学邀请赛（AIME）和中国数学奥林匹克（CNMO）等对抗性基准测试中拓扑感知奖励的提升空间，因为在这些测试中，一个无效的推导就能决定结果。
+In the future, we will close this structural--semantic gap along three fronts. We will tighten the hybrid extractor by training a lightweight dependency model on traces with verified edges, so that rule templates and LLM inference are jointly calibrated against ground-truth logical support. We will couple topology-aware rewards with a generative process verifier, letting structural credit pass only when a semantic check on the step is satisfied, which we expect to lift accuracy on adversarial sets while preserving token-efficiency gains. Finally, we will extend \method beyond mathematics to code, scientific, and multimodal reasoning, where executable or simulator-based oracles can directly supply the semantic signal that the current framework lacks.
+% 未来，我们将沿三条路径弥合这一结构—语义鸿沟。其一，我们将通过在带有已验证边标注的轨迹上训练轻量化依赖模型，使规则模板与语言模型推理共同对齐至真实逻辑支撑，以收紧混合抽取器。其二，我们将把拓扑感知奖励与生成式过程验证器耦合：仅当某步骤通过语义校验时，其结构信用才被放行——我们预期此举可在保持 token 效率收益的同时拉高对抗性基准上的准确率。其三，我们将把 \method{} 推广至数学之外的代码、科学与多模态推理场景，在这些领域可直接借助可执行环境或模拟器作为预言机，提供当前框架所缺乏的语义信号。

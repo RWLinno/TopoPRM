@@ -797,8 +797,13 @@ class TopoSCAEReward(_SafeCompositeBase):
                 shaped[i] = round(floor_pos + (clip_hi - floor_pos) * (raw / clip_hi) if clip_hi > 0 else floor_pos, 6)
             for k, i in enumerate(neg_idx):
                 # Map normalized value from [NEG_CLIP[0], 0] to [clip_lo, -floor_neg]
+                # raw=-1.5 → clip_lo=-1.5; raw=0 → -floor_neg=-0.3
                 raw = self._clip(neg_norm[k], clip_lo, self.NEG_CLIP[1])
-                shaped[i] = round(-floor_neg + (-floor_neg - clip_lo) * (raw / clip_lo) if clip_lo < 0 else -floor_neg, 6)
+                if clip_lo < 0:
+                    t = raw / clip_lo  # t in [0, 1], t=1 when raw=clip_lo
+                    shaped[i] = round(-floor_neg + (clip_lo + floor_neg) * t, 6)
+                else:
+                    shaped[i] = round(-floor_neg, 6)
         else:
             # Default (v1): raw per-stratum normalized + clipped values.
             for k, i in enumerate(pos_idx):

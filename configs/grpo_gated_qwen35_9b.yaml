@@ -1,7 +1,7 @@
 # GRPO: Outcome-gated topology reward (v2) with Qwen3.5-9B
 # Fixes: truncation noise, reward hacking, variance collapse
 # Key changes vs hierarchical: topo_gated reward, max_completion_length=2048
-model: /mnt/data/huggingface_downloads/models/qwen/Qwen3.5-9B
+model: Qwen/Qwen3.5-9B
 
 dataset:
   - data/grpo_ready/train.jsonl

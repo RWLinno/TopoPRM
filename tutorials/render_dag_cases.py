@@ -65,7 +65,7 @@ from src.dag.graph import (
 from src.dag.node import StepType
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE_JSONL = REPO_ROOT / "data" / "grpo_ready" / "train_public.jsonl"
-DEFAULT_OUT_DIR = REPO_ROOT / "topoprm_paper" / "figures" / "dag_cases"
+DEFAULT_OUT_DIR = REPO_ROOT / "TopoPRM_EMNLP26" / "figures" / "dag_cases"
 
 
 PALETTE = {
@@ -278,7 +278,10 @@ def load_cases_from_training(
 
 
 def load_cases_from_rollout(
-    jsonl_path: Path, n: int, seed: int = 0
+    jsonl_path: Path,
+    n: int,
+    seed: int = 0,
+    bench: Optional[str] = None,
 ) -> List[Case]:
     rng = random.Random(seed)
     rows: List[Dict[str, Any]] = []
@@ -290,6 +293,8 @@ def load_cases_from_rollout(
     for row in rows:
         if len(cases) >= n:
             break
+        if bench and str(row.get("benchmark", "")).lower() != bench.lower():
+            continue
         text = (
             row.get("y_init")
             or row.get("response")
@@ -490,7 +495,9 @@ def render_individual(cases: Sequence[Case], out_dir: Path) -> None:
         fig, ax = plt.subplots(figsize=(4.0, 3.0))
         render_case_axes(ax, case)
         png = out_dir / f"case_{case.case_id}.png"
+        pdf = out_dir / f"case_{case.case_id}.pdf"
         fig.savefig(png, dpi=240, bbox_inches="tight", pad_inches=0.1)
+        fig.savefig(pdf, dpi=240, bbox_inches="tight", pad_inches=0.1)
         plt.close(fig)
 
 
@@ -523,13 +530,19 @@ def main() -> None:
         default=None,
         help="load from a rollout JSONL containing y_init / response text instead of reference DAGs",
     )
+    parser.add_argument("--bench", default=None, help="benchmark filter when --from-rollout is used")
     parser.add_argument("--out-dir", default=str(DEFAULT_OUT_DIR))
     parser.add_argument("--min-nodes", type=int, default=4)
     parser.add_argument("--max-nodes", type=int, default=9)
     args = parser.parse_args()
 
     if args.from_rollout:
-        cases = load_cases_from_rollout(Path(args.from_rollout), n=args.n, seed=args.seed)
+        cases = load_cases_from_rollout(
+            Path(args.from_rollout),
+            n=args.n,
+            seed=args.seed,
+            bench=args.bench,
+        )
     else:
         cases = load_cases_from_training(
             Path(args.jsonl),
@@ -545,6 +558,8 @@ def main() -> None:
         )
 
     out_dir = Path(args.out_dir)
+    if args.bench:
+        out_dir = out_dir / args.bench
     render_individual(cases, out_dir)
     render_pack(cases, out_dir / "pack.pdf")
     render_pack(cases, out_dir / "pack.png")

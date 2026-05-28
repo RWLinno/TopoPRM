@@ -1,0 +1,9 @@
+[Mon May 25 12:52:15 UTC 2026] Evaluating Qwen2.5-7B TopoPRM (opd_stage3_ckpt200)
+  Model: /Knowin/foundation/weilinruan/hf_models/Qwen/Qwen2.5-7B-Instruct
+  Adapter: output/hf_ckpts/opd_qwen25_7b_stage3_ckpt200
+math500 PID=819179
+aime24 PID=819180
+aime25 PID=819181
+cnmo PID=819182
+[Mon May 25 12:52:15 UTC 2026] All 4 evals launched, waiting...
+[Mon May 25 18:56:36 UTC 2026] All evals complete

@@ -1,6 +1,6 @@
 # SFT distillation to 0.8B student (extreme compression)
 # Strategy: even smaller lr, rank-32 LoRA to avoid overfitting on small backbone
-model: /mnt/data/huggingface_downloads/models/qwen/Qwen3.5-0.8B
+model: Qwen/Qwen3.5-0.8B
 
 dataset:
   - data/sft_ready/train_mixed.jsonl

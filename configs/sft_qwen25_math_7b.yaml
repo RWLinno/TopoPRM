@@ -1,6 +1,6 @@
 # SFT: Qwen2.5-Math-7B-Instruct ? math-specialized base for TopoPRM comparison
 # Requires: download model to local path (see docs/exp_completion_20260410.md).
-model: /mnt/data/huggingface_downloads/models/qwen/Qwen2.5-Math-7B-Instruct
+model: Qwen/Qwen2.5-Math-7B-Instruct
 
 dataset:
   - data/sft_ready/train_augmented.jsonl

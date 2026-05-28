@@ -1,5 +1,5 @@
 # GRPO: TopoPRM hierarchical reward with Qwen3.5-9B base model
-model: /mnt/data/huggingface_downloads/models/qwen/Qwen3.5-9B
+model: Qwen/Qwen3.5-9B
 
 dataset:
   - data/grpo_ready/train.jsonl

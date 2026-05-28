@@ -1,5 +1,5 @@
 # GRPO: 7B outcome-only baseline (mcl=2048, fresh run for comparison)
-model: /mnt/data/huggingface_downloads/models/qwen/Qwen2.5-7B-Instruct
+model: Qwen/Qwen2.5-7B-Instruct
 
 dataset:
   - data/grpo_ready/train.jsonl

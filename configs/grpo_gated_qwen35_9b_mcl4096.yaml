@@ -1,5 +1,5 @@
 # GRPO: 9B gated reward with mcl=4096 (principled lexicographic reward)
-model: /mnt/data/huggingface_downloads/models/qwen/Qwen3.5-9B
+model: Qwen/Qwen3.5-9B
 
 dataset:
   - data/grpo_ready/train.jsonl

@@ -1,0 +1,55 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+The fast path is not available because one of the required library is not installed. Falling back to torch implementation. To install follow https://github.com/fla-org/flash-linear-attention#installation and https://github.com/Dao-AILab/causal-conv1d
+Loading model: /Knowin/foundation/weilinruan/hf_models/Qwen/Qwen3.5-2B
+Loading weights:   0%|          | 0/320 [00:00<?, ?it/s]Loading weights:   0%|          | 1/320 [00:01<07:34,  1.43s/it]Loading weights:   4%|▍         | 13/320 [00:01<00:27, 11.23it/s]Loading weights:   8%|▊         | 25/320 [00:01<00:12, 23.35it/s]Loading weights:  11%|█         | 34/320 [00:01<00:09, 31.77it/s]Loading weights:  13%|█▎        | 43/320 [00:01<00:07, 35.77it/s]Loading weights:  16%|█▌        | 50/320 [00:02<00:06, 40.40it/s]Loading weights:  20%|█▉        | 63/320 [00:02<00:04, 56.80it/s]Loading weights:  22%|██▎       | 72/320 [00:02<00:03, 62.50it/s]Loading weights:  25%|██▌       | 81/320 [00:02<00:04, 58.93it/s]Loading weights:  29%|██▉       | 94/320 [00:02<00:03, 68.86it/s]Loading weights:  32%|███▏      | 103/320 [00:02<00:03, 66.70it/s]Loading weights:  37%|███▋      | 117/320 [00:02<00:02, 81.69it/s]Loading weights:  40%|███▉      | 127/320 [00:02<00:02, 83.36it/s]Loading weights:  43%|████▎     | 137/320 [00:03<00:02, 74.47it/s]Loading weights:  46%|████▌     | 146/320 [00:03<00:02, 76.78it/s]Loading weights:  48%|████▊     | 155/320 [00:03<00:02, 66.13it/s]Loading weights:  53%|█████▎    | 169/320 [00:03<00:01, 82.24it/s]Loading weights:  56%|█████▌    | 179/320 [00:03<00:01, 84.48it/s]Loading weights:  59%|█████▉    | 189/320 [00:03<00:01, 75.44it/s]Loading weights:  62%|██████▎   | 200/320 [00:03<00:01, 78.76it/s]Loading weights:  65%|██████▌   | 209/320 [00:04<00:01, 74.92it/s]Loading weights:  70%|███████   | 224/320 [00:04<00:01, 87.17it/s]Loading weights:  73%|███████▎  | 235/320 [00:04<00:00, 90.50it/s]Loading weights:  77%|███████▋  | 245/320 [00:04<00:00, 90.60it/s]Loading weights:  80%|███████▉  | 255/320 [00:04<00:00, 81.64it/s]Loading weights:  82%|████████▎ | 264/320 [00:04<00:00, 81.11it/s]Loading weights:  86%|████████▋ | 276/320 [00:04<00:00, 84.89it/s]Loading weights:  90%|████████▉ | 287/320 [00:04<00:00, 90.91it/s]Loading weights:  93%|█████████▎| 297/320 [00:05<00:00, 87.78it/s]Loading weights:  96%|█████████▌| 306/320 [00:05<00:00, 77.23it/s]Loading weights:  98%|█████████▊| 314/320 [00:05<00:00, 77.83it/s]Loading weights: 100%|██████████| 320/320 [00:05<00:00, 59.82it/s]
+
+============================================================
+Benchmark: cnmo2024 | Label: qwen35_2b_baseline | chat=True sft_style=False fewshot=False k=1
+============================================================
+  [2/83] acc=0.0%
+  [4/83] acc=50.0%
+  [6/83] acc=33.3%
+  [8/83] acc=50.0%
+  [10/83] acc=40.0%
+  [12/83] acc=41.7%
+  [14/83] acc=35.7%
+  [16/83] acc=31.2%
+  [18/83] acc=33.3%
+  [20/83] acc=35.0%
+  [22/83] acc=36.4%
+  [24/83] acc=37.5%
+  [26/83] acc=34.6%
+  [28/83] acc=35.7%
+  [30/83] acc=33.3%
+  [32/83] acc=34.4%
+  [34/83] acc=32.4%
+  [36/83] acc=33.3%
+  [38/83] acc=31.6%
+  [40/83] acc=35.0%
+  [42/83] acc=33.3%
+  [44/83] acc=34.1%
+  [46/83] acc=34.8%
+  [48/83] acc=35.4%
+  [50/83] acc=36.0%
+  [52/83] acc=34.6%
+  [54/83] acc=35.2%
+  [56/83] acc=33.9%
+  [58/83] acc=32.8%
+  [60/83] acc=33.3%
+  [62/83] acc=33.9%
+  [64/83] acc=32.8%
+  [66/83] acc=33.3%
+  [68/83] acc=35.3%
+  [70/83] acc=35.7%
+  [72/83] acc=34.7%
+  [74/83] acc=36.5%
+  [76/83] acc=35.5%
+  [78/83] acc=37.2%
+  [80/83] acc=36.2%
+  [82/83] acc=36.6%
+  [83/83] acc=36.1%
+
+  cnmo2024: pass@1=36.1% pass@5=0.0% maj@5=0.0% prm@5=36.1% tok=3544 in 5043s
+  Saved: results/baselines/qwen35_2b_baseline_cnmo2024_metrics.json
+
+Done.

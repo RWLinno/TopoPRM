@@ -1,6 +1,6 @@
 # SFT distillation to 2B student (aggressive compression target)
 # Strategy: same mixed data as 4B, but lower lr and more epochs for smaller capacity
-model: /mnt/data/huggingface_downloads/models/qwen/Qwen3.5-2B
+model: Qwen/Qwen3.5-2B
 
 dataset:
   - data/sft_ready/train_mixed.jsonl

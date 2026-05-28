@@ -1,7 +1,7 @@
 # Online reverse-KL distillation: teacher 32B -> student 4B
 teacher_model: Qwen/Qwen3-32B
 teacher_adapter: output/grpo_main/v3-20260318-211524/checkpoint-79
-student_model: /mnt/data/huggingface_downloads/models/qwen/Qwen3.5-4B
+student_model: Qwen/Qwen3.5-4B
 
 dataset:
   - data/sft_ready/train_augmented.jsonl

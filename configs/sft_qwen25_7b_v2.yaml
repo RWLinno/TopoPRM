@@ -1,7 +1,7 @@
 # SFT v2: Qwen2.5-7B-Instruct with improved format training
 # Previous SFT had only 19-52% format compliance
 # This version: 3 epochs, higher lr, to improve format learning
-model: /mnt/data/huggingface_downloads/models/qwen/Qwen2.5-7B-Instruct
+model: Qwen/Qwen2.5-7B-Instruct
 
 dataset:
   - data/sft_ready/train_augmented.jsonl

@@ -1,207 +1,198 @@
 # TopoPRM: Topology-Aware Process Rewards for Verifiable Mathematical Reasoning
 
-> **EMNLP 2026 (ARR May cycle)** | DeepSeek-R1-Distill-7B + Qwen3.5-9B | TRL GRPO | Deterministic DAG Rewards
+> **EMNLP 2026 (ARR May cycle)** | Qwen2.5-7B · DeepSeek-R1-7B · Qwen3.5-9B | ms-swift GRPO | Deterministic DAG Rewards
+
+<p align="center">
+  <img src="docs/assets/topoprm_overview.png" width="720" alt="TopoPRM Framework Overview"/>
+</p>
 
 ## Overview
 
-TopoPRM treats sequential reasoning traces as implicitly structured graphs. The framework:
+TopoPRM treats sequential reasoning traces as implicitly structured dependency graphs. Instead of relying on expensive LLM-as-judge or learned reward models, we extract **deterministic DAGs** from chain-of-thought outputs and derive dense process supervision signals from graph topology.
 
-1. **Topological Modeling**: Extracts dependency DAGs from chain-of-thought outputs via deterministic rule-based parsing (no LLM calls, no learned models)
-2. **Reward Aggregation**: Computes topology reward (global DAG validity) and continuity reward (local step traceability), combined with outcome/format/length via hierarchical multiplicative aggregation
-3. **Post-Training Optimization**: SFT → GRPO with TopoPRM reward → TVSD compression to compact students
-
-The key insight: reasoning processes are inherently graph-structured, not sequential. CoT is merely a linear serialization of a DAG. By recovering the topology, we enable dense process supervision without any annotation cost.
+**Key Contributions:**
+1. **Topological Reward Design** — Hierarchical multiplicative aggregation ensuring correctness-first: `r = outcome × format_gate × length_gate × topo_gain`
+2. **ACE (Advantage Clipping Estimation)** — Stratified clipping that separates correct/incorrect strata, preventing reward collapse in GRPO
+3. **Three-Stage Pipeline** — SFT → GRPO+TopoPRM → TG-OPD (topology-guided on-policy distillation)
+4. **Zero Annotation Cost** — All rewards computed via deterministic rule-based parsing (no LLM calls)
 
 ## Artifacts
 
 | Type | URL |
 |------|-----|
-| Checkpoints | https://huggingface.co/rwlinno/topoprm-ckpts |
-| Data | https://huggingface.co/datasets/rwlinno/topoprm-data |
-| Code | https://github.com/RWLinno/TopoPRM |
+| Checkpoints | [huggingface.co/rwlinno/topoprm-ckpts](https://huggingface.co/rwlinno/topoprm-ckpts) |
+| Training Data | [huggingface.co/datasets/rwlinno/topoprm-data](https://huggingface.co/datasets/rwlinno/topoprm-data) |
+| Code | [github.com/RWLinno/TopoPRM](https://github.com/RWLinno/TopoPRM) |
+
+## Results
+
+### Qwen2.5-7B + TopoPRM
+
+| Benchmark | pass@1 | pass@5 | vs Baseline |
+|-----------|--------|--------|-------------|
+| MATH-500 | 66.8% | 72.6% | +0.8 |
+| AIME'24 | 13.3% | 13.3% | — |
+| AIME'25 | 10.0% | 26.7% | — |
+| CNMO'24 | 47.0% | — | +37.0 |
+
+### Qwen3.5-9B + TopoPRM v2
+
+| Benchmark | pass@1 | pass@5 | Notes |
+|-----------|--------|--------|-------|
+| Omni-MATH | 55.2% | 76.2% | Exceeds GRPO baseline (72.0%) |
+| AIME'24 | 3.3% | 6.7% | |
+| AIME'25 | 3.3% | 13.3% | |
+| CNMO'24 | 18.1% | — | |
+
+### DeepSeek-R1-7B + TopoPRM
+
+| Benchmark | pass@1 | Notes |
+|-----------|--------|-------|
+| GSM8K | 62.0% | |
+| MATH-500 | 66.0% | |
+| OlympiadBench | 58.0% | |
+| Omni-MATH | 54.0% | |
+| MMLU | 84.0% | |
+| GPQA-D | 36.0% | |
 
 ## Quick Start
 
 ```bash
-# Clone and setup
-git clone git@github.com:RWLinno/TopoPRM.git && cd TopoPRM
-git checkout exp_May8
+# Clone
+git clone https://github.com/RWLinno/TopoPRM.git && cd TopoPRM
+git checkout volengine
 
-# Environment
+# Environment (Python 3.12)
 conda create -n topoprm python=3.12 -y && conda activate topoprm
 pip install -r requirements.txt
 
-# Verify
-python -c "from src.reward.topo_reward import TopoReward; print('OK')"
+# Verify installation
+python -c "from src.reward.composite_reward import TopoHierarchicalReward; print('TopoPRM OK')"
 ```
-
-See [`docs/HANDOFF.md`](docs/HANDOFF.md) for complete setup instructions including data download and experiment continuation.
 
 ## Project Structure
 
 ```
-topoprm/
-├── src/                    # Core library
-│   ├── dag/                # DAG extraction, compression, graph ops
-│   ├── reward/             # Reward modules (topo, continuity, composite, ablations)
-│   ├── eval/               # Unified evaluation, DAG metrics
-│   ├── data/               # Data loading, DAG construction
-│   └── distill/            # TVSD distillation
-├── scripts/                # Runnable scripts (train, eval, data prep, analysis)
-├── configs/                # YAML configs (reference)
-├── topoprm_paper/          # LaTeX paper source
-├── docs/                   # Documentation + HANDOFF.md
-├── data/                   # .gitignored; download via setup.sh
-├── output/                 # .gitignored; checkpoints + eval results
-└── tests/                  # pytest
+TopoPRM/
+├── src/                        # Core library
+│   ├── dag/                    # DAG extraction, compression, graph operations
+│   ├── reward/                 # Reward modules
+│   │   ├── composite_reward.py # TopoHierarchicalReward, TopoSCAEReward (ACE)
+│   │   ├── outcome_reward.py   # Math answer verification (boxed + math_verify)
+│   │   ├── topo_reward.py      # DAG structure quality scoring
+│   │   ├── continuity_reward.py# Reasoning step traceability
+│   │   └── format_reward.py    # Format compliance (<think>/<answer>)
+│   ├── eval/                   # Unified benchmark evaluation
+│   ├── data/                   # Data loading, DAG construction
+│   └── distill/                # TG-OPD distillation
+├── configs/                    # YAML training configs (GRPO, SFT, ablations)
+├── scripts/                    # Runnable scripts
+│   ├── bench_transformers.py   # Unified benchmark runner (9 benchmarks)
+│   ├── unified_eval_orchestrator.py  # Multi-GPU eval scheduler
+│   └── build_dag_public.py     # DAG extraction from datasets
+├── tests/                      # pytest test suite
+├── tutorials/                  # Visualization and analysis tools
+├── docs/                       # Documentation
+│   ├── work_summary.md         # Complete experiment log
+│   └── archived/               # Historical docs
+└── results/                    # Evaluation metrics (JSON)
 ```
-
-## Key Results
-
-| Metric | TopoPRM (GRPO) | Outcome-Only | Delta |
-|--------|---------------|-------------|-------|
-| Overall Critique Acc | 29.7% | 16.3% | +13.4 |
-| Format Compliance | 94.6% | 89.0% | +5.6 |
-| Avg Response Length | 364 tok | 410 tok | -11.2% |
 
 ## Reward Design
 
-| Component | Signal | Weight | Source |
-|-----------|--------|--------|--------|
-| Outcome | Answer correctness | 0.70 | Programmatic check |
-| Format | `<think>/<answer>` compliance | 0.15 | Regex |
-| Length | Token efficiency | 0.15 | Token count |
-| Topology | DAG validity (acyclic, no-orphan, direction) | Multiplicative gain | Deterministic graph analysis |
-| Continuity | Step traceability | Multiplicative gain | Regex-based claim matching |
+| Component | Signal | Aggregation | Source |
+|-----------|--------|-------------|--------|
+| Outcome | Answer correctness | Base (0 or 1) | `math_verify` + `\boxed{}` extraction |
+| Format | `<think>` + `\boxed{}` compliance | Gate [0.5, 1.0] | Regex |
+| Length | Token efficiency | Gate [0.5, 1.0] | Token count |
+| Topology | DAG validity (acyclic, directed, aligned) | Multiplicative gain | Deterministic graph analysis |
+| Continuity | Step traceability | Multiplicative gain | Claim-evidence matching |
 
-Aggregation: `r_total = r_base * (1 + α * r_topo_scaled + (1-α) * r_cont_scaled)`
+**Correctness-First Guarantee:** `outcome=0 → r_total=0` regardless of topology/format scores.
 
-## Training Pipeline
+## Reproducing Experiments
+
+### 1. Data Preparation
 
 ```bash
-# Phase 1: Build DAGs from public math datasets
-python3 scripts/build_dag_public.py --datasets gsm8k math --output_dir data/dag_public
-
-# Phase 2: Baseline evaluation
-python3 scripts/bench_transformers.py --model deepseek-ai/DeepSeek-R1-Distill-Qwen-7B \
-  --label baseline --benchmarks gsm8k math500 aime2024 --use_chat_template
-
-# Phase 3a: SFT
-python3 scripts/train_sft.py
-
-# Phase 3b: GRPO with TopoPRM
-python3 scripts/train_grpo.py --sft_adapter output/sft_deepseek_r1_7b/final
-
-# Phase 4: Evaluation with PRM reranking
-python3 scripts/bench_transformers.py --model deepseek-ai/DeepSeek-R1-Distill-Qwen-7B \
-  --adapter output/grpo_topoprm_deepseek_r1_7b/final \
-  --label topoprm --use_chat_template --sft_style
+# Download public math datasets and extract DAGs
+python scripts/build_dag_public.py \
+    --datasets gsm8k math olympiadbench aime \
+    --output_dir data/grpo_ready
 ```
 
-## Unified 9-Benchmark Evaluation (one-click, multi-GPU)
-
-Run the full nine-benchmark unified protocol in a single command. The
-orchestrator schedules `scripts/bench_transformers.py` across the GPUs
-you hand it, runs fast benches first so the paper table gets real
-numbers ASAP, retries failed benches once with reduced batch size, and
-writes a live status dashboard to `logs/unified/status_<LABEL>.json`.
+### 2. Stage I — SFT
 
 ```bash
-# Base model (foreground)
+swift sft configs/sft_qwen35_9b.yaml
+```
+
+### 3. Stage II — GRPO + TopoPRM
+
+```bash
+# Set environment for TopoPRM reward
+export TOPO_HIER_AGG=multiplicative
+export TOPO_SCAE_PRESERVE_OUTCOME=1
+export TOPO_RESCALE_PATCH=1
+export TOPO_DAG_SENTENCE_FALLBACK=1
+export TOPO_LENGTH_UNIT=tokens
+
+# Train
+swift rlhf configs/grpo_hierarchical_qwen35_9b_mcl4096.yaml
+```
+
+### 4. Evaluation
+
+```bash
+# Single benchmark
+CUDA_VISIBLE_DEVICES=0 python scripts/bench_transformers.py \
+    --model Qwen/Qwen3.5-9B \
+    --adapter output/grpo_hierarchical_qwen35_9b/checkpoint-80 \
+    --label topoprm_9b \
+    --benchmarks aime2024 math500 gsm8k \
+    --use_chat_template \
+    --num_samples_per_item 5 \
+    --k_values 1 5 \
+    --max_new_tokens 4096
+
+# Full 9-benchmark evaluation (multi-GPU)
 bash scripts/run_unified_eval.sh \
-    /Knowin/foundation/weilinruan/hf_models/Qwen/Qwen3.5-9B "" qwen35_9b_base
-
-# Base model (background; returns immediately)
-RUN_IN_BACKGROUND=1 GPUS=1,2,3,4,5,6,7 \
-    bash scripts/run_unified_eval.sh \
-    /Knowin/foundation/weilinruan/hf_models/Qwen/Qwen3.5-9B "" qwen35_9b_base
-
-# +SFT adapter (Qwen3.5-9B base + your adapter)
-SFT_STYLE=1 RUN_IN_BACKGROUND=1 \
-    bash scripts/run_unified_eval.sh \
-    /Knowin/foundation/weilinruan/hf_models/Qwen/Qwen3.5-9B \
-    output/sft_qwen35_9b/<run>/checkpoint-<N> qwen35_9b_sft
-
-# Monitor status (refreshes every 10s, Ctrl-C to exit)
-bash scripts/watch_unified_eval.sh qwen35_9b_base
+    Qwen/Qwen3.5-9B \
+    output/grpo_hierarchical_qwen35_9b/checkpoint-80 \
+    topoprm_9b_final
 ```
 
-Env overrides (all optional): `GPUS=1,2,3`, `BENCHMARKS="gsm8k math500"`,
-`NUM_SAMPLES=1`, `KS=1`, `FORCE=1` (re-run even if metrics.json exists),
-`SFT_STYLE=1`, `RUN_IN_BACKGROUND=1`.
+### 5. Checkpoints
 
-**Outputs**
-- Per-bench metrics: `output/eval/<LABEL>_<BENCH>_metrics.json` (`pass@1` is
-  the canonical number, already a fraction).
-- Per-bench details: `output/eval/<LABEL>_<BENCH>_details.jsonl`.
-- Per-bench stdout/stderr: `logs/unified/<LABEL>_<BENCH>.log`.
-- Orchestrator log + status: `logs/unified/orchestrator_<LABEL>_*.log` and
-  `logs/unified/status_<LABEL>.json`.
-
-**Benchmark cost ranking (Qwen3.5-9B on A100-80GB, single GPU per bench; measured 2026-05-12)**
-
-| bench          | size  | measured wall-clock | pass@1 (base) | notes                               |
-|----------------|-------|---------------------|---------------|-------------------------------------|
-| aime2024       | 30    | 46 min              | 6.7%          | every sample hits 4k tokens         |
-| aime2025       | 30    | 47 min              | 3.3%          | same, almost no correct answers     |
-| gpqa_diamond   | 198   | 58 min              | 27.3%         | MCQ, 1536 mnt                       |
-| mmlu (1500-cap)| 1500  | 2.1 h               | 52.9%         | 768 mnt; extractor updated          |
-| cnmo2024 (→AMC23) | 83 | 2.2 h               | 12.0%         | AMC23 proxy, 4k mnt                 |
-| gsm8k          | 1319  | ~5 h                | 67.1%         | batched, 1536 mnt                   |
-| math500        | 500   | ~5 h                | 43.8%         | 3072 mnt                            |
-| olympiadbench  | 500   | ≈12.9 h             | 29.8%         | 4k mnt, hardest tier                |
-| omni_math      | 500   | ≈12.9 h             | 51.4%         | 4k mnt                              |
-
-Caps are set via `BENCH_CONFIG` in
-`scripts/unified_eval_orchestrator.py` to keep wall-clock bounded.
-
-**Filling the paper table**
-
-After one or more benches complete, fold the real numbers into
-`topoprm_paper/tables/public_results_unified.tex`:
+Download pre-trained adapters from HuggingFace:
 
 ```bash
-# Dry-run preview
-python3 scripts/fill_paper_table.py --label qwen35_9b_base --row "Qwen3.5-9B (base)"
+# All checkpoints
+huggingface-cli download rwlinno/topoprm-ckpts --local-dir output/hf_ckpts
 
-# Apply changes
-python3 scripts/fill_paper_table.py --label qwen35_9b_base --row "Qwen3.5-9B (base)" --write
-python3 scripts/fill_paper_table.py --label qwen35_9b_sft  --row "+ SFT"             --write
+# Available adapters:
+#   grpo_hier_9b_ckpt79          — Qwen3.5-9B, topo_hierarchical, 79 steps
+#   grpo_topoprm_dr1_7b_ckpt949 — DeepSeek-R1-7B, topo_composite_scae, 949 steps
+#   opd_qwen25_7b_stage3_ckpt200 — Qwen2.5-7B-Instruct, Stage III, 200 steps
 ```
 
-Only benches with a real `<label>_<bench>_metrics.json` are touched; the
-script refuses to overwrite a cell it can't back up with a JSON.
-
-**Cleanup**
-
-Once results are filled, prune failed/stale logs while preserving
-auditable evidence (anything with a matching `metrics.json`):
+## Tests
 
 ```bash
-bash scripts/cleanup_unified_logs.sh            # dry-run
-CONFIRM=1 bash scripts/cleanup_unified_logs.sh  # actually delete
+pytest tests/ -v
 ```
-
-
-## GUI: DAG Visualization
-
-```bash
-bash scripts/run_dag_gui.sh
-```
-
-Streamlit interface for viewing DAG extraction, reward computation, and layer compression.
 
 ## Citation
 
 ```bibtex
-@article{topoprm2026,
-  title={Topology-Aware Process Rewards for Verifiable Mathematical Reasoning},
-  author={Anonymous},
-  journal={arXiv preprint},
+@inproceedings{topoprm2026,
+  title={TopoPRM: Topology-Aware Process Rewards for Verifiable Mathematical Reasoning},
+  author={Weilin Ruan},
+  booktitle={Proceedings of EMNLP},
   year={2026}
 }
 ```
 
 ## License
 
-This project is for research purposes. See LICENSE for details.
+Apache 2.0. See [LICENSE](LICENSE) for details.

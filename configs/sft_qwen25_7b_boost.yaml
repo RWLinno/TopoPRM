@@ -1,6 +1,6 @@
 # SFT boost: Qwen2.5-7B-Instruct ? more epochs + higher lr for better format compliance
 # Previous SFT got format compliance 19-52%, need >80%
-model: /mnt/data/huggingface_downloads/models/qwen/Qwen2.5-7B-Instruct
+model: Qwen/Qwen2.5-7B-Instruct
 
 dataset:
   - data/sft_ready/train_augmented.jsonl

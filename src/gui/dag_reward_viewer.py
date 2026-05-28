@@ -90,50 +90,144 @@ def _debug_from_dag(dag: ReasoningDAG) -> dict[str, Any]:
     }
 
 
+def _detect_record_format(record: dict[str, Any]) -> str:
+    """Return 'training' (reference_dag), 'cached' (cached_dag), or 'rollout' (response)."""
+    if isinstance(record.get("cached_dag"), dict) and record["cached_dag"].get("nodes"):
+        return "cached"
+    if isinstance(record.get("response"), str) and record["response"].strip():
+        return "rollout"
+    return "training"
+
+
+def _build_dag_from_cached(cached: dict[str, Any], problem_id: str) -> tuple[ReasoningDAG, dict[str, Any]]:
+    """Materialize a ReasoningDAG from a cached_dag dict produced by preprocess_dag_cache."""
+    from src.dag.node import LocalVerdict, Node, StepType
+
+    type_map = {t.value: t for t in StepType}
+    verdict_map = {v.value: v for v in LocalVerdict}
+
+    dag = ReasoningDAG(problem_id=problem_id)
+    for n in cached.get("nodes", []):
+        dag.add_node(
+            Node(
+                step_id=int(n.get("step_id", 0)),
+                raw_text=str(n.get("raw_text", "")),
+                normalized_text=str(n.get("normalized_text", n.get("raw_text", ""))),
+                exprs=list(n.get("exprs", []) or []),
+                claims=list(n.get("claims", []) or []),
+                step_type=type_map.get(str(n.get("step_type", "")), StepType.UNKNOWN),
+                local_verdict=verdict_map.get(
+                    str(n.get("local_verdict", "")), LocalVerdict.UNVERIFIABLE
+                ),
+                sub_question_id=n.get("sub_question_id"),
+            )
+        )
+
+    for e in cached.get("edges", []):
+        try:
+            u = int(e.get("source"))
+            v = int(e.get("target"))
+        except (TypeError, ValueError):
+            continue
+        if u not in dag.nodes or v not in dag.nodes:
+            continue
+        dep_type = str(e.get("dep_type", ""))
+        edge_type = str(e.get("edge_type", "")) or None
+        if edge_type and edge_type == "double_barrier_edge":
+            dag.add_implicit_barrier_edge(u, v)
+        elif edge_type and edge_type == "solid_edge":
+            dag.graph.add_edge(u, v, weight=float(e.get("weight", 0.3)),
+                               edge_type="solid_edge", dep_type=dep_type or "order")
+        else:
+            dag.add_dependency_edge(u, v, dep_type or "expr_ref")
+
+    debug = _debug_from_dag(dag)
+    debug["edges"] = [
+        {
+            "source": e.get("source"),
+            "target": e.get("target"),
+            "edge_type": e.get("edge_type", ""),
+            "dep_type": e.get("dep_type", ""),
+            "source_kind": e.get("source_kind", ""),
+            "evidence": e.get("evidence", ""),
+        }
+        for e in cached.get("edges", [])
+    ]
+    return dag, debug
+
+
 def _record_to_view_payload(
     record: dict[str, Any],
     sample_idx: int,
     dag_source: str = "reference_dag",
 ) -> dict[str, Any]:
-    ref = record.get("reference_dag")
-    ref = _safe_reference_dag(record)
+    record_format = _detect_record_format(record)
+    pid_default = f"sample_{sample_idx}"
 
-    nodes = ref.get("nodes", [])
-    reasoning_text = "\n".join(n.get("raw_text", "") for n in nodes if n.get("raw_text"))
-    answer_block = _extract_answer_block(record.get("solution", ""))
-    completion_text = f"<think>\n{reasoning_text}\n</think>\n<answer>\n{answer_block}\n</answer>"
-
-    if dag_source == "reparse_think":
-        dag, debug = parse_answer_to_dag_debug(
-            reasoning_text,
-            problem_id=ref.get("problem_id", f"sample_{sample_idx}"),
-        )
+    if record_format == "cached":
+        cached = record["cached_dag"]
+        problem_id = str(record.get("problem_id", record.get("question", pid_default))[:40])
+        dag, debug = _build_dag_from_cached(cached, problem_id=problem_id)
+        reasoning_text = record.get("response", "")
+        answer_block = str(record.get("gold", ""))
+        completion_text = f"<think>\n{reasoning_text}\n</think>\n<answer>\n{answer_block}\n</answer>"
+    elif record_format == "rollout":
+        reasoning_text = record.get("response", "")
+        problem_id = str(record.get("problem_id", record.get("question", pid_default))[:40])
+        dag, debug = parse_answer_to_dag_debug(reasoning_text, problem_id=problem_id)
+        answer_block = str(record.get("gold", ""))
+        completion_text = f"<think>\n{reasoning_text}\n</think>\n<answer>\n{answer_block}\n</answer>"
     else:
-        if ref.get("nodes") and ref.get("edges"):
-            dag = ReasoningDAG.from_dict(ref)
-            debug = _debug_from_dag(dag)
+        ref = _safe_reference_dag(record)
+        nodes = ref.get("nodes", [])
+        reasoning_text = "\n".join(n.get("raw_text", "") for n in nodes if n.get("raw_text"))
+        answer_block = _extract_answer_block(record.get("solution", ""))
+        completion_text = f"<think>\n{reasoning_text}\n</think>\n<answer>\n{answer_block}\n</answer>"
+        problem_id = ref.get("problem_id", pid_default)
+        if dag_source == "reparse_think":
+            dag, debug = parse_answer_to_dag_debug(reasoning_text, problem_id=problem_id)
         else:
-            dag, debug = parse_answer_to_dag_debug(
-                reasoning_text,
-                problem_id=f"sample_{sample_idx}",
-            )
+            if ref.get("nodes") and ref.get("edges"):
+                dag = ReasoningDAG.from_dict(ref)
+                debug = _debug_from_dag(dag)
+            else:
+                dag, debug = parse_answer_to_dag_debug(reasoning_text, problem_id=problem_id)
 
     reward_inputs = [[{"content": completion_text}]]
     solution = record.get("solution")
     reference_dag = record.get("reference_dag")
 
-    outcome = OutcomeReward()(reward_inputs, solution=solution)[0]
-    fmt = FormatReward()(reward_inputs)[0]
-    length = LengthReward()(reward_inputs)[0]
+    try:
+        outcome = OutcomeReward()(reward_inputs, solution=solution)[0]
+    except Exception:
+        outcome = float(bool(record.get("correct_pass1")))
+    try:
+        fmt = FormatReward()(reward_inputs)[0]
+    except Exception:
+        fmt = 0.0
+    try:
+        length = LengthReward()(reward_inputs)[0]
+    except Exception:
+        length = 0.0
     topo_model = TopoReward()
-    topo = topo_model(reward_inputs, reference_dag=reference_dag)[0]
-    topo_diag = topo_model.last_diagnostics[0] if topo_model.last_diagnostics else {}
-    continuity = ContinuityReward()(reward_inputs)[0]
-    total = TopoCompositeReward()(reward_inputs, solution=solution, reference_dag=reference_dag)[0]
+    try:
+        topo = topo_model(reward_inputs, reference_dag=reference_dag)[0]
+        topo_diag = topo_model.last_diagnostics[0] if topo_model.last_diagnostics else {}
+    except Exception:
+        topo, topo_diag = 0.0, {}
+    try:
+        continuity = ContinuityReward()(reward_inputs)[0]
+    except Exception:
+        continuity = 0.0
+    try:
+        total = TopoCompositeReward()(reward_inputs, solution=solution, reference_dag=reference_dag)[0]
+    except Exception:
+        total = 0.0
 
     return {
         "sample_idx": sample_idx,
-        "problem_id": ref.get("problem_id", f"sample_{sample_idx}"),
+        "problem_id": problem_id,
+        "record_format": record_format,
         "record": record,
         "reasoning_text": reasoning_text,
         "completion_text": completion_text,
@@ -528,17 +622,39 @@ def main():
     st.set_page_config(page_title="TopoPRM DAG Viewer", layout="wide")
     st.title("TopoPRM DAG + Reward 可视化")
 
-    data_path = st.sidebar.text_input("数据路径", "data/grpo_ready/train.jsonl")
+    data_path = st.sidebar.text_input(
+        "数据路径",
+        "output/dag_audit/dag_audit_dr1_7b_gsm8k_cached.jsonl",
+        help="支持 training jsonl (含 reference_dag)，rollout traces.jsonl (含 response)，"
+        "或 audit cached.jsonl (含 cached_dag)。",
+    )
     dag_source = st.sidebar.selectbox(
-        "DAG来源",
+        "DAG来源 (仅 training 数据生效)",
         options=["reference_dag", "reparse_think"],
         index=0,
-        help="推荐使用 reference_dag。reparse_think 仅用于调试解析器。",
+        help="对 rollout / cached 数据无效；它们使用其内部存储的 DAG。",
     )
     if "viewer_seed" not in st.session_state:
         st.session_state.viewer_seed = 42
 
     rows = _load_jsonl(Path(data_path))
+    if not rows:
+        st.error("数据文件为空或不存在。")
+        return
+
+    benchmarks = sorted({str(r.get("benchmark", "")) for r in rows if r.get("benchmark")})
+    if benchmarks:
+        bench_choice = st.sidebar.selectbox(
+            "benchmark 过滤", options=["全部"] + benchmarks, index=0
+        )
+        if bench_choice != "全部":
+            rows = [r for r in rows if str(r.get("benchmark", "")) == bench_choice]
+        st.sidebar.caption(f"过滤后样本数: {len(rows)}")
+
+    if not rows:
+        st.warning("在所选 benchmark 下没有样本。")
+        return
+
     max_idx = max(len(rows) - 1, 0)
     sample_idx = st.sidebar.number_input("样本索引", min_value=0, max_value=max_idx, value=0, step=1)
     if st.sidebar.button("随机刷新"):
@@ -552,6 +668,7 @@ def main():
     )
     dag = payload["dag"]
     debug = payload["debug"]
+    st.sidebar.caption(f"record format: **{payload['record_format']}**")
 
     compressed_layer_dag, layer_to_nodes, _node_to_layer = compress_dag_by_layers(dag)
     layer_chain_map = {li: li for li in layer_to_nodes.keys()}
@@ -590,6 +707,47 @@ def main():
         )
         st.subheader("结构标注")
         st.json(_edge_annotations(dag))
+
+    st.subheader("节点特征（exprs / claims / step_type / verdict）")
+    node_feature_rows = []
+    for sid in sorted(dag.nodes):
+        n = dag.nodes[sid]
+        node_feature_rows.append(
+            {
+                "step_id": n.step_id,
+                "step_type": getattr(n.step_type, "value", str(n.step_type)),
+                "local_verdict": getattr(n.local_verdict, "value", str(n.local_verdict)),
+                "exprs": list(n.exprs)[:6],
+                "claims": list(n.claims)[:3],
+                "raw_text": (n.raw_text or "")[:160],
+            }
+        )
+    st.dataframe(node_feature_rows, use_container_width=True, hide_index=True)
+
+    st.subheader("依赖边（dep_type / source_kind / evidence）")
+    edge_rows = []
+    cached_edges = {
+        (int(e.get("source", -1)), int(e.get("target", -1))): e
+        for e in (debug.get("edges", []) if isinstance(debug.get("edges"), list) else [])
+        if isinstance(e, dict)
+    }
+    for u, v, d in dag.graph.edges(data=True):
+        cached = cached_edges.get((u, v), {})
+        edge_rows.append(
+            {
+                "source": u,
+                "target": v,
+                "edge_type": d.get("edge_type", ""),
+                "dep_type": d.get("dep_type", "") or cached.get("dep_type", ""),
+                "source_kind": cached.get("source_kind", ""),
+                "weight": float(d.get("weight", 0.0)),
+                "evidence": cached.get("evidence", "")[:200],
+            }
+        )
+    if edge_rows:
+        st.dataframe(edge_rows, use_container_width=True, hide_index=True)
+    else:
+        st.info("当前 DAG 没有边。")
 
     st.subheader("Reward 分量（真实逻辑计算）")
     st.json(payload["reward"])

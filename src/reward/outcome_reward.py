@@ -1,100 +1,61 @@
 from __future__ import annotations
 
-import json
 import re
 from typing import Any, Optional
 
+from math_verify import LatexExtractionConfig, parse, verify
 from swift.rewards import ORM, orms
 from src.reward.utils import completion_to_text
 
 
 class OutcomeReward(ORM):
-    """Score-accuracy reward for math critique / grading tasks.
+    """Math outcome reward: verifies if model answer matches ground truth.
 
-    Parses the model's ``<answer>`` JSON block to extract the predicted
-    student score (``学生得分`` or ``score``) and the critique conclusion
-    (``结论批改``).  These are compared against the ground-truth solution
-    supplied via the *solution* kwarg.
+    Extraction priority:
+      1. \\boxed{...} — standard LaTeX boxed answer
+      2. Last numeric value in the response (fallback for informal answers)
 
-    Scoring rubric
-    --------------
-    * Exact score match: **+1.0**
-    * Within ±1 of the ground-truth score: **+0.5**
-    * ``结论批改`` fully matches the ground-truth conclusion: **+0.5** bonus
-    * Raw total is capped at **1.5** and then normalised to **[0, 1]**.
+    Verification uses math_verify for symbolic equivalence (handles
+    different representations of the same number/expression).
+
+    Returns 1.0 for correct, 0.0 for incorrect or unparseable.
     """
 
-    MAX_RAW: float = 1.5
+    _BOXED_RE = re.compile(r"\\boxed\{([^}]*(?:\{[^}]*\}[^}]*)*)\}")
+    _LAST_NUM_RE = re.compile(r"(?:=\s*|is\s+|answer\s+is\s+)([-+]?\d*\.?\d+)")
+    _PLAIN_NUM_RE = re.compile(r"([-+]?\d+\.?\d*)\s*$")
 
-    # ------------------------------------------------------------------
-    # helpers
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _extract_answer_json(text: str) -> Optional[dict[str, Any]]:
-        """Return the first JSON object found inside ``<answer>…</answer>``."""
-        m = re.search(r"<answer>\s*(.*?)\s*</answer>", text, re.DOTALL)
-        if m is None:
-            return None
-        try:
-            return json.loads(m.group(1))
-        except json.JSONDecodeError:
-            return None
-
-    @staticmethod
-    def _get_score(obj: dict[str, Any]) -> Optional[float]:
-        """Extract numeric score from parsed answer JSON."""
-        for key in ("学生得分", "score", "得分"):
-            if key in obj:
-                try:
-                    return float(obj[key])
-                except (TypeError, ValueError):
-                    continue
+    @classmethod
+    def _extract_answer(cls, text: str) -> Optional[str]:
+        """Extract the model's final answer from completion text."""
+        # Priority 1: \\boxed{}
+        matches = cls._BOXED_RE.findall(text)
+        if matches:
+            return matches[-1].strip()
+        # Priority 2: "= X" or "answer is X" pattern
+        matches = cls._LAST_NUM_RE.findall(text)
+        if matches:
+            return matches[-1].strip()
+        # Priority 3: last standalone number
+        matches = cls._PLAIN_NUM_RE.findall(text)
+        if matches:
+            return matches[-1].strip()
         return None
 
     @staticmethod
-    def _get_conclusion(obj: dict[str, Any]) -> Optional[str]:
-        """Extract critique conclusion string."""
-        for key in ("结论批改", "conclusion", "批改结论"):
-            if key in obj:
-                return str(obj[key]).strip()
-        return None
+    def _verify_equivalence(prediction: str, ground_truth: str) -> bool:
+        """Check mathematical equivalence using math_verify."""
+        config = LatexExtractionConfig(boxed_match_priority=0)
+        parsed_pred = parse(prediction, extraction_config=[config])
+        parsed_gt = parse(ground_truth, extraction_config=[config])
+        if parsed_pred and parsed_gt:
+            return verify(parsed_pred, parsed_gt)
+        # Fallback: direct string comparison after normalization
+        pred_clean = prediction.strip().rstrip(".").strip()
+        gt_clean = ground_truth.strip().rstrip(".").strip()
+        return pred_clean == gt_clean
 
-    @staticmethod
-    def _parse_solution(solution: Any) -> tuple[Optional[float], Optional[str]]:
-        """Parse ground truth *solution* into (score, conclusion)."""
-        if solution is None:
-            return None, None
-        if isinstance(solution, (int, float)):
-            return float(solution), None
-        if isinstance(solution, str):
-            try:
-                solution = json.loads(solution)
-            except json.JSONDecodeError:
-                try:
-                    return float(solution), None
-                except ValueError:
-                    return None, None
-        if isinstance(solution, dict):
-            gt_score: Optional[float] = None
-            for key in ("学生得分", "score", "得分"):
-                if key in solution:
-                    try:
-                        gt_score = float(solution[key])
-                    except (TypeError, ValueError):
-                        continue
-                    break
-            gt_conclusion: Optional[str] = None
-            for key in ("结论批改", "conclusion", "批改结论"):
-                if key in solution:
-                    gt_conclusion = str(solution[key]).strip()
-                    break
-            return gt_score, gt_conclusion
-        return None, None
-
-    # ------------------------------------------------------------------
-    # main
-    # ------------------------------------------------------------------
+    _DEBUG_LOGGED: bool = False
 
     def __call__(
         self,
@@ -102,33 +63,34 @@ class OutcomeReward(ORM):
         solution: Any = None,
         **kwargs: Any,
     ) -> list[float]:
-        """Return a reward in [0, 1] for each completion."""
-        solutions = solution if isinstance(solution, list) else [solution] * len(completions)
+        """Return 1.0 for correct answer, 0.0 otherwise."""
+        if not OutcomeReward._DEBUG_LOGGED:
+            OutcomeReward._DEBUG_LOGGED = True
+            print(f"[OutcomeReward DEBUG] solution type={type(solution).__name__}, "
+                  f"value={str(solution)[:200]}", flush=True)
+            if completions:
+                sample = completion_to_text(completions[0])
+                print(f"[OutcomeReward DEBUG] completion[0]={sample[:200]}", flush=True)
+        if solution is None:
+            return [0.0] * len(completions)
 
+        solutions = solution if isinstance(solution, list) else [solution] * len(completions)
         rewards: list[float] = []
+
         for i, completion in enumerate(completions):
             text = completion_to_text(completion)
-            sol_i = solutions[i] if i < len(solutions) else None
-            gt_score, gt_conclusion = self._parse_solution(sol_i)
-            ans = self._extract_answer_json(text)
-            if ans is None or gt_score is None:
+            gt = solutions[i] if i < len(solutions) else None
+            if gt is None or str(gt).strip() == "":
                 rewards.append(0.0)
                 continue
 
-            raw = 0.0
-            pred_score = self._get_score(ans)
-            if pred_score is not None:
-                if pred_score == gt_score:
-                    raw += 1.0
-                elif abs(pred_score - gt_score) <= 1.0:
-                    raw += 0.5
+            gt_str = str(gt).strip()
+            pred = self._extract_answer(text)
+            if pred is None:
+                rewards.append(0.0)
+                continue
 
-            if gt_conclusion is not None:
-                pred_conclusion = self._get_conclusion(ans)
-                if pred_conclusion is not None and pred_conclusion == gt_conclusion:
-                    raw += 0.5
-
-            raw = min(raw, self.MAX_RAW)
-            rewards.append(raw / self.MAX_RAW)
+            is_correct = self._verify_equivalence(pred, gt_str)
+            rewards.append(1.0 if is_correct else 0.0)
 
         return rewards

@@ -1,0 +1,141 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+The fast path is not available because one of the required library is not installed. Falling back to torch implementation. To install follow https://github.com/fla-org/flash-linear-attention#installation and https://github.com/Dao-AILab/causal-conv1d
+Loading model: /Knowin/foundation/weilinruan/hf_models/Qwen/Qwen3.5-9B
+Loading weights:   0%|          | 0/427 [00:00<?, ?it/s]Loading weights:   0%|          | 1/427 [00:07<50:49,  7.16s/it]Loading weights:   0%|          | 2/427 [00:08<25:58,  3.67s/it]Loading weights:   2%|▏         | 7/427 [00:08<05:05,  1.37it/s]Loading weights:   3%|▎         | 13/427 [00:08<02:16,  3.04it/s]Loading weights:   4%|▎         | 15/427 [00:09<02:01,  3.38it/s]Loading weights:   5%|▌         | 23/427 [00:09<00:57,  7.00it/s]Loading weights:   6%|▌         | 26/427 [00:09<00:48,  8.25it/s]Loading weights:   7%|▋         | 29/427 [00:10<00:57,  6.94it/s]Loading weights:   9%|▊         | 37/427 [00:10<00:33, 11.56it/s]Loading weights:  10%|▉         | 41/427 [00:10<00:29, 12.90it/s]Loading weights:  10%|█         | 44/427 [00:10<00:35, 10.72it/s]Loading weights:  11%|█         | 46/427 [00:11<00:36, 10.40it/s]Loading weights:  11%|█         | 48/427 [00:11<00:40,  9.40it/s]Loading weights:  13%|█▎        | 54/427 [00:11<00:28, 13.02it/s]Loading weights:  14%|█▍        | 60/427 [00:11<00:21, 17.11it/s]Loading weights:  15%|█▌        | 66/427 [00:12<00:19, 18.53it/s]Loading weights:  16%|█▌        | 69/427 [00:12<00:24, 14.75it/s]Loading weights:  18%|█▊        | 76/427 [00:12<00:17, 20.29it/s]Loading weights:  19%|█▊        | 80/427 [00:12<00:19, 17.87it/s]Loading weights:  19%|█▉        | 83/427 [00:13<00:25, 13.76it/s]Loading weights:  21%|██        | 90/427 [00:13<00:16, 20.44it/s]Loading weights:  22%|██▏       | 94/427 [00:13<00:20, 16.57it/s]Loading weights:  23%|██▎       | 97/427 [00:14<00:24, 13.75it/s]Loading weights:  23%|██▎       | 100/427 [00:14<00:28, 11.42it/s]Loading weights:  24%|██▍       | 102/427 [00:14<00:29, 11.08it/s]Loading weights:  25%|██▌       | 107/427 [00:15<00:23, 13.62it/s]Loading weights:  27%|██▋       | 115/427 [00:15<00:14, 21.15it/s]Loading weights:  28%|██▊       | 118/427 [00:15<00:14, 20.96it/s]Loading weights:  28%|██▊       | 121/427 [00:15<00:25, 11.82it/s]Loading weights:  30%|███       | 130/427 [00:16<00:15, 18.95it/s]Loading weights:  31%|███       | 133/427 [00:16<00:18, 16.29it/s]Loading weights:  32%|███▏      | 136/427 [00:16<00:20, 14.27it/s]Loading weights:  33%|███▎      | 143/427 [00:16<00:14, 20.00it/s]Loading weights:  34%|███▍      | 147/427 [00:17<00:15, 18.05it/s]Loading weights:  35%|███▌      | 150/427 [00:17<00:16, 16.60it/s]Loading weights:  36%|███▌      | 153/427 [00:17<00:20, 13.21it/s]Loading weights:  36%|███▋      | 155/427 [00:18<00:22, 12.17it/s]Loading weights:  37%|███▋      | 160/427 [00:18<00:18, 14.65it/s]Loading weights:  39%|███▉      | 167/427 [00:18<00:14, 18.18it/s]Loading weights:  40%|████      | 172/427 [00:18<00:14, 17.59it/s]Loading weights:  41%|████      | 174/427 [00:19<00:20, 12.59it/s]Loading weights:  43%|████▎     | 182/427 [00:19<00:12, 19.72it/s]Loading weights:  43%|████▎     | 185/427 [00:19<00:12, 19.80it/s]Loading weights:  44%|████▍     | 188/427 [00:20<00:18, 13.22it/s]Loading weights:  46%|████▌     | 196/427 [00:20<00:11, 20.96it/s]Loading weights:  47%|████▋     | 200/427 [00:20<00:12, 17.95it/s]Loading weights:  48%|████▊     | 203/427 [00:20<00:16, 13.27it/s]Loading weights:  48%|████▊     | 206/427 [00:21<00:19, 11.44it/s]Loading weights:  49%|████▊     | 208/427 [00:21<00:18, 11.63it/s]Loading weights:  50%|████▉     | 212/427 [00:21<00:16, 13.13it/s]Loading weights:  52%|█████▏    | 221/427 [00:21<00:09, 21.49it/s]Loading weights:  53%|█████▎    | 225/427 [00:22<00:10, 18.71it/s]Loading weights:  53%|█████▎    | 228/427 [00:22<00:14, 13.87it/s]Loading weights:  55%|█████▌    | 235/427 [00:22<00:09, 19.66it/s]Loading weights:  56%|█████▌    | 238/427 [00:22<00:09, 19.87it/s]Loading weights:  56%|█████▋    | 241/427 [00:23<00:13, 13.56it/s]Loading weights:  58%|█████▊    | 246/427 [00:23<00:09, 18.14it/s]Loading weights:  59%|█████▉    | 252/427 [00:23<00:07, 23.03it/s]Loading weights:  60%|█████▉    | 256/427 [00:24<00:12, 13.69it/s]Loading weights:  61%|██████    | 259/427 [00:24<00:15, 10.56it/s]Loading weights:  62%|██████▏   | 266/427 [00:24<00:10, 15.39it/s]Loading weights:  63%|██████▎   | 271/427 [00:25<00:08, 18.41it/s]Loading weights:  65%|██████▍   | 277/427 [00:25<00:06, 22.51it/s]Loading weights:  66%|██████▌   | 281/427 [00:25<00:10, 14.49it/s]Loading weights:  67%|██████▋   | 288/427 [00:25<00:06, 19.92it/s]Loading weights:  68%|██████▊   | 292/427 [00:26<00:08, 16.65it/s]Loading weights:  69%|██████▉   | 295/427 [00:26<00:10, 12.65it/s]Loading weights:  71%|███████   | 302/427 [00:26<00:07, 17.77it/s]Loading weights:  72%|███████▏  | 306/427 [00:27<00:07, 16.45it/s]Loading weights:  72%|███████▏  | 309/427 [00:27<00:07, 15.05it/s]Loading weights:  73%|███████▎  | 311/427 [00:27<00:08, 13.61it/s]Loading weights:  73%|███████▎  | 313/427 [00:28<00:10, 10.93it/s]Loading weights:  75%|███████▍  | 319/427 [00:28<00:07, 15.16it/s]Loading weights:  77%|███████▋  | 327/427 [00:28<00:04, 22.36it/s]Loading weights:  77%|███████▋  | 330/427 [00:28<00:04, 22.22it/s]Loading weights:  78%|███████▊  | 333/427 [00:29<00:06, 14.37it/s]Loading weights:  80%|███████▉  | 341/427 [00:29<00:03, 21.85it/s]Loading weights:  81%|████████  | 345/427 [00:29<00:04, 18.94it/s]Loading weights:  81%|████████▏ | 348/427 [00:29<00:05, 13.92it/s]Loading weights:  82%|████████▏ | 351/427 [00:30<00:05, 15.18it/s]Loading weights:  84%|████████▍ | 358/427 [00:30<00:03, 21.16it/s]Loading weights:  85%|████████▍ | 361/427 [00:30<00:04, 13.56it/s]Loading weights:  85%|████████▌ | 364/427 [00:30<00:04, 13.60it/s]Loading weights:  86%|████████▌ | 366/427 [00:31<00:05, 11.64it/s]Loading weights:  87%|████████▋ | 372/427 [00:31<00:03, 16.89it/s]Loading weights:  88%|████████▊ | 377/427 [00:31<00:02, 19.62it/s]Loading weights:  90%|████████▉ | 383/427 [00:31<00:01, 24.78it/s]Loading weights:  91%|█████████ | 387/427 [00:32<00:02, 16.93it/s]Loading weights:  93%|█████████▎| 397/427 [00:32<00:01, 26.91it/s]Loading weights:  94%|█████████▍| 401/427 [00:32<00:01, 15.66it/s]Loading weights:  95%|█████████▍| 405/427 [00:33<00:01, 16.81it/s]Loading weights:  96%|█████████▋| 412/427 [00:33<00:00, 19.50it/s]Loading weights:  97%|█████████▋| 415/427 [00:33<00:00, 15.78it/s]Loading weights:  98%|█████████▊| 418/427 [00:34<00:00, 13.05it/s]Loading weights:  98%|█████████▊| 420/427 [00:34<00:00, 12.14it/s]Loading weights: 100%|█████████▉| 425/427 [00:34<00:00, 14.33it/s]Loading weights: 100%|██████████| 427/427 [00:34<00:00, 12.36it/s]
+Loading adapter: output/grpo_9b_from_ckpt79/v0-20260525-130946/checkpoint-40
+  Fixed target_modules: ^(model\.language_model(?=\.).*\.(up_proj|in_proj_z|v_proj|k_proj|in_proj_qkv|q_proj|down_proj|in_proj_a|gate_proj|in_proj_b|o_proj|out_proj))$ -> ^(model.*\.(up_proj|in_proj_z|v_proj|k_proj|in_proj_qkv|q_proj|down_proj|in_proj_a|gate_proj|in_proj_b|o_proj|out_proj))$
+  Fixed adapter tensor namespace in adapter_model.safetensors
+
+============================================================
+Benchmark: omni_math | Label: 9b_v2_ckpt40 | chat=True sft_style=False fewshot=False k=5
+============================================================
+  [4/500] acc=50.0%
+  [8/500] acc=50.0%
+  [12/500] acc=41.7%
+  [16/500] acc=43.8%
+  [20/500] acc=50.0%
+  [24/500] acc=50.0%
+  [28/500] acc=50.0%
+  [32/500] acc=50.0%
+  [36/500] acc=50.0%
+  [40/500] acc=50.0%
+  [44/500] acc=50.0%
+  [48/500] acc=50.0%
+  [52/500] acc=48.1%
+  [56/500] acc=51.8%
+  [60/500] acc=50.0%
+  [64/500] acc=48.4%
+  [68/500] acc=47.1%
+  [72/500] acc=50.0%
+  [76/500] acc=51.3%
+  [80/500] acc=53.8%
+  [84/500] acc=54.8%
+  [88/500] acc=53.4%
+  [92/500] acc=54.3%
+  [96/500] acc=53.1%
+  [100/500] acc=54.0%
+  [104/500] acc=53.8%
+  [108/500] acc=53.7%
+  [112/500] acc=53.6%
+  [116/500] acc=51.7%
+  [120/500] acc=51.7%
+  [124/500] acc=53.2%
+  [128/500] acc=53.9%
+  [132/500] acc=53.0%
+  [136/500] acc=53.7%
+  [140/500] acc=53.6%
+  [144/500] acc=52.8%
+  [148/500] acc=53.4%
+  [152/500] acc=53.9%
+  [156/500] acc=53.8%
+  [160/500] acc=54.4%
+  [164/500] acc=53.7%
+  [168/500] acc=54.2%
+  [172/500] acc=53.5%
+  [176/500] acc=53.4%
+  [180/500] acc=52.2%
+  [184/500] acc=52.2%
+  [188/500] acc=53.2%
+  [192/500] acc=53.6%
+  [196/500] acc=54.1%
+  [200/500] acc=54.5%
+  [204/500] acc=54.4%
+  [208/500] acc=53.4%
+  [212/500] acc=53.8%
+  [216/500] acc=53.7%
+  [220/500] acc=53.6%
+  [224/500] acc=53.6%
+  [228/500] acc=53.9%
+  [232/500] acc=53.9%
+  [236/500] acc=53.8%
+  [240/500] acc=54.6%
+  [244/500] acc=54.5%
+  [248/500] acc=54.4%
+  [252/500] acc=55.2%
+  [256/500] acc=55.1%
+  [260/500] acc=55.4%
+  [264/500] acc=54.9%
+  [268/500] acc=55.6%
+  [272/500] acc=55.5%
+  [276/500] acc=54.7%
+  [280/500] acc=55.0%
+  [284/500] acc=55.3%
+  [288/500] acc=54.9%
+  [292/500] acc=55.1%
+  [296/500] acc=54.7%
+  [300/500] acc=54.7%
+  [304/500] acc=54.6%
+  [308/500] acc=54.5%
+  [312/500] acc=54.5%
+  [316/500] acc=54.4%
+  [320/500] acc=54.4%
+  [324/500] acc=54.3%
+  [328/500] acc=54.6%
+  [332/500] acc=54.8%
+  [336/500] acc=55.1%
+  [340/500] acc=55.0%
+  [344/500] acc=54.4%
+  [348/500] acc=54.0%
+  [352/500] acc=53.7%
+  [356/500] acc=54.2%
+  [360/500] acc=53.6%
+  [364/500] acc=53.8%
+  [368/500] acc=53.8%
+  [372/500] acc=53.5%
+  [376/500] acc=53.5%
+  [380/500] acc=53.4%
+  [384/500] acc=53.6%
+  [388/500] acc=53.4%
+  [392/500] acc=53.6%
+  [396/500] acc=54.0%
+  [400/500] acc=54.0%
+  [404/500] acc=54.2%
+  [408/500] acc=54.4%
+  [412/500] acc=54.9%
+  [416/500] acc=54.6%
+  [420/500] acc=54.3%
+  [424/500] acc=54.0%
+  [428/500] acc=54.0%
+  [432/500] acc=53.9%
+  [436/500] acc=53.9%
+  [440/500] acc=53.9%
+  [444/500] acc=54.1%
+  [448/500] acc=54.0%
+  [452/500] acc=54.0%
+  [456/500] acc=53.9%
+  [460/500] acc=53.9%
+  [464/500] acc=54.1%
+  [468/500] acc=53.8%
+  [472/500] acc=54.0%
+  [476/500] acc=54.2%
+  [480/500] acc=54.6%
+  [484/500] acc=54.8%
+  [488/500] acc=54.7%
+  [492/500] acc=54.7%
+  [496/500] acc=55.0%
+  [500/500] acc=55.2%
+
+  omni_math: pass@1=55.2% pass@5=76.2% maj@5=61.0% prm@5=55.2% tok=4093 in 158307s
+  Saved: results/9b_v2_ckpt40/9b_v2_ckpt40_omni_math_metrics.json
+
+Done.

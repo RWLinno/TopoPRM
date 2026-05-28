@@ -74,7 +74,7 @@ echo "  Reward component log every: ${TOPO_REWARD_LOG_EVERY} calls"
 echo "  Log: $LOG"
 echo "══════════════════════════════════════════"
 
-setsid swift rlhf --rlhf_type grpo --config "$CONFIG" $RESUME_ARG $ADAPTER_ARG "$@" 2>&1 | tee "$LOG" &
+setsid swift rlhf "$CONFIG" $RESUME_ARG $ADAPTER_ARG "$@" 2>&1 | tee "$LOG" &
 GUARDED_PID=$!
 save_pid_file "$CONFIG_NAME" "$GUARDED_PID"
 start_shm_watchdog "$GUARDED_PID"

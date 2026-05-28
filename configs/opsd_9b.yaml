@@ -9,10 +9,10 @@
 #   L = sum_t KL( pi_theta(.|x, y_{<t})  ||  teacher_logits )
 
 # Used by src/distill/opsd_trainer.py
-student_base: /mnt/data/huggingface_downloads/models/qwen/Qwen3.5-9B
+student_base: Qwen/Qwen3.5-9B
 student_adapter: output/sft_qwen35_9b/v0-20260407-011328/checkpoint-626
 
-teacher_base: /mnt/data/huggingface_downloads/models/qwen/Qwen3.5-9B
+teacher_base: Qwen/Qwen3.5-9B
 teacher_adapter: output/srt_9b/final
 
 dataset: data/grpo_ready/train.jsonl

@@ -1,7 +1,7 @@
 # GRPO: Outcome-gated topology reward (v2) with Qwen2.5-7B
 # Fixes: reward hacking, variance collapse
 # Key changes vs hierarchical: topo_gated reward, ng=4
-model: /mnt/data/huggingface_downloads/models/qwen/Qwen2.5-7B-Instruct
+model: Qwen/Qwen2.5-7B-Instruct
 
 dataset:
   - data/grpo_ready/train.jsonl

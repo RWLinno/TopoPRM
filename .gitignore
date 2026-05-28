@@ -1,79 +1,14 @@
-output/
-models/
-data/
-logs/
-wandb/
-result/
-.DS_Store
-.env
-.env.local
-.env.development.local
-.env.test.local
-paper/
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.egg-info/
-dist/
-build/
-*.egg
-
-# Virtual environments
-.venv/
-venv/
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# Model weights and checkpoints
-output/
-models/
+# Large files
 *.safetensors
-*.bin
 *.pt
-*.pth
+*.bin
 *.ckpt
-
-# Data (large files)
-data/raw/
-data/processed/
-data/dag/
-data/sft_ready/
+output/hf_ckpts/
 data/grpo_ready/
-data/benchmarks/
-*.jsonl
-
-# Logs
-*.log
-nohup.out
-
-# OS
-.DS_Store
-Thumbs.db
-
-# LaTeX
-*.aux
-*.bbl
-*.blg
-*.fdb_latexmk
-*.fls
-*.synctex.gz
-*.out
-*.toc
-*.lof
-*.lot
-*.nav
-*.snm
-
-# Misc
+data/sft_ready/
+wandb/
+__pycache__/
+*.pyc
 .pytest_cache/
-.coverage
-htmlcov/
-paper/awesome-ai-research-writing/
-data/test/
-docs/
+*.egg-info/
+results/*details.jsonl

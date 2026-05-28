@@ -1,4 +1,4 @@
-model: /mnt/data/huggingface_downloads/models/qwen/Qwen2.5-7B-Instruct
+model: Qwen/Qwen2.5-7B-Instruct
 
 dataset:
   - data/sft_ready/train_augmented.jsonl

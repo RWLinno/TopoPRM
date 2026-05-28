@@ -1,6 +1,6 @@
 # GRPO: 9B hierarchical with mcl=4096 (test if longer context helps)
 # Previous hier 9B at mcl=1024 got 0.287 overall
-model: /mnt/data/huggingface_downloads/models/qwen/Qwen3.5-9B
+model: Qwen/Qwen3.5-9B
 
 dataset:
   - data/grpo_ready/train.jsonl

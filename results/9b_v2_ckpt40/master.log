@@ -1,0 +1,9 @@
+[Tue May 26 08:51:20 UTC 2026] Eval 9B TopoPRM v2 (from ckpt79, +40 steps)
+olympiad=1000451
+omni=1000452
+aime24=1000453
+aime25=1000454
+cnmo=1000455
+[Tue May 26 08:51:20 UTC 2026] All 5 launched, waiting...
+/tmp/run_eval_9b_v2_ckpt40.sh: line 30: 1000451 Killed                  CUDA_VISIBLE_DEVICES=2 $P scripts/bench_transformers.py --model $M --adapter $A --label 9b_v2_ckpt40 --benchmarks olympiadbench --use_chat_template --num_samples_per_item 5 --k_values 1 5 --max_new_tokens 4096 --output_dir $OUT > $OUT/olympiad.log 2>&1
+[Thu May 28 08:52:58 UTC 2026] All done

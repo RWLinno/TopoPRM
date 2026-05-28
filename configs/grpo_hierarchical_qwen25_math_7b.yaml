@@ -1,5 +1,5 @@
 # GRPO hierarchical ? Qwen2.5-Math-7B-Instruct + own SFT adapter (via SFT_ADAPTER / run_grpo.sh).
-model: /mnt/data/huggingface_downloads/models/qwen/Qwen2.5-Math-7B-Instruct
+model: Qwen/Qwen2.5-Math-7B-Instruct
 
 dataset:
   - data/grpo_ready/train.jsonl

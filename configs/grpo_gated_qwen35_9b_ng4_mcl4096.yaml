@@ -1,6 +1,6 @@
 # GRPO: Gated reward on 9B with ng4 + mcl=4096
 # More generations + longer context to maximize outcome>0 probability
-model: /mnt/data/huggingface_downloads/models/qwen/Qwen3.5-9B
+model: Qwen/Qwen3.5-9B
 
 dataset:
   - data/grpo_ready/train.jsonl

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>TGSD - Topology-Guided Self-Distillation Framework</title>
+<style>
+  :root {
+    --bg: #f7f8fb;
+    --panel: #ffffff;
+    --ink: #1f2937;
+    --muted: #6b7280;
+    --accent: #2e6fb5;
+    --accent2: #f59e0b;
+    --accent3: #10b981;
+    --accent4: #c0392b;
+    --border: #e5e7eb;
+    --code-bg: #0f172a;
+    --code-ink: #e2e8f0;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+    line-height: 1.6;
+  }
+  header {
+    background: linear-gradient(120deg, #1e3a8a, #2e6fb5);
+    color: white;
+    padding: 28px 36px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  header h1 {
+    margin: 0 0 6px 0;
+    font-size: 26px;
+    letter-spacing: 0.4px;
+  }
+  header .sub {
+    opacity: 0.85;
+    font-size: 14px;
+  }
+  main {
+    max-width: 1180px;
+    margin: 24px auto 60px auto;
+    padding: 0 24px;
+  }
+  section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 26px;
+    margin-bottom: 22px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  section h2 {
+    margin-top: 0;
+    color: var(--accent);
+    font-size: 19px;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 8px;
+  }
+  section h3 {
+    color: #111827;
+    font-size: 15px;
+    margin-top: 18px;
+    margin-bottom: 6px;
+  }
+  .pipeline {
+    display: grid;
+    grid-template-columns: 1fr 18px 1fr 18px 1fr;
+    align-items: stretch;
+    gap: 0;
+    margin: 14px 0 6px 0;
+  }
+  .stage {
+    background: linear-gradient(180deg, #ffffff, #f3f6fb);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    position: relative;
+  }
+  .stage .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--accent);
+    color: white;
+    margin-bottom: 6px;
+  }
+  .stage.s1 .badge { background: #2e6fb5; }
+  .stage.s2 .badge { background: #f59e0b; }
+  .stage.s3 .badge { background: #10b981; }
+  .stage h3 { margin-top: 4px; }
+  .stage ul { margin: 6px 0 0 18px; padding: 0; }
+  .stage ul li { font-size: 13px; color: var(--ink); }
+  .arrow {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted); font-size: 22px; font-weight: 700;
+  }
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 0 0;
+    font-size: 12px; color: var(--muted);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .card {
+    border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px;
+    background: #fafbfc;
+  }
+  .card .k { color: var(--muted); font-size: 12px; }
+  .card .v { font-weight: 600; font-size: 16px; color: var(--ink); }
+  .eq {
+    background: #0f172a; color: #e2e8f0; padding: 10px 14px;
+    border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 13px; overflow-x: auto;
+  }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+  th { background: #f3f6fb; color: var(--ink); }
+  code.inline {
+    background: #eef2ff; color: #1e3a8a; padding: 1px 5px; border-radius: 4px;
+    font-family: ui-monospace, monospace; font-size: 12.5px;
+  }
+  .footnote { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  svg.flow { display: block; margin: 18px auto 0; max-width: 100%; }
+</style>
+</head>
+<body>
+<header>
+  <h1>TGSD — Topology-Guided Self-Distillation</h1>
+  <div class="sub">Three-stage post-training framework for topology-aware reasoning. Method = TopoPRM. Framework = TGSD.</div>
+</header>
+<main>
+
+<section>
+  <h2>Overview</h2>
+  <p>
+    TGSD post-trains a base reasoner in three stages: an SFT cold-start, a GRPO stage
+    that uses our topology-aware process reward (TopoPRM) with stratified clipping
+    advantage estimation (SCAE), and a topology-guided on-policy distillation (TG-OPD)
+    stage that compresses the resulting policy. DAGs over reasoning traces are extracted
+    in a hybrid (rule + offline LLM) preprocessing step, cached, and consumed by the
+    reward computation as well as the distillation supervision.
+  </p>
+  <div class="legend">
+    <span><span class="swatch" style="background:#2e6fb5"></span> Stage 1 — SFT cold start</span>
+    <span><span class="swatch" style="background:#f59e0b"></span> Stage 2 — GRPO + R_topo + SCAE</span>
+    <span><span class="swatch" style="background:#10b981"></span> Stage 3 — TG-OPD distillation</span>
+  </div>
+</section>
+
+<section>
+  <h2>Three-stage pipeline</h2>
+  <div class="pipeline">
+    <div class="stage s1">
+      <span class="badge">Stage 1</span>
+      <h3>SFT cold-start</h3>
+      <ul>
+        <li>Fit a base policy on curated reasoning traces (think + answer formatting)</li>
+        <li>Stabilizes generation grammar and shortens warm-up of the GRPO stage</li>
+        <li>Output: <code class="inline">π_SFT</code></li>
+      </ul>
+    </div>
+    <div class="arrow">▶</div>
+    <div class="stage s2">
+      <span class="badge">Stage 2</span>
+      <h3>GRPO with R_topo + SCAE</h3>
+      <ul>
+        <li>Hybrid DAG extractor produces cached <code class="inline">cached_dag</code> per prompt</li>
+        <li>Composite reward: <code class="inline">R_total = R_out · (R_fmt · R_len) · I[G valid] · q_topo</code></li>
+        <li>Stratified Clipping Advantage Estimation stabilizes group advantages</li>
+        <li>Output: <code class="inline">π_GRPO (Teacher)</code></li>
+      </ul>
+    </div>
+    <div class="arrow">▶</div>
+    <div class="stage s3">
+      <span class="badge">Stage 3</span>
+      <h3>TG-OPD distillation</h3>
+      <ul>
+        <li>Student rolls out full sequences; teacher provides token-level supervision</li>
+        <li>Reverse-KL minimization with topology-aware prompt induces DAG-faithful traces</li>
+        <li>Compresses chain-merging and cycle removal into a faster student policy</li>
+        <li>Output: <code class="inline">π_TGSD</code> (student / final)</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>DAG extraction pipeline (offline preprocessing)</h2>
+  <svg class="flow" viewBox="0 0 1100 220" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+        <path d="M0,0 L10,5 L0,10 Z" fill="#374151" />
+      </marker>
+    </defs>
+    <rect x="20" y="60" width="220" height="100" rx="14" fill="#eff6ff" stroke="#2e6fb5" />
+    <text x="130" y="92" text-anchor="middle" font-weight="700" font-size="14" fill="#1e3a8a">Phase I</text>
+    <text x="130" y="115" text-anchor="middle" font-size="12" fill="#1f2937">Step segmentation</text>
+    <text x="130" y="132" text-anchor="middle" font-size="12" fill="#1f2937">+ rule-based parsing</text>
+    <text x="130" y="150" text-anchor="middle" font-size="11" fill="#6b7280">(exprs / claims / type)</text>
+
+    <line x1="240" y1="110" x2="305" y2="110" stroke="#374151" stroke-width="1.8" marker-end="url(#arr)" />
+
+    <rect x="320" y="60" width="220" height="100" rx="14" fill="#fffbeb" stroke="#f59e0b" />
+    <text x="430" y="92" text-anchor="middle" font-weight="700" font-size="14" fill="#92400e">Phase II</text>
+    <text x="430" y="115" text-anchor="middle" font-size="12" fill="#1f2937">Pretrained-LLM</text>
+    <text x="430" y="132" text-anchor="middle" font-size="12" fill="#1f2937">implicit-edge refine</text>
+    <text x="430" y="150" text-anchor="middle" font-size="11" fill="#6b7280">(strict JSON, opt-in)</text>
+
+    <line x1="540" y1="110" x2="605" y2="110" stroke="#374151" stroke-width="1.8" marker-end="url(#arr)" />
+
+    <rect x="620" y="60" width="220" height="100" rx="14" fill="#ecfdf5" stroke="#10b981" />
+    <text x="730" y="92" text-anchor="middle" font-weight="700" font-size="14" fill="#065f46">Phase III</text>
+    <text x="730" y="115" text-anchor="middle" font-size="12" fill="#1f2937">Build dependency DAG</text>
+    <text x="730" y="132" text-anchor="middle" font-size="12" fill="#1f2937">+ cache JSON</text>
+    <text x="730" y="150" text-anchor="middle" font-size="11" fill="#6b7280">(rule + llm edges merged)</text>
+
+    <line x1="840" y1="110" x2="905" y2="110" stroke="#374151" stroke-width="1.8" marker-end="url(#arr)" />
+
+    <rect x="920" y="60" width="160" height="100" rx="14" fill="#f5f3ff" stroke="#7c3aed" />
+    <text x="1000" y="92" text-anchor="middle" font-weight="700" font-size="14" fill="#5b21b6">Online</text>
+    <text x="1000" y="115" text-anchor="middle" font-size="12" fill="#1f2937">read cached_dag</text>
+    <text x="1000" y="132" text-anchor="middle" font-size="12" fill="#1f2937">in GRPO / eval</text>
+  </svg>
+  <p class="footnote">
+    Online training and evaluation never invoke the LLM refiner: they only consume the
+    cached schema, falling back to the rule-only extractor when the cache is missing.
+  </p>
+</section>
+
+<section>
+  <h2>Topology-aware reward components</h2>
+  <div class="grid2">
+    <div>
+      <h3>Topology score q_topo</h3>
+      <div class="eq">q_topo(G) = λ_b · 1[|V|>0]
+         + λ_a · 1[G acyclic]
+         + λ_o · 1[ρ_orphan = 0]
+         + λ_d · δ(G)
+         + λ_k · κ(G, G*)</div>
+      <p class="footnote">δ direction-consistency, κ reference-edge F1, ρ_orphan continuous orphan-support score.</p>
+    </div>
+    <div>
+      <h3>Multi-source aggregation</h3>
+      <div class="eq">R_topo = 1[G valid] · q_topo(G)
+R_total = R_out · (R_fmt · R_len) · R_topo</div>
+      <p class="footnote">
+        Correctness primacy is hard: outcome=0 ⇒ R_total=0. R_topo is gated by graph
+        validity and only contributes a topology multiplier, never overrides correctness.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Stratified Clipping Advantage Estimation (SCAE)</h2>
+  <p>
+    SCAE follows prior work and stratifies sampled rollouts into B+ (better than mean)
+    and B− (worse than mean) groups by R_out, then applies asymmetric clipping floors
+    so positive examples cannot collapse below <code class="inline">TOPO_SCAE_FLOOR_POS</code>
+    and negative examples cannot collapse above
+    <code class="inline">−TOPO_SCAE_FLOOR_NEG</code>. This stabilizes
+    advantage estimation under noisy topology rewards.
+  </p>
+  <div class="grid3">
+    <div class="card"><div class="k">Floor (positive)</div><div class="v">0.30</div></div>
+    <div class="card"><div class="k">Floor (negative)</div><div class="v">0.30</div></div>
+    <div class="card"><div class="k">Outcome floor</div><div class="v">0.35</div></div>
+  </div>
+</section>
+
+<section>
+  <h2>Stage III: TG-OPD distillation</h2>
+  <p>
+    The teacher π_GRPO scores per-token distributions on student-rolled-out traces; the
+    student minimizes RKL toward the teacher with a topology-aware prompt template that
+    encourages chain merging and cycle elision over the cached DAG. This produces a
+    smaller, faster student that retains the structural profile of the teacher
+    (audited via direction-consistency, orphan-support, and dep_type histograms).
+  </p>
+</section>
+
+<section>
+  <h2>Audit thresholds and current status</h2>
+  <table>
+    <thead>
+      <tr><th>metric</th><th>threshold</th><th>status (after iter 3)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>multi-node DAG rate</td><td>≥ 0.90</td><td>✅ 1.000 across 9 benchmarks</td></tr>
+      <tr><td>valid DAG rate</td><td>≥ 0.95</td><td>✅ 1.000 across 9 benchmarks</td></tr>
+      <tr><td>non-implicit-block ratio</td><td>≥ 0.50</td><td>✅ 0.581 – 1.000</td></tr>
+      <tr><td>q_topo variance</td><td>≥ 0.05</td><td>⚠ 0.001 – 0.014 (known limit, see <code class="inline">docs/dag_audit_known_limits.md</code>)</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Reproduction commands</h2>
+  <div class="eq"># 1. Build trace pool (offline; uses --save_solutions)
+python scripts/build_trace_pool.py \
+  --label dag_audit_dr1_7b --sample-size 50 --max-items 50
+
+# 2. Run preprocessing + audit
+PYTHONPATH=. \
+  TOPO_DAG_FILTER_FORMATTING=1 TOPO_DAG_EXTRA_STEP_MARKERS=1 \
+  TOPO_DAG_LATEX_EXPR=1 TOPO_DAG_BARRIER_STRICT=1 \
+  TOPO_DAG_SEQ_WHEN_NO_DEP_ONLY=1 \
+  python scripts/dag_quality_audit.py --label dag_audit_dr1_7b --report
+
+# 3. Visualize
+bash scripts/run_dag_gui.sh 8765 \
+  output/dag_audit/dag_audit_dr1_7b_gsm8k_cached.jsonl
+python tutorials/render_dag_cases.py \
+  --from-rollout output/dag_audit/dag_audit_dr1_7b_gsm8k_traces.jsonl \
+  --bench gsm8k --n 5</div>
+</section>
+
+<section>
+  <h2>See also</h2>
+  <ul>
+    <li><a href="dag_showcase.html">dag_showcase.html</a> — real per-benchmark DAG cases with structured node / edge details.</li>
+    <li><a href="dag_audit_guide.md">dag_audit_guide.md</a> — quick reproduction guide for the audit loop.</li>
+    <li><a href="dag_audit_known_limits.md">dag_audit_known_limits.md</a> — surviving limitations after iteration 3.</li>
+  </ul>
+</section>
+
+</main>
+</body>
+</html>

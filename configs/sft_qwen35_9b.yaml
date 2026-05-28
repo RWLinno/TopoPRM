@@ -1,5 +1,5 @@
 # SFT: Qwen3.5-9B on structured math reasoning data
-model: /mnt/data/huggingface_downloads/models/qwen/Qwen3.5-9B
+model: Qwen/Qwen3.5-9B
 
 dataset:
   - data/sft_ready/train_augmented.jsonl

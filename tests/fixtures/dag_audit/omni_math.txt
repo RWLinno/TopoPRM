@@ -1,0 +1,4 @@
+Step 1: Let S=1+2+...+10.
+Step 2: Use arithmetic-series formula S=n(n+1)/2 with n=10.
+Step 3: Compute S=10*11/2=55.
+Step 4: So the sum equals 55.

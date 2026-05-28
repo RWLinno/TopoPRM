@@ -1,5 +1,5 @@
 # GRPO: Gated reward on 7B with mcl=2048 (fix truncation)
-model: /mnt/data/huggingface_downloads/models/qwen/Qwen2.5-7B-Instruct
+model: Qwen/Qwen2.5-7B-Instruct
 
 dataset:
   - data/grpo_ready/train.jsonl

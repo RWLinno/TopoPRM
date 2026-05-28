@@ -1,0 +1,34 @@
+# Phase 1: Pure outcome reward for Qwen3.5-9B (build competition math ability)
+# Then Phase 2 will add TopoPRM from this checkpoint
+model: /Knowin/foundation/weilinruan/hf_models/Qwen/Qwen3.5-9B
+
+tuner_type: lora
+lora_rank: 64
+lora_alpha: 128
+
+rlhf_type: grpo
+num_generations: 4
+temperature: 0.8
+max_completion_length: 4096
+beta: 0.04
+use_vllm: false
+gradient_checkpointing: true
+bf16: true
+
+external_plugins:
+  - src/reward/composite_reward.py
+reward_funcs:
+  - topo_outcome
+
+dataset:
+  - data/grpo_ready/train_public_swift.jsonl
+
+max_steps: 100
+learning_rate: 5.0e-6
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 16
+save_steps: 50
+output_dir: output/grpo_9b_phase1
+report_to:
+  - tensorboard
+logging_steps: 5

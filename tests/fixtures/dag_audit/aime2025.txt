@@ -1,0 +1,4 @@
+Step 1: Define x+y=12 and xy=32.
+Step 2: Build quadratic t^2-12t+32=0 from Vieta's formulas.
+Step 3: Factor as (t-4)(t-8)=0.
+Step 4: Hence the two values are 4 and 8.

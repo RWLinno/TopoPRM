@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from src.data.build_dag import (
@@ -13,6 +15,8 @@ from src.data.build_dag import (
 from src.dag.graph import ReasoningDAG
 from src.dag.node import LocalVerdict, Node
 from src.dag.node import StepType
+
+FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures" / "dag_audit"
 
 
 # ---------------------------------------------------------------------------
@@ -225,7 +229,184 @@ class TestBuildDagFromAnswer:
         )
         dag, debug = parse_answer_to_dag_debug(answer)
         assert debug["summary"]["sub_questions"] == [1, 2]
-        # No edge should cross sub-question boundary.
         node_subq = {s["step_id"]: s["sub_question_id"] for s in debug["steps"]}
         for u, v, _ in dag.graph.edges(data=True):
             assert node_subq[u] == node_subq[v]
+
+
+# ---------------------------------------------------------------------------
+# LLM-assisted hybrid dependency edges (offline preprocessing only)
+# ---------------------------------------------------------------------------
+
+
+class TestLLMHybridDependencyEdges:
+    """Tests for the LLM-refined edges merged on top of rule edges.
+
+    The runtime / GRPO path must never trigger the LLM; these tests use the
+    explicit ``llm_client`` argument that the offline preprocessor exposes.
+    """
+
+    def _parsed_steps(self, answer: str):
+        from src.data.build_dag import (
+            ParsedStep,
+            classify_step_type,
+            extract_claim_keys,
+            extract_claims,
+            extract_expressions,
+            extract_steps_from_answer,
+            extract_variables,
+        )
+        import unicodedata
+
+        parsed = []
+        for s in extract_steps_from_answer(answer):
+            text = s["raw_text"]
+            norm = unicodedata.normalize("NFKC", text).strip()
+            parsed.append(
+                ParsedStep(
+                    step_id=s["step_id"],
+                    raw_text=text,
+                    normalized_text=norm,
+                    sub_question_id=s.get("sub_question_id"),
+                    exprs=extract_expressions(text),
+                    claims=extract_claims(text),
+                    claim_keys=extract_claim_keys(text),
+                    variables=extract_variables(norm),
+                    step_type=classify_step_type(text),
+                )
+            )
+        return parsed
+
+    def test_default_runtime_path_skips_llm(self, monkeypatch):
+        """Online path must remain rule-only when env flag is unset/False."""
+        from src.data.build_dag import build_dependency_edges_by_llm
+
+        monkeypatch.delenv("TOPO_DAG_LLM_REFINE", raising=False)
+        steps = self._parsed_steps("Step 1: Let x=1.\nStep 2: Then y=x+1.")
+        edges, _ = build_dependency_edges_by_llm(steps, llm_client=None)
+        for src, tgt, _etype, dep in edges:
+            assert dep != "llm_semantic" and dep != "llm_subgoal"
+
+    def test_llm_edges_merged_with_confidence(self, monkeypatch):
+        """A stub LLM client returning a strict-JSON edge should merge cleanly."""
+        from src.data.build_dag import build_dependency_edges_by_llm
+
+        monkeypatch.setenv("TOPO_DAG_LLM_REFINE", "1")
+        steps = self._parsed_steps(
+            "Step 1: Let x=1.\nStep 2: Define helper claim P.\nStep 3: Conclude y=x+1."
+        )
+
+        class StubClient:
+            def generate(self, prompt: str) -> str:
+                return (
+                    "[{\"source\":1,\"target\":2,\"dep_type\":\"llm_semantic\","
+                    "\"confidence\":0.7,\"evidence\":\"step 3 reuses helper claim P\"}]"
+                )
+
+        edges, evidences = build_dependency_edges_by_llm(steps, llm_client=StubClient())
+        llm_edges = [
+            (s, t, dep)
+            for s, t, _et, dep in edges
+            if dep in {"llm_semantic", "llm_subgoal"}
+        ]
+        assert (1, 2, "llm_semantic") in llm_edges
+        llm_evs = [e for e in evidences if e.dep_type == "llm_semantic"]
+        assert llm_evs and "conf=0.70" in llm_evs[0].evidence
+
+    def test_llm_edges_rejected_when_violating_constraints(self, monkeypatch):
+        """source>=target, unknown dep_type, and bad ids must be filtered."""
+        from src.data.build_dag import build_dependency_edges_by_llm
+
+        monkeypatch.setenv("TOPO_DAG_LLM_REFINE", "1")
+        steps = self._parsed_steps(
+            "Step 1: Let x=1.\nStep 2: Then y=x+1.\nStep 3: Conclude y=2."
+        )
+
+        class BadClient:
+            def generate(self, prompt: str) -> str:
+                return (
+                    "["
+                    "{\"source\":2,\"target\":1,\"dep_type\":\"llm_semantic\",\"confidence\":0.9,\"evidence\":\"backward\"},"
+                    "{\"source\":0,\"target\":2,\"dep_type\":\"unknown_kind\",\"confidence\":0.4,\"evidence\":\"clamped\"},"
+                    "{\"source\":99,\"target\":100,\"dep_type\":\"llm_semantic\",\"confidence\":0.5,\"evidence\":\"oob\"}"
+                    "]"
+                )
+
+        edges, _ = build_dependency_edges_by_llm(steps, llm_client=BadClient())
+        deps = [(s, t, dep) for s, t, _et, dep in edges if dep.startswith("llm_")]
+        # Backward edge dropped, OOB edge dropped, unknown_kind clamped to llm_semantic.
+        assert (2, 1, "llm_semantic") not in deps
+        assert (99, 100, "llm_semantic") not in deps
+        assert (0, 2, "llm_semantic") in deps
+
+    def test_llm_failure_falls_back_to_rule_edges(self, monkeypatch, caplog):
+        """If the LLM client raises, the pipeline must still return rule edges."""
+        from src.data.build_dag import build_dependency_edges_by_llm
+
+        monkeypatch.setenv("TOPO_DAG_LLM_REFINE", "1")
+        steps = self._parsed_steps(
+            "Step 1: Let x=1.\nStep 2: Then y=x+1.\nStep 3: Conclude y=2."
+        )
+
+        class CrashClient:
+            def generate(self, prompt: str) -> str:
+                raise RuntimeError("backend exploded")
+
+        edges, _ = build_dependency_edges_by_llm(steps, llm_client=CrashClient())
+        assert edges  # rule edges still present
+        assert all(not dep.startswith("llm_") for _s, _t, _et, dep in edges)
+
+
+class TestBenchmarkSmoke:
+    @pytest.mark.parametrize(
+        "bench",
+        [
+            "gsm8k",
+            "math500",
+            "olympiadbench",
+            "omni_math",
+            "aime2024",
+            "aime2025",
+            "cnmo2024",
+            "mmlu",
+            "gpqa_diamond",
+        ],
+    )
+    def test_fixture_trace_builds_valid_dag(self, bench):
+        fixture = FIXTURE_DIR / f"{bench}.txt"
+        text = fixture.read_text(encoding="utf-8")
+        dag, _ = parse_answer_to_dag_debug(text, problem_id=f"smoke_{bench}")
+        assert dag.num_nodes >= 3
+        assert dag.is_valid_dag()
+        direction = dag.direction_consistency()
+        q_topo_proxy = 0.5 * float(direction) + 0.5 * float(1.0 if dag.num_edges > 0 else 0.0)
+        assert q_topo_proxy > 0.0
+
+
+class TestExtractorFlags:
+    def test_new_flags_noop_when_unset(self, monkeypatch):
+        # Explicitly clear new flags to ensure legacy path remains stable.
+        for key in [
+            "TOPO_DAG_EXTRA_STEP_MARKERS",
+            "TOPO_DAG_LATEX_EXPR",
+            "TOPO_DAG_BARRIER_STRICT",
+            "TOPO_DAG_BARRIER_MIN_OVERLAP",
+        ]:
+            monkeypatch.delenv(key, raising=False)
+
+        answer = "Step 1: let x=1\nStep 2: y=x+1\nStep 3: therefore y=2"
+        dag_default, dbg_default = parse_answer_to_dag_debug(answer, problem_id="flag_default")
+
+        # Keep flags disabled explicitly; output should stay unchanged.
+        monkeypatch.setenv("TOPO_DAG_EXTRA_STEP_MARKERS", "0")
+        monkeypatch.setenv("TOPO_DAG_LATEX_EXPR", "0")
+        monkeypatch.setenv("TOPO_DAG_BARRIER_STRICT", "0")
+        monkeypatch.setenv("TOPO_DAG_BARRIER_MIN_OVERLAP", "0.2")
+        dag_off, dbg_off = parse_answer_to_dag_debug(answer, problem_id="flag_off")
+
+        assert dag_default.num_nodes == dag_off.num_nodes
+        assert dag_default.num_edges == dag_off.num_edges
+        dep_default = sorted(d.get("dep_type", "") for _, _, d in dag_default.graph.edges(data=True))
+        dep_off = sorted(d.get("dep_type", "") for _, _, d in dag_off.graph.edges(data=True))
+        assert dep_default == dep_off
+        assert dbg_default["summary"]["num_steps"] == dbg_off["summary"]["num_steps"]

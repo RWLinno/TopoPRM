@@ -2,7 +2,7 @@
 # default alpha=0.6.  Forks the successful 7B recipe in
 # configs/grpo_hierarchical_qwen25_7b.yaml.  Single-GPU friendly: mcl=1024,
 # num_generations=4, vllm colocate ratio 0.55.
-model: /mnt/data/huggingface_downloads/models/qwen/Qwen2.5-7B-Instruct
+model: Qwen/Qwen2.5-7B-Instruct
 
 dataset:
   - data/grpo_ready/train.jsonl

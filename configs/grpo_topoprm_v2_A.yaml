@@ -1,0 +1,28 @@
+model: /Knowin/foundation/weilinruan/hf_models/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
+tuner_type: lora
+lora_rank: 64
+lora_alpha: 128
+adapters:
+  - output/sft_deepseek_r1_7b/final
+rlhf_type: grpo
+num_generations: 4
+max_completion_length: 2048
+beta: 0.04
+use_vllm: false
+gradient_checkpointing: true
+bf16: true
+external_plugins:
+  - src/reward/composite_reward.py
+reward_funcs:
+  - topo_hierarchical
+dataset:
+  - data/grpo_ready/train_public_swift.jsonl
+max_steps: 200
+learning_rate: 5.0e-6
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+save_steps: 50
+output_dir: output/grpo_topoprm_v2_A
+report_to:
+  - tensorboard
+logging_steps: 5

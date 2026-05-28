@@ -1,8 +1,8 @@
 # OPSD student distillation: teacher = 9B SRT, student = Qwen3.5-0.8B
-student_base: /mnt/data/huggingface_downloads/models/qwen/Qwen3.5-0.8B
+student_base: Qwen/Qwen3.5-0.8B
 student_adapter: ""
 
-teacher_base: /mnt/data/huggingface_downloads/models/qwen/Qwen3.5-9B
+teacher_base: Qwen/Qwen3.5-9B
 teacher_adapter: output/srt_9b/final
 
 dataset: data/grpo_ready/train.jsonl

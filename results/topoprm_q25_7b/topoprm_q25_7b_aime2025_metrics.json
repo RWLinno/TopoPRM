@@ -1,0 +1,43 @@
+{
+  "n_items": 30,
+  "error_count": 27,
+  "correct_count": 3,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 0.1,
+  "pass@1": 0.1,
+  "maj@1": 0.1,
+  "pass@5": 0.2667,
+  "maj@5": 0.1,
+  "avg_tokens": 1111.9,
+  "prm@1": 0.1,
+  "prm@5": 0.1,
+  "accuracy": 0.1,
+  "accuracy_pct": 10.0,
+  "correct": 3,
+  "error": 27,
+  "num_samples": 30,
+  "pass_at_k": {
+    "1": 0.1,
+    "5": 0.2667
+  },
+  "maj_at_k": {
+    "1": 0.1,
+    "5": 0.1
+  },
+  "prm_at_k": {
+    "1": 0.1,
+    "5": 0.1
+  },
+  "elapsed_sec": 1223.1,
+  "backend": "transformers",
+  "label": "topoprm_q25_7b",
+  "num_samples_per_item": 5,
+  "k_values": [
+    1,
+    5
+  ],
+  "use_chat_template": true,
+  "sft_style": false,
+  "fewshot": false
+}

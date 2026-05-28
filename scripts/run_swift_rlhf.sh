@@ -87,7 +87,7 @@ if [ -n "${TEACHER_ADAPTER:-}" ]; then
 fi
 
 LOG="output/${CONFIG_NAME}_$(date +%Y%m%d_%H%M%S).log"
-register_cleanup "$CONFIG_NAME"
+register_cleanup "$CONFIG_NAME" 
 
 echo "══════════════════════════════════════════"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] swift rlhf type=$RLHF_TYPE  config=$CONFIG_NAME"
@@ -99,8 +99,8 @@ echo "  Log: $LOG"
 echo "══════════════════════════════════════════"
 
 setsid swift rlhf \
+    "$CONFIG" \
     --rlhf_type "$RLHF_TYPE" \
-    --config "$CONFIG" \
     $RESUME_ARG $ADAPTER_ARG $TEACHER_ADAPTER_ARG "$@" \
     2>&1 | tee "$LOG" &
 GUARDED_PID=$!

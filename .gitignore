@@ -3,12 +3,22 @@
 *.pt
 *.bin
 *.ckpt
-output/hf_ckpts/
+*.pth
+
+# Output and data
+output/
+data/hf_download/
+data/test/
 data/grpo_ready/
 data/sft_ready/
 wandb/
+
+# Python
 __pycache__/
 *.pyc
 .pytest_cache/
 *.egg-info/
+
+# Logs
+*.log
 results/*details.jsonl

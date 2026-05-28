@@ -23,3 +23,4 @@ Benchmark: olympiadbench | Label: 9b_v2_ckpt120 | chat=True sft_style=False fews
   [48/1263] acc=37.5%
   [52/1263] acc=36.5%
   [56/1263] acc=37.5%
+  [60/1263] acc=41.7%

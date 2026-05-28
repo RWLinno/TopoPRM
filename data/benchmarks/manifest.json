@@ -1,0 +1,57 @@
+[
+  {
+    "name": "GSM8K",
+    "status": "OK",
+    "count": 1319
+  },
+  {
+    "name": "MATH-500",
+    "status": "OK",
+    "count": 500
+  },
+  {
+    "name": "MATH",
+    "status": "FAILED",
+    "count": 0
+  },
+  {
+    "name": "MMLU",
+    "status": "OK",
+    "count": 14042
+  },
+  {
+    "name": "GPQA_Diamond",
+    "status": "OK",
+    "count": 198
+  },
+  {
+    "name": "AIME2024",
+    "status": "EMPTY",
+    "count": 0
+  },
+  {
+    "name": "AIME2025",
+    "status": "EMPTY",
+    "count": 0
+  },
+  {
+    "name": "AIME2026",
+    "status": "EMPTY",
+    "count": 0
+  },
+  {
+    "name": "CNMO2024",
+    "status": "SKIP (no public source, needs manual data)",
+    "count": 0
+  },
+  {
+    "name": "AMC23",
+    "status": "OK",
+    "count": 83
+  },
+  {
+    "name": "FrontierMath",
+    "status": "WARN: usage: prepare_frontiermath_aime2026.py [-h] [--bench_root BENCH_ROOT]\nprepare_frontiermath_aime2026.py: error: unrecognized arguments: --output_dir data/benchmarks\n",
+    "count": 0
+  }
+]

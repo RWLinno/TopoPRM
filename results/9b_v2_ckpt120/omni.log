@@ -23,3 +23,4 @@ Benchmark: omni_math | Label: 9b_v2_ckpt120 | chat=True sft_style=False fewshot=
   [48/500] acc=56.2%
   [52/500] acc=53.8%
   [56/500] acc=53.6%
+  [60/500] acc=51.7%

@@ -1,7 +1,0 @@
-\section{Conclusion}
-\label{sec:conclusion}
-
-We presented \method, a topology-aware post-training framework that models long reasoning traces as latent dependency DAGs and uses the same structural diagnostics across training and compression.
-The core contribution is a unified supervision interface: deterministic topology extraction produces implicit process rewards, correctness-first hierarchical aggregation bounds structural credit by stratified clipping, and topology-conditioned on-policy distillation exposes the critical dependency chain as the compression target, all driven by one auditable graph pipeline.
-This design addresses structural failure modes that outcome-only supervision does not distinguish, while remaining implementation-friendly: no human step annotations, no learned process verifier, and no special graph-format generation are required.
-We discuss limitations and future extensions in Appendix~\ref{appx:limitations_future}.

@@ -1,0 +1,22 @@
+% Aggregation strategy ablation (Qwen3-32B, in-domain critique set).
+\begin{table}[H]
+\centering
+\small
+\caption{Reward aggregation strategy comparison. All variants use the same
+five reward components but differ in how signals are combined. Collapse\% is
+the fraction of rollout groups with near-zero reward std during GRPO training.}
+\label{tab:aggregation_ablation}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}l ccccc@{}}
+\toprule
+\textbf{Strategy}
+  & \textbf{Mid} & \textbf{High} & \textbf{Fmt\%}
+  & \textbf{Len} & \textbf{Collapse\%}$\downarrow$ \\
+\midrule
+Linear (weighted sum)   & 37.2 & 22.3 & 94.6 & 364 & 75.1 \\
+Clipped linear          & 29.0 & 21.5 & 93.0 & 382 & 67.7 \\
+\rowcolor{blue!6}
+Hierarchical (Ours)     & 37.2 & 22.3 & 94.6 & 364 & 37.9 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,33 @@
+% Accuracy-length trade-off on in-domain critique set (Qwen3-32B).
+\begin{table}[H]
+\centering
+\small
+\caption{Accuracy-length trade-off on the in-domain critique validation set
+(Qwen3-32B). Acc/kTok = Overall-Acc per 1,000 tokens. Len$\uparrow$ is the
+length increase relative to TopoPRM (lower is better).}
+\label{tab:ablation_length}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}l cc cc cc@{}}
+\toprule
+& \multicolumn{2}{c}{\textbf{Middle}}
+& \multicolumn{2}{c}{\textbf{High}}
+& \multicolumn{2}{c}{\textbf{Efficiency}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+\textbf{Config.}
+  & Acc & Len & Acc & Len & Acc/kTok$\uparrow$ & Len$\uparrow$ \\
+\midrule
+\rowcolor{blue!6}
+TopoPRM (full)
+  & 37.2 & 364 & 22.3 & 424 & 75.5 & --- \\
+\quad w/o Continuity
+  & 27.5 & 379 & 20.0 & 436 & 58.4 & $+$4.1\% \\
+\quad w/o Topology
+  & 23.0 & 397 & 16.5 & 460 & 46.2 & $+$9.0\% \\
+Outcome Only
+  & 19.5 & 410 & 13.0 & 475 & 36.8 & $+$12.6\% \\
+\midrule
+Qwen3-32B (base)
+  & 16.0 & 1200 & 7.0 & 1240 & 9.4 & $+$230\% \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,16 @@
+\begin{table}[!htb]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lccc}
+\toprule
+Scale setting & Topo score $\uparrow$ & Continuity $\uparrow$ & pass@1 $\uparrow$ \\
+\midrule
+7B (baseline) & {$\sim$}64.0 & {$\sim$}71.2 & {$\sim$}82.9 \\
+7B + TopoPRM & {$\sim$}82.4 & {$\sim$}88.1 & {$\sim$}84.5 \\
+4B + TGSD     & {$\sim$}78.7 & {$\sim$}84.3 & {$\sim$}82.1 \\
+\bottomrule
+\end{tabular}
+\caption{Effect of DAG-supervised data scale on topology quality and accuracy.}
+\label{tab:dag_scaling}
+\end{table}

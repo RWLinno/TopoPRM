@@ -1,0 +1,41 @@
+% =============================================================================
+% Combined ablation table: reward components + token efficiency
+% on PUBLIC benchmarks (DR1-7B family, GSM8K / MATH-500 / AIME'24).
+%
+% All numbers from output/eval/<label>_<bench>_metrics.json (eval 2026-05-09 .. 2026-05-12).
+% Same SFT checkpoint, same 200 GRPO steps, same evaluation protocol.
+% =============================================================================
+\begin{table*}[!htb]
+\centering
+\caption{Ablation on TopoPRM reward components on \emph{public} benchmarks.
+Each row removes one signal from the full TopoPRM composite reward; all GRPO
+models start from the same SFT checkpoint and run 200 GRPO steps. We report
+pass@1 (\%) on GSM8K / MATH-500 / AIME'24, the average length of generated
+traces (Tokens), and accuracy points per 1\,000 tokens (Acc/kTok). Best in
+each column is in \textbf{bold}; second best is \underline{underlined}.}
+\label{tab:ablation_reward}
+\vspace{2pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l ccc c ccc c c@{}}
+\toprule
+& \multicolumn{3}{c}{\textbf{GSM8K (1{,}319)}}
+& & \multicolumn{3}{c}{\textbf{MATH-500}}
+& \textbf{AIME'24} \\
+\cmidrule(lr){2-4} \cmidrule(lr){6-8} \cmidrule(lr){10-10}
+\textbf{Reward Configuration}
+  & pass@1 & Tokens & Acc/kTok
+  && pass@1 & Tokens & Acc/kTok
+  & pass@1 \\
+\midrule
+\rowcolor{blue!5}
+TopoPRM (full, hierarchical)  & 84.3          & 679           & 124.2          && 66.6          & 6\,053        & 11.0          & \textbf{50.0} \\
+\quad w/o Topology            & 84.5          & 686           & 123.2          && \textbf{68.8} & \underline{5\,973} & \underline{11.5} & 36.7 \\
+\quad w/o Continuity          & \textbf{85.1} & \textbf{640}  & \textbf{133.0} && 66.4          & 6\,088        & 10.9          & 36.7 \\
+Outcome-only GRPO             & \textbf{85.1} & \underline{674} & \underline{126.3} && 67.4          & 6\,001        & 11.2          & \underline{46.7} \\
+\midrule
+SFT baseline                  & 73.8          & 634           & 116.4          && 36.8          & 3\,731        & 9.9           & 0.0 \\
+DR1-7B (base, no fine-tune)   & 60.8          & 617           & 98.5           && \underline{68.4}& \textbf{4\,957}& \textbf{13.8} & \underline{46.7} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}

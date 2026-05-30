@@ -8,12 +8,12 @@
 # ==============================================================================
 set -uo pipefail
 
-REPO_ROOT="/Knowin/foundation/weilinruan/TopoPRM"
+REPO_ROOT="${TOPOPRM_ROOT:-.}"
 cd "$REPO_ROOT"
 export PYTHONPATH="$REPO_ROOT:${PYTHONPATH:-}"
-PYBIN="/Knowin/foundation/weilinruan/env/topoprm/bin/python"
+PYBIN="${TOPOPRM_PYTHON:-python3}"
 
-BASE_MODEL="/Knowin/foundation/weilinruan/hf_models/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
+BASE_MODEL="${HF_MODELS_DIR:-./models}/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
 GPUS="${GPUS:-0,1,2,3,4,5,6,7}"
 LOG_DIR="logs/unified"
 mkdir -p "$LOG_DIR"

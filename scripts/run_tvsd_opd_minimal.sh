@@ -11,7 +11,7 @@ cd "$PROJECT_ROOT"
 
 export PYTHONPATH="${PROJECT_ROOT}:${PYTHONPATH:-}"
 
-TEACHER_MODEL="${TEACHER_MODEL:-/Knowin/foundation/weilinruan/hf_models/Qwen/Qwen3.5-9B}"
+TEACHER_MODEL="${TEACHER_MODEL:-${HF_MODELS_DIR:-./models}/Qwen/Qwen3.5-9B}"
 TEACHER_ADAPTER="${TEACHER_ADAPTER:-}"
 INPUT_JSONL="${INPUT_JSONL:-data/grpo_ready/train_public.jsonl}"
 RAW_OUT="${RAW_OUT:-data/srt_raw/rollouts_minimal.jsonl}"

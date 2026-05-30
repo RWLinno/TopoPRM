@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-EVAL = Path("/Knowin/foundation/weilinruan/TopoPRM/output/eval")
+EVAL = Path("${TOPOPRM_ROOT:-.}/output/eval")
 
 LABELS = [
     ("baseline_dr1_7b_chat",    "DR1-7B base"),

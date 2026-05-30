@@ -4,6 +4,7 @@ data/
 logs/
 wandb/
 result/
+results/
 .DS_Store
 .env
 .env.local
@@ -31,8 +32,6 @@ venv/
 *.swo
 
 # Model weights and checkpoints
-output/
-models/
 *.safetensors
 *.bin
 *.pt
@@ -53,7 +52,6 @@ data/benchmarks/
 nohup.out
 
 # OS
-.DS_Store
 Thumbs.db
 
 # LaTeX
@@ -76,4 +74,3 @@ Thumbs.db
 htmlcov/
 paper/awesome-ai-research-writing/
 data/test/
-docs/

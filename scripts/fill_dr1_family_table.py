@@ -15,7 +15,7 @@ import json
 import re
 from pathlib import Path
 
-REPO = Path("/Knowin/foundation/weilinruan/TopoPRM")
+REPO = Path("${TOPOPRM_ROOT:-.}")
 EVAL_DIR = REPO / "output" / "eval"
 TABLE = REPO / "TopoPRM_EMNLP26" / "tables" / "public_results_unified.tex"
 

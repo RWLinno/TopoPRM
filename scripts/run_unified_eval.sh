@@ -18,15 +18,15 @@
 # Examples:
 #   # Base model
 #   bash scripts/run_unified_eval.sh \
-#       /Knowin/foundation/weilinruan/hf_models/Qwen/Qwen3.5-9B "" qwen35_9b_base
+#       ${HF_MODELS_DIR:-./models}/Qwen/Qwen3.5-9B "" qwen35_9b_base
 #
 #   # +SFT (auto-detects latest checkpoint if ADAPTER="")
 #   SFT_STYLE=1 bash scripts/run_unified_eval.sh \
-#       /Knowin/foundation/weilinruan/hf_models/Qwen/Qwen3.5-9B "" qwen35_9b_sft
+#       ${HF_MODELS_DIR:-./models}/Qwen/Qwen3.5-9B "" qwen35_9b_sft
 #
 #   # Background
 #   RUN_IN_BACKGROUND=1 bash scripts/run_unified_eval.sh \
-#       /Knowin/foundation/weilinruan/hf_models/Qwen/Qwen3.5-9B "" qwen35_9b_base
+#       ${HF_MODELS_DIR:-./models}/Qwen/Qwen3.5-9B "" qwen35_9b_base
 # ============================================================================
 set -euo pipefail
 
@@ -34,11 +34,11 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
-MODEL_PATH="${1:-/Knowin/foundation/weilinruan/hf_models/Qwen/Qwen3.5-9B}"
+MODEL_PATH="${1:-${HF_MODELS_DIR:-./models}/Qwen/Qwen3.5-9B}"
 ADAPTER_ARG="${2:-}"
 LABEL_ARG="${3:-}"
 
-PYTHON_BIN="${TOPOPRM_PYTHON:-/Knowin/foundation/weilinruan/env/topoprm/bin/python}"
+PYTHON_BIN="${TOPOPRM_PYTHON:-${TOPOPRM_PYTHON:-python3}}"
 if [[ ! -x "$PYTHON_BIN" ]]; then
     PYTHON_BIN="$(command -v python3)"
 fi

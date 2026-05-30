@@ -1,3 +1,0 @@
-rel_path	size_bytes	mtime_iso	n_pass1	n_saved	reason
-eval_sft_9b_v3_mnt1536_160516.log	12429	2026-04-21T21:44:03	0	0	killed mid-run; last running acc=93.9% at 572/1319
-eval_topoprm_hier_qwen25_7b_ext_k5_gpu7_resume.log	53503	2026-04-20T18:22:37	0	0	killed mid-run; last running acc=65.4% at 4088/14042

@@ -752,7 +752,7 @@ def _get_local_llm_client() -> Any:
 
     model_path = os.environ.get(
         "TOPO_DAG_LLM_MODEL",
-        "/Knowin/foundation/weilinruan/hf_models/Qwen/Qwen2.5-Math-1.5B-Instruct",
+        "${HF_MODELS_DIR:-./models}/Qwen/Qwen2.5-Math-1.5B-Instruct",
     )
     if not model_path or not Path(model_path).exists():
         logger.warning("LLM DAG refinement model not found at %s; using rule-based fallback.", model_path)

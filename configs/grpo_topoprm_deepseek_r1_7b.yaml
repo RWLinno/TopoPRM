@@ -1,7 +1,7 @@
 # GRPO + TopoPRM config for DeepSeek-R1-Distill-Qwen-7B
 # Uses hierarchical reward aggregation with large-scale public DAG data
 
-model: /Knowin/foundation/weilinruan/hf_models/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
+model: ${HF_MODELS_DIR:-./models}/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
 model_type: qwen2_5
 
 train_type: lora

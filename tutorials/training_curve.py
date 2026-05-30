@@ -39,8 +39,8 @@ from matplotlib.ticker import MaxNLocator
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-LOG_DIR = REPO_ROOT / "save_logs_May13"
-FIG_OUT = REPO_ROOT / "TopoPRM_EMNLP26" / "figures" / "Fig4.Training_Curve.pdf"
+LOG_DIR = REPO_ROOT / "logs"
+FIG_OUT = REPO_ROOT / "papaer_20260522" / "figures" / "Fig4.Training_Curve.pdf"
 
 
 PALETTE = {
@@ -58,40 +58,32 @@ RUNS: Sequence[Dict[str, str]] = (
     {
         "key": "full",
         "label": "TopoPRM (full)",
-        "log": "grpo_full_200.log",
+        "log": "grpo_topoprm_scae_9b_mcl4096_20260517_054946.log",
         "colour": PALETTE["blue"],
         "style": "-",
         "lw": 1.6,
     },
     {
-        "key": "outcome",
-        "label": "Outcome-only",
-        "log": "grpo_outcome_only.log",
-        "colour": PALETTE["gray"],
-        "style": "--",
-        "lw": 1.1,
-    },
-    {
-        "key": "no_topo",
-        "label": "TopoPRM w/o topology",
-        "log": "grpo_no_topo.log",
-        "colour": PALETTE["amber"],
-        "style": "-.",
-        "lw": 1.1,
-    },
-    {
         "key": "no_cont",
         "label": "TopoPRM w/o continuity",
-        "log": "grpo_no_continuity.log",
+        "log": "grpo_no_continuity_9b_mcl4096_single_20260517_052725.log",
         "colour": PALETTE["green"],
         "style": ":",
+        "lw": 1.1,
+    },
+    {
+        "key": "dr1_full",
+        "label": "TopoPRM (DR1-7B)",
+        "log": "grpo_topoprm_dr1_7b_mcl4096_20260517_171200.log",
+        "colour": PALETTE["amber"],
+        "style": "-.",
         "lw": 1.1,
     },
 )
 
 
 STATE_REGEX = re.compile(r"\{[^{}]*'completions/mean_length'[^{}]*\}")
-STEP_REGEX = re.compile(r"(\d+)/200 \[")
+STEP_REGEX = re.compile(r"(\d+)/\d+ \[")
 EVAL_REGEX = re.compile(
     r"\[eval\]\s+step=(\d+)\s+acc=([0-9.]+)\s+n=(\d+)\s+"
     r"mean_new_tokens=([0-9.]+)"
@@ -151,20 +143,32 @@ def parse_log(path: Path) -> tuple[List[int], List[Dict[str, float]], List[int],
     if not path.exists():
         return steps, records, eval_steps, eval_acc, eval_new_tokens
     text = path.read_text(encoding="utf-8", errors="ignore")
-    last_end = 0
     for m in STATE_REGEX.finditer(text):
         state = _parse_state_dict(m.group(0))
         if not state:
-            last_end = m.end()
             continue
-        preface = text[last_end : m.start()]
-        step_matches = list(re.finditer(r"(\d+)/200 \[", preface))
-        last_end = m.end()
-        if not step_matches:
-            continue
-        step = int(step_matches[-1].group(1))
-        steps.append(step)
-        records.append(state)
+        # Try to get step from global_step/max_steps field inside the dict
+        gs_raw = None
+        try:
+            raw_dict = ast.literal_eval(m.group(0))
+            gs_raw = raw_dict.get("global_step/max_steps", "")
+        except (ValueError, SyntaxError):
+            pass
+        step = None
+        if gs_raw and "/" in str(gs_raw):
+            try:
+                step = int(str(gs_raw).split("/")[0])
+            except (ValueError, IndexError):
+                pass
+        if step is None:
+            # Fallback: look for step in the preface text
+            preface = text[max(0, m.start() - 200) : m.start()]
+            step_matches = list(re.finditer(r"(\d+)/\d+ \[", preface))
+            if step_matches:
+                step = int(step_matches[-1].group(1))
+        if step is not None:
+            steps.append(step)
+            records.append(state)
     for m in EVAL_REGEX.finditer(text):
         eval_steps.append(int(m.group(1)))
         eval_acc.append(float(m.group(2)))
@@ -427,7 +431,7 @@ def main() -> None:
     parser.add_argument("--out", default=str(FIG_OUT), help="Output PDF path")
     parser.add_argument(
         "--tsv-dir",
-        default=str(REPO_ROOT / "TopoPRM_EMNLP26" / "figures" / "training_curve_data"),
+        default=str(REPO_ROOT / "papaer_20260522" / "figures" / "training_curve_data"),
         help="Directory for the per-run TSV dumps used by the figure",
     )
     args = parser.parse_args()

@@ -133,7 +133,7 @@ class RewardConfig:
     DAG_LLM_REFINE = env_bool("TOPO_DAG_LLM_REFINE", False)
     DAG_LLM_MODEL = os.environ.get(
         "TOPO_DAG_LLM_MODEL",
-        "/Knowin/foundation/weilinruan/hf_models/Qwen/Qwen2.5-Math-1.5B-Instruct",
+        "${HF_MODELS_DIR:-./models}/Qwen/Qwen2.5-Math-1.5B-Instruct",
     )
     DAG_LLM_DEVICE = os.environ.get("TOPO_DAG_LLM_DEVICE", "auto")
     DAG_LLM_MAX_STEPS = env_int("TOPO_DAG_LLM_MAX_STEPS", 16)

@@ -20,7 +20,7 @@ from trl import SFTTrainer, SFTConfig
 
 MODEL_ID = os.getenv(
     "TOPOPRM_BASE_MODEL",
-    "/Knowin/foundation/weilinruan/hf_models/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+    "${HF_MODELS_DIR:-./models}/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
 )
 DATA_PATH = "data/grpo_ready/train_public.jsonl"
 OUTPUT_DIR = "output/sft_deepseek_r1_7b"

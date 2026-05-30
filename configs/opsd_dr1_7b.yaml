@@ -7,8 +7,8 @@
 # as the student, with the LoRA adapter disabled). This matches TopoPRM's TVSD
 # formulation where π_ref shares the backbone with π_θ.
 
-model: /Knowin/foundation/weilinruan/hf_models/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
-teacher_model: /Knowin/foundation/weilinruan/hf_models/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
+model: ${HF_MODELS_DIR:-./models}/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
+teacher_model: ${HF_MODELS_DIR:-./models}/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
 
 tuner_type: lora
 lora_rank: 64

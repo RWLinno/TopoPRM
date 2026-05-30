@@ -10,7 +10,7 @@
 # the comparison Base / +SFT / +GRPO / +DAPO / +OPD / +TopoPRM is
 # apples-to-apples.
 
-model: /Knowin/foundation/weilinruan/hf_models/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
+model: ${HF_MODELS_DIR:-./models}/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
 
 dataset:
   - data/grpo_ready/train_public.jsonl

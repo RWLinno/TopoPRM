@@ -18,7 +18,7 @@ Design goals:
 
 Usage:
     python scripts/unified_eval_orchestrator.py \
-        --model /Knowin/foundation/weilinruan/hf_models/Qwen/Qwen3.5-9B \
+        --model ${HF_MODELS_DIR:-./models}/Qwen/Qwen3.5-9B \
         --label qwen35_9b_base \
         --gpus 0,1,2,3 \
         --benchmarks all
@@ -97,7 +97,7 @@ class Task:
     def cmd(self, gpu_id: int, batch_size: int, max_new_tokens: int, max_items: int) -> list[str]:
         repo_root = Path(__file__).resolve().parents[1]
         python_bin = os.environ.get(
-            "TOPOPRM_PYTHON", "/Knowin/foundation/weilinruan/env/topoprm/bin/python"
+            "TOPOPRM_PYTHON", "${TOPOPRM_PYTHON:-python3}"
         )
         if not Path(python_bin).exists():
             python_bin = sys.executable

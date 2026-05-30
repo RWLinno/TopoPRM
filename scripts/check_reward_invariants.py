@@ -44,7 +44,7 @@ def _install_swift_stub() -> None:
 
 
 _install_swift_stub()
-sys.path.insert(0, "/Knowin/foundation/weilinruan/TopoPRM")
+sys.path.insert(0, "${TOPOPRM_ROOT:-.}")
 
 
 # ---- 2. Helper to reload reward_config and composite_reward together. ----

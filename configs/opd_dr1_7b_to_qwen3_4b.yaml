@@ -11,8 +11,8 @@
 # Prefer this config when you want the ms-swift Distributed / vLLM engine
 # and the standard GKD implementation.
 
-model: /Knowin/foundation/weilinruan/hf_models/Qwen/Qwen3-4B
-teacher_model: /Knowin/foundation/weilinruan/hf_models/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
+model: ${HF_MODELS_DIR:-./models}/Qwen/Qwen3-4B
+teacher_model: ${HF_MODELS_DIR:-./models}/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
 
 # Set by scripts/run_swift_rlhf.sh if TEACHER_ADAPTER is exported:
 #   --teacher_adapters output/grpo_topoprm_deepseek_r1_7b/final

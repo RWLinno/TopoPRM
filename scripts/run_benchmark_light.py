@@ -27,12 +27,12 @@ MODELS = [
     },
     {
         'name': 'baseline_qwen25_7b_light',
-        'model': '/mnt/nas/weilinruan/resource/Qwen2.5-7B-Instruct',
+        'model': '${HF_MODELS_DIR:-./models}/Qwen2.5-7B-Instruct',
         'adapters': None,
     },
     {
         'name': 'baseline_llama31_8b_light',
-        'model': '/mnt/nas/weilinruan/resource/Llama-3.1-8B-Instruct',
+        'model': '${HF_MODELS_DIR:-./models}/Llama-3.1-8B-Instruct',
         'adapters': None,
     },
 ]

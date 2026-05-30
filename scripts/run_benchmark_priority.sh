@@ -38,7 +38,7 @@ fi
 
 # 4) Qwen2.5 baseline
 bash scripts/run_eval_light_private.sh \
-  "/mnt/nas/weilinruan/resource/Qwen2.5-7B-Instruct" \
+  "${HF_MODELS_DIR:-./models}/Qwen2.5-7B-Instruct" \
   "none" \
   "baseline_qwen25_7b_light200"
 

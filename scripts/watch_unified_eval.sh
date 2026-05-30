@@ -6,7 +6,7 @@ LABEL="${1:?Usage: watch_unified_eval.sh <LABEL>}"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
-PYTHON_BIN="${TOPOPRM_PYTHON:-/Knowin/foundation/weilinruan/env/topoprm/bin/python}"
+PYTHON_BIN="${TOPOPRM_PYTHON:-${TOPOPRM_PYTHON:-python3}}"
 [[ -x "$PYTHON_BIN" ]] || PYTHON_BIN="$(command -v python3)"
 
 STATUS="logs/unified/status_${LABEL}.json"

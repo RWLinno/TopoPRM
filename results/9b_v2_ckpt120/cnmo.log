@@ -24,3 +24,14 @@ Benchmark: cnmo2024 | Label: 9b_v2_ckpt120 | chat=True sft_style=False fewshot=F
   [52/83] acc=13.5%
   [56/83] acc=12.5%
   [60/83] acc=15.0%
+  [64/83] acc=14.1%
+  [68/83] acc=14.7%
+  [72/83] acc=15.3%
+  [76/83] acc=15.8%
+  [80/83] acc=16.2%
+  [83/83] acc=15.7%
+
+  cnmo2024: pass@1=15.7% pass@5=0.0% maj@5=0.0% prm@5=15.7% tok=4096 in 21293s
+  Saved: results/9b_v2_ckpt120/9b_v2_ckpt120_cnmo2024_metrics.json
+
+Done.

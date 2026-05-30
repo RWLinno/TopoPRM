@@ -1,2 +1,4 @@
 [Thu May 28 08:57:57 UTC 2026] Eval 9B TopoPRM v2 ckpt120
 [Thu May 28 08:57:57 UTC 2026] All 5 launched
+/tmp/eval_9b_final.sh: line 18: 2085448 Killed                  CUDA_VISIBLE_DEVICES=5 $P scripts/bench_transformers.py --model $M --adapter $A --label 9b_v2_ckpt120 --benchmarks olympiadbench --use_chat_template --num_samples_per_item 5 --k_values 1 5 --max_new_tokens 4096 --output_dir $OUT > $OUT/olympiad.log 2>&1
+[Sat May 30 08:28:39 UTC 2026] All done

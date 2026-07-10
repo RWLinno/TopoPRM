@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import time
 from pathlib import Path
@@ -907,6 +908,12 @@ def run_benchmark(
                 "max_new_tokens": max_new_tokens,
                 "do_sample": do_sample,
                 "pad_token_id": tokenizer.pad_token_id or tokenizer.eos_token_id,
+                # Explicit EOS + light repetition penalty: R1-distilled models can
+                # loop until max_new_tokens on hard problems (degenerate repetition),
+                # which both wastes time and truncates the boxed answer. This is
+                # opt-outable via TOPO_EVAL_REP_PENALTY=1.0.
+                "eos_token_id": tokenizer.eos_token_id,
+                "repetition_penalty": float(os.environ.get("TOPO_EVAL_REP_PENALTY", "1.05")),
             }
             if do_sample:
                 gen_kwargs.update({"temperature": temperature, "top_p": top_p})

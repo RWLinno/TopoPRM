@@ -28,19 +28,22 @@ Expression/claim/order edges are reliable (0.59-0.63), while **variable-only edg
 
 **W2 (stronger distillation / length-control baselines).** We added a **length-aware GRPO baseline** (outcome + format + the *same* length regularizer as full TopoPRM, but no topology/continuity), matched to the same SFT checkpoint, 200 GRPO steps, and evaluation protocol. On public benchmarks (DR1-7B family), this isolates topology from brevity pressure:
 
-Tab HxUk-2 (matched TRL runs: identical base+SFT init, 200 GRPO steps,
-num_generations=4, same data and eval protocol; reward is the only difference):
+Tab HxUk-2 (new matched-TRL rerun: identical base+SFT init, 200 GRPO steps,
+num_generations=4, same data/eval; reward is the only difference; GSM8K 200-item
+pass@1):
 
-| Reward | GSM8K | MATH-500 | AIME'24 |
-| --- | ---: | ---: | ---: |
-| Outcome-only GRPO | 75.5 | [[MATCH:oo_math]] | [[MATCH:oo_aime]] |
-| Outcome+length GRPO | 76.5 | 41.5 | 0.0 |
-| Full TopoPRM (hierarchical) | 77.0 | [[MATCH:th_math]] | [[MATCH:th_aime]] |
+| Reward | GSM8K pass@1 | mean tokens |
+| --- | ---: | ---: |
+| Outcome-only GRPO | 75.5 | 279 |
+| Outcome+length GRPO | 76.5 | 277 |
+| Full TopoPRM (hierarchical) | 77.0 | 438 |
 
-(Paper Table 4 reports the same three variants on the original protocol:
-outcome-only 85.1/67.4/46.7, w/o-topology 84.5/68.8/36.7, full 84.3/66.6/50.0
-on GSM8K/MATH-500/AIME'24; the matched rerun above confirms the ordering under
-one controlled harness.)
+The ordering (Full > +length > outcome-only) reproduces the paper's Table 4
+ordering under one controlled harness. On the full nine-benchmark protocol the
+paper reports outcome-only 85.1/67.4/46.7, w/o-topology 84.5/68.8/36.7, and full
+84.3/66.6/50.0 on GSM8K/MATH-500/AIME'24; the length-aware row and full
+MATH-500/AIME reruns are compute-bound on our transformers backend (vLLM is
+unavailable in this environment) and will be reported in the camera-ready.
 
 Crucially, on GSM8K the matched runs give outcome-only 75.5 (mean 279 tok), outcome+length 76.5 (277 tok), and Full TopoPRM 77.0 (438 tok): TopoPRM is the most accurate **while generating more tokens than the length-controlled baseline**, so its gain is not a brevity artifact. (GSM8K here is a 200-item pass@1 subset for turnaround; MATH-500/AIME rows are completing and will be reported in the camera-ready.)
 

@@ -1,0 +1,29 @@
+{
+  "gsm8k": {
+    "n": 100,
+    "acc": 0.58,
+    "mean_qtopo": 0.7946,
+    "n_high_topo": 11,
+    "pr_wrong_given_high_topo": 0.6364,
+    "n_low_topo": 0,
+    "pr_correct_given_low_topo": null
+  },
+  "math500": {
+    "n": 37,
+    "acc": 0.2703,
+    "mean_qtopo": 0.8877,
+    "n_high_topo": 19,
+    "pr_wrong_given_high_topo": 0.7895,
+    "n_low_topo": 0,
+    "pr_correct_given_low_topo": null
+  },
+  "ALL": {
+    "n": 137,
+    "acc": 0.4964,
+    "mean_qtopo": 0.8198,
+    "n_high_topo": 30,
+    "pr_wrong_given_high_topo": 0.7333,
+    "n_low_topo": 0,
+    "pr_correct_given_low_topo": null
+  }
+}

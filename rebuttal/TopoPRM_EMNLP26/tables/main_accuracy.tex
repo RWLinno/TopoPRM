@@ -1,0 +1,62 @@
+\begin{table*}[!htb]
+\centering
+\caption{Main results on nine public benchmarks across four task categories
+(Elementary: GSM8K, MATH-500; Olympiad: OlympiadBench, Omni-Math;
+Competition: AIME'24, AIME'25, CNMO'24; General: MMLU, GPQA-Diamond).
+All numbers are pass@5 accuracy (\%) collected from the original papers or
+reproduced under the same evaluation protocol. For each backbone group, the
+best score per column is in bold and the second-best is underlined.
+Rows shaded in \colorbox{blue!6}{blue} correspond to TopoPRM.
+Avg.\ is the unweighted arithmetic mean across all nine benchmarks.}
+\label{tab:main_accuracy}
+\setlength{\tabcolsep}{4.5pt}
+\renewcommand{\arraystretch}{1.18}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l c cc cc ccc cc c@{}}
+\toprule
+ & & \multicolumn{2}{c}{\textbf{Elementary}} & \multicolumn{2}{c}{\textbf{Olympiad}} & \multicolumn{3}{c}{\textbf{Competition}} & \multicolumn{2}{c}{\textbf{General}} & \\
+\cmidrule(lr){3-4} \cmidrule(lr){5-6} \cmidrule(lr){7-9} \cmidrule(lr){10-11}
+\textbf{Model} & \textbf{Params}
+  & GSM8K & MATH
+  & Olympiad & Omni
+  & AIME'24 & AIME'25 & CNMO'24
+  & MMLU & GPQA-D & \textbf{Avg.} \\
+\midrule
+\rowcolor{gray!10}
+\multicolumn{12}{@{}l}{\textit{Reference open-source models (not bolded/underlined)}} \\
+Qwen3.5-2B & 2B & 77.2 & 60.8 & 48.5 & 13.3 & 6.7 & 13.3 & 36.1 & 32.8 & 37.9 & 36.3 \\
+Qwen3.5-4B & 4B & 85.1 & 55.8 & 32.8 & 43.4 & 0.0 & 13.3 & 10.0 & 67.4 & 29.8 & 37.5 \\
+Qwen2.5-Math-7B-Instruct~\cite{yang2024qwen2}         & 7B & 95.2 & 73.8 & 38.0 & 22.0 & 13.0 & 10.0 & 13.3 & 54.8 & 28.3 & 38.7 \\
+Llama-3.1-8B-Instruct~\cite{grattafiori2024llama}        & 8B & 84.5 & 52.2 & 15.0 & 10.0 & 3.0  & 2.0  & 3.0  & 68.0 & 30.0 & 29.7 \\
+DeepSeek-R1-Distill-Llama-8B~\cite{deepseekr1}     & 8B & 83.0 & 89.1 & 48.0 & 25.0 & 50.4 & 35.0 & 25.0 & 52.0 & 49.0 & 50.7 \\
+\midrule
+\rowcolor{gray!10}
+Qwen2.5-7B (Base)~\cite{yang2024qwen2_5}     & 7B & 85.4 & 49.8 & 25.0 & 18.0 & 7.0  & 5.0  & 8.0  & \underline{74.2} & 36.4 & 34.3 \\
+\quad + SFT & 7B & 91.3 & 65.4 & \underline{42.5} & \underline{54.2} & 16.7 & 12.2 & \underline{16.7} & 70.1 & 28.3 & 44.2 \\
+
+\quad + SimpleRL-Zoo~\cite{zeng2503simplerlzoo} & 7B & \underline{91.7} & \underline{78.2} & \underline{38.6} & 40.4 & \textbf{20.0} & \underline{15.6} & \underline{15.0} & 62.5 & \textbf{55.2} & \underline{46.4} \\
+\quad + Open-Reasoner-Zero~\cite{hu2026open}  & 7B & 89.0 & \textbf{81.4} & 47.9 & 38.4 & 17.9 & 15.6 & 13.3 & 62.5 & 36.6 & 44.6 \\
+\rowcolor{blue!6}
+\quad + TopoPRM (Ours) $\bigstar$ & 7B & \textbf{95.8} & 72.6 & \textbf{47.8} & \textbf{57.2} & \underline{16.7} & \textbf{26.7} & \textbf{47.0} & \textbf{82.7} & \underline{51.0} & \textbf{55.3} \\
+\midrule
+\rowcolor{gray!10}
+DeepSeek-R1-Distill-Qwen-7B (Base)~\cite{deepseekr1} & 7B & 73.8 & 36.8 & 25.8 & 28.0 & 46.7 & 30.0 & 22.9 & 23.7 & 12.6 & 33.4 \\
+\quad + SFT & 7B & \textbf{86.0} & \textbf{92.8} & 52.0 & 48.0 & \underline{55.5} & 40.0 & 30.0 & 50.0 & \textbf{49.1} & \underline{55.9} \\
+\quad + GRPO~\cite{shao2024deepseekmath}     & 7B & \underline{85.1} & \textbf{67.4} & \underline{56.2} & \underline{72.0} & 50.0 & \underline{40.0} & \textbf{57.8} & \underline{50.1} & 17.7 & 55.1 \\
+\rowcolor{blue!6}
+\quad + TopoPRM (Ours) $\bigstar$ & 7B & 84.3 & \underline{66.6} & \textbf{56.4} & \textbf{72.2} & \textbf{55.5} & \textbf{40.0} & \underline{55.4} & \textbf{60.3} & \underline{34.3} & \textbf{58.3} \\
+\midrule
+\rowcolor{gray!10}
+Qwen3.5-9B (Base)                            & 9B & 69.5 & 66.6 & 55.2 & 61.5 & 16.7 & 21.1 & 16.7 & 28.6 & 37.4 & 41.5 \\
+\quad + SFT                                  & 9B & \underline{94.1} & \underline{68.2} & 44.0 & 53.8 & 30.0 & 15.6 & 30.0 & \underline{78.4} & \textbf{47.0} & 51.2 \\
+\quad + GRPO~\cite{shao2024deepseekmath}     & 9B & 93.3 & 63.0 & \underline{56.2} & \textbf{72.0} & \textbf{46.7} & \textbf{30.0} & \textbf{57.8} & 63.0 & 17.7 & \underline{55.5} \\
+\rowcolor{blue!6}
+\quad + TopoPRM (Ours) $\bigstar$ & 9B & \textbf{97.9} & \textbf{81.9} & \textbf{56.2} & \underline{76.2} & \underline{43.3} & \underline{18.9} & \underline{47.0} & \textbf{86.4} & \underline{40.4} & \textbf{60.9} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+% TDB baseline:
+% LUFFY (Yan et al. 2025) / Oat-Zero (Liu et al. 2025b) / STILL-3 (Min et al. 2024) 
+% Step-GRPO: Enhancing Reasoning Quality and Efficiency via Structured PRM-Based Reinforcement Learning

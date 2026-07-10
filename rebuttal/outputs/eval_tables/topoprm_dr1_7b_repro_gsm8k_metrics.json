@@ -1,0 +1,36 @@
+{
+  "n_items": 200,
+  "error_count": 66,
+  "correct_count": 134,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 0.695,
+  "pass@1": 0.695,
+  "maj@1": 0.67,
+  "avg_tokens": 3072.0,
+  "prm@1": 0.695,
+  "accuracy": 0.695,
+  "accuracy_pct": 69.5,
+  "correct": 139,
+  "error": 61,
+  "num_samples": 200,
+  "pass_at_k": {
+    "1": 0.695
+  },
+  "maj_at_k": {
+    "1": 0.67
+  },
+  "prm_at_k": {
+    "1": 0.695
+  },
+  "elapsed_sec": 1988.7,
+  "backend": "transformers",
+  "label": "topoprm_dr1_7b_repro",
+  "num_samples_per_item": 1,
+  "k_values": [
+    1
+  ],
+  "use_chat_template": true,
+  "sft_style": false,
+  "fewshot": false
+}

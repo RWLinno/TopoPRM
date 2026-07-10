@@ -22,3 +22,15 @@ __pycache__/
 # Logs
 *.log
 results/*details.jsonl
+
+# Rebuttal heavy artifacts (keep code, configs, response, small result files)
+rebuttal/ckpts/
+rebuttal/outputs/hf_dag_quality/
+rebuttal/outputs/hf_eval_results/
+rebuttal/outputs/semantic_gap_pool*.jsonl
+rebuttal/outputs/edge_validation_annotations.jsonl
+rebuttal/outputs/logs/
+rebuttal/outputs/eval_tables/*details*.jsonl
+rebuttal/scripts/env.sh
+rebuttal/scripts/env.local.sh
+rebuttal/TopoPRM_EMNLP26/proposal.md

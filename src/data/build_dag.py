@@ -365,6 +365,15 @@ def _dag_filter_formatting_enabled() -> bool:
     return _env_bool("TOPO_DAG_FILTER_FORMATTING", False)
 
 
+def _var_ref_require_multi_enabled() -> bool:
+    """Require >=2 shared variables to keep a var_ref edge (precision guard).
+
+    Motivated by the rebuttal edge-validation study (var_ref precision ~0.25).
+    Off by default to preserve released-checkpoint behaviour.
+    """
+    return _env_bool("TOPO_VAR_REF_REQUIRE_MULTI", False)
+
+
 def _dag_seq_when_no_dep_only() -> bool:
     """Add a sequential weak edge ONLY if neither side has any structural edge."""
     return _env_bool("TOPO_DAG_SEQ_WHEN_NO_DEP_ONLY", False)
@@ -615,6 +624,21 @@ def build_dependency_edges_by_rules(
         for var in step.variables:
             src = var_origin.get((step.sub_question_id, var))
             if src is not None and src < step.step_id and src not in seen_sources:
+                # Edge-validation (rebuttal) finding: variable-only edges have the
+                # lowest agreement with independent support labels (P~0.25) and
+                # produce ~half of all false-positive edges, because a single
+                # shared symbol does not imply a support relation. When
+                # TOPO_VAR_REF_REQUIRE_MULTI=1, only keep var_ref edges backed by
+                # >=2 shared variables between the two steps (a stronger, more
+                # precise signal). Default OFF to preserve released behaviour.
+                if _var_ref_require_multi_enabled():
+                    src_step = by_id.get(src)
+                    shared = (
+                        set(step.variables) & set(src_step.variables)
+                        if src_step is not None else {var}
+                    )
+                    if len(shared) < 2:
+                        continue
                 edges.append((src, step.step_id, VIRTUAL_EDGE, "var_ref"))
                 evidences.append(EdgeEvidence(src, step.step_id, VIRTUAL_EDGE, "var_ref", f"var={var}"))
                 seen_sources.add(src)

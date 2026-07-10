@@ -1,0 +1,36 @@
+{
+  "n_items": 200,
+  "error_count": 50,
+  "correct_count": 150,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 0.755,
+  "pass@1": 0.755,
+  "maj@1": 0.75,
+  "avg_tokens": 278.9,
+  "prm@1": 0.755,
+  "accuracy": 0.755,
+  "accuracy_pct": 75.5,
+  "correct": 151,
+  "error": 49,
+  "num_samples": 200,
+  "pass_at_k": {
+    "1": 0.755
+  },
+  "maj_at_k": {
+    "1": 0.75
+  },
+  "prm_at_k": {
+    "1": 0.755
+  },
+  "elapsed_sec": 157.9,
+  "backend": "transformers",
+  "label": "outcome_only_matched",
+  "num_samples_per_item": 1,
+  "k_values": [
+    1
+  ],
+  "use_chat_template": true,
+  "sft_style": true,
+  "fewshot": false
+}

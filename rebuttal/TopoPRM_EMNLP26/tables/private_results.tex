@@ -1,0 +1,67 @@
+% Table 1: Main results on private Chinese mathematical critique benchmarks.
+\begin{table}[H]
+\centering
+\caption{Main results on the in-domain mathematical critique benchmark.
+  \textbf{Middle} and \textbf{High} denote middle-school and high-school subsets.
+  Acc measures critique scoring accuracy; Fmt\% measures structural compliance; Len reports mean prediction length in tokens.
+  Best results per column are in \textbf{bold}, second-best are \underline{underlined}.}
+\label{tab:main_private}
+\vspace{2pt}
+\small
+\begin{tabular}{@{}l ccc ccc c@{}}
+\toprule
+& \multicolumn{3}{c}{\textbf{Middle School}} & \multicolumn{3}{c}{\textbf{High School}} & \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7}
+\textbf{Model} & Acc & Fmt\% & Len & Acc & Fmt\% & Len & \textbf{Overall} \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{8}{@{}l}{\textit{Zero-shot Baseline}} \\
+Qwen3-32B         & 16.0 & 64.5 & 1\,200 & 7.0  & 43.5 & 1\,240 & 11.5 \\
+Qwen3-32B + SFT               & 29.0 & 78.5 & 1\,164 & 19.5 & 65.0 & 1\,233 & 24.3 \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{8}{@{}l}{\textit{RFT Variants}} \\
+\quad + Outcome Only           & 19.5 & 89.0 & 410  & 13.0 & 85.5 & 475  & 16.3 \\
+\quad + w/o Topology           & 23.0 & 91.0 & 397  & 16.5 & 86.0 & 460  & 19.8 \\
+\quad + w/o Continuity         & 27.5 & 90.5 & 379  & 20.0 & 85.0 & 436  & 23.8 \\
+\quad + Clipped Linear         & 29.0 & 93.0 & 382  & 21.5 & 88.5 & 458  & 25.3 \\
+\rowcolor{blue!5}
+\quad + TopoPRM (full)         & \textbf{37.2} & \textbf{94.6} & \textbf{364}  & \textbf{22.3} & \textbf{89.3} & \textbf{424}  & \textbf{29.7} \\
+\midrule
+\rowcolor{gray!8}
+\multicolumn{8}{@{}l}{\textit{\framework Fine-tuned}} \\
+Qwen3.5-9B + full & \underline{40.5} & \textbf{98.0} & 1\,602 & \textbf{30.5} & \textbf{94.0} & 2\,191 & \textbf{35.5} \\
+% \quad + Outcome Only           & 31.5 & 84.0 & 493  & 25.0 & 82.0 & 571  & 28.2 \\
+% \quad + w/o Topology           & \underline{34.0} & 85.0 & 494  & 28.0 & 82.0 & 552  & \underline{31.0} \\
+% \quad + w/o Continuity         & 29.5 & 83.5 & 479  & \underline{29.0} & 82.0 & 561  & 29.3 \\
+% \quad + TopoPRM (full)         & 30.5 & 87.5 & 486  & 27.0 & 83.5 & 546  & 28.7 \\
+% \quad + TopoPRM (ng4)          & 33.0 & \underline{86.5} & 479  & 29.0 & 81.5 & 544  & 31.0 \\
+% \rowcolor{gray!8}
+% \multicolumn{8}{@{}l}{\textit{Qwen3.5-9B Fine-tuned (mcl=4096, 32B SFT adapter)}} \\
+% \quad + Outcome Only           & 33.0 & 86.5 & 528  & 25.0 & 83.5 & 569  & 29.0 \\
+% \quad + w/o Topology           & 33.0 & 86.5 & 503  & 28.0 & 86.5 & 578  & 30.5 \\
+% \quad + TopoPRM (hier)         & 29.5 & 85.0 & 499  & 25.5 & 86.0 & 564  & 27.5 \\
+% \rowcolor{blue!5}
+% \quad + TopoPRM (gated)        & 33.0 & 86.5 & 528  & 25.0 & 83.5 & 569  & 29.0 \\
+% \rowcolor{gray!8}
+% \multicolumn{8}{@{}l}{\textit{Qwen3.5-9B Fine-tuned (mcl=4096, \textbf{9B own-SFT adapter rerun})}} \\
+% \quad + Outcome Only           & 37.0 & 96.5 & 1\,447  & 22.5 & 87.5 & 1\,776  & 29.8 \\
+% \quad + w/o Topology           & 37.0 & \textbf{99.5} & 1\,577  & 28.5 & 89.5 & 2\,073  & \textbf{32.8} \\
+% \rowcolor{blue!5}
+% \quad + TopoPRM (hier)         & 37.5 & 97.5 & 1\,716  & 24.5 & 89.5 & 2\,345  & 31.0 \\
+% \midrule
+% \rowcolor{gray!8}
+% \multicolumn{8}{@{}l}{\textit{Qwen2.5-7B Fine-tuned}} \\
+% Qwen2.5-7B + SFT (boost)      & 22.5 & 45.5 & 1\,185 & 9.0  & 31.0 & 1\,415 & 15.8 \\
+% \quad + Outcome Only           & 22.0 & 19.5 & 705  & 8.0  & 16.5 & 756  & 15.0 \\
+% \quad + w/o Topology           & 21.0 & 26.0 & 725  & 5.0  & 35.5 & 797  & 13.0 \\
+% \quad + w/o Continuity         & 12.0 & 47.5 & 890  & 8.0  & 52.0 & 974  & 10.0 \\
+% \quad + TopoPRM (full)         & 14.0 & 38.0 & 970  & 4.5  & 23.0 & 986  & 9.2 \\
+% \midrule
+% \rowcolor{gray!8}
+% \multicolumn{8}{@{}l}{\textit{Self-Distillation}} \\
+Qwen3-8B + full & \textbf{60.0} & \underline{94.0} & 532  & \textbf{58.0} & \underline{97.0} & 613  & \textbf{59.0} \\
+\bottomrule
+\end{tabular}
+\end{table}
+

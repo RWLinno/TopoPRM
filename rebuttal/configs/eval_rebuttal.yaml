@@ -1,0 +1,37 @@
+# Unified evaluation config for rebuttal experiments.
+# Consumed by rebuttal/scripts/run_*_eval.sh via scripts/bench_transformers.py.
+#
+# All rebuttal evals use the SAME protocol for apples-to-apples comparison:
+#   - 5 samples/item, pass@1 + pass@5, chat template, boxed-answer extraction.
+#   - math_verify symbolic equivalence for correctness (exact answer reward).
+
+primary_benchmarks:
+  - gsm8k
+  - math500
+  - aime2024
+
+extended_benchmarks:
+  - gsm8k
+  - math500
+  - olympiadbench
+  - omni_math
+
+num_samples_per_item: 5
+k_values: [1, 5]
+max_new_tokens: 8192
+temperature: 0.7
+top_p: 0.95
+use_chat_template: true
+output_dir: rebuttal/outputs/eval_tables
+
+# Model/adapter matrix (base model + LoRA adapter) covered by the rebuttal:
+runs:
+  - label: topoprm_dr1_7b_repro         # reproducibility of released full TopoPRM
+    base: /Knowin/foundation/models/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
+    adapter: rebuttal/ckpts/grpo-topoprm-dr1-7b
+  - label: outcome_length_dr1_7b        # length-aware baseline (isolates topology)
+    base: /Knowin/foundation/models/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
+    adapter: output/grpo_outcome_length_dr1_7b/final
+  - label: dr1_llama8b_base             # non-Qwen generality reference
+    base: /Knowin/foundation/models/deepseek-ai/DeepSeek-R1-Distill-Llama-8B
+    adapter: ""

@@ -106,11 +106,41 @@ class TopoOnlyReward(ORM):
         return self._topo(completions, **kwargs)
 
 
+class OutcomeLengthReward(ORM):
+    """Length-aware GRPO baseline: outcome + format + explicit length control,
+    but no topology and no continuity signal.
+
+    This is the rebuttal baseline that isolates whether TopoPRM's gains come
+    from topology-aware supervision or merely from brevity pressure
+    (HxUk W2, B5w7 W3). It applies the same length regularizer as the full
+    TopoPRM composite reward, so any TopoPRM advantage over this row is
+    attributable to structure, not length.
+    """
+
+    WEIGHTS = {"outcome": 0.70, "format": 0.15, "length": 0.15}
+
+    def __init__(self, **kwargs) -> None:
+        self._outcome = OutcomeReward()
+        self._format = FormatReward()
+        self._length = LengthReward()
+
+    def __call__(self, completions: list, **kwargs: Any) -> List[float]:
+        r_out = self._outcome(completions, **kwargs)
+        r_fmt = self._format(completions, **kwargs)
+        r_len = self._length(completions, **kwargs)
+        w = self.WEIGHTS
+        return [
+            round(w["outcome"] * a + w["format"] * b + w["length"] * c, 4)
+            for a, b, c in zip(r_out, r_fmt, r_len)
+        ]
+
+
 orms["ablation_outcome_only"] = OutcomeOnlyReward
 orms["ablation_no_topo"] = NoTopoReward
 orms["ablation_no_continuity"] = NoContinuityReward
 orms["ablation_no_format"] = NoFormatReward
 orms["ablation_topo_only"] = TopoOnlyReward
+orms["ablation_outcome_length"] = OutcomeLengthReward
 
 
 # Alias for the verifier-style topology reward after R_topo refactor

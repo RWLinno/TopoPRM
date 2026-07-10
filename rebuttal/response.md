@@ -1,11 +1,8 @@
 <!--
-TopoPRM EMNLP/ARR author response. Working draft.
-Numbers marked [[EV:*]] and [[GAP:*]] are filled from rebuttal experiments
-(edge_validation_results.json, semantic_gap_table.csv) once complete.
-All other numbers are from the submitted paper tables (main_accuracy.tex,
-ablation_reward.tex, efficiency.tex, compression.tex).
-No per-reviewer character limit; each reply is self-contained (no
-space-saving cross-references between reviewers).
+TopoPRM EMNLP/ARR author response.
+New rebuttal numbers: edge_validation_results.json, semantic_gap_table.csv,
+eval_tables/*. Paper numbers: TopoPRM_EMNLP26/tables/*.
+Each reviewer reply is self-contained.
 -->
 
 # Response to Reviewer HxUk

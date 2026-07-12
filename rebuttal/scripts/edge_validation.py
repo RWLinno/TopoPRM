@@ -186,7 +186,7 @@ def cmd_annotate_local(args: argparse.Namespace) -> None:
     model.eval()
     print(f"[annotate-local] loaded {args.model}; {len(todo)} traces to judge", flush=True)
 
-    def _gen(rec: dict[str, Any]) -> str:
+    def _gen(rec: dict[str, Any], sample: bool) -> str:
         msgs = [
             {"role": "system", "content": _JUDGE_SYS},
             {"role": "user", "content": _judge_prompt(rec)},
@@ -196,29 +196,57 @@ def cmd_annotate_local(args: argparse.Namespace) -> None:
             ct_kwargs["enable_thinking"] = False  # Qwen3: disable thinking for JSON output
         text = tok.apply_chat_template(msgs, **ct_kwargs)
         inputs = tok(text, return_tensors="pt").to(model.device)
+        gk = dict(max_new_tokens=args.max_tokens, pad_token_id=tok.pad_token_id or tok.eos_token_id)
+        if sample:
+            gk.update(do_sample=True, temperature=args.vote_temperature, top_p=0.95)
+        else:
+            gk.update(do_sample=False)
         with torch.no_grad():
-            gen = model.generate(
-                **inputs, max_new_tokens=args.max_tokens, do_sample=False,
-                pad_token_id=tok.pad_token_id or tok.eos_token_id,
-            )
+            gen = model.generate(**inputs, **gk)
         return tok.decode(gen[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
+
+    def _vote(rec: dict[str, Any]) -> tuple[list[list[int]], list[dict]]:
+        """Self-consistency: K judges, keep edges agreed by >= ceil(K/2) votes.
+
+        Majority voting denoises the judge: spurious edges appear in few
+        samples and drop out, genuine edges recur, which lifts both precision
+        (fewer flukes) and recall (union catches edges greedy decoding missed).
+        """
+        from collections import Counter
+        votes: Counter = Counter()
+        raws = []
+        k = max(1, args.votes)
+        for s in range(k):
+            content = _gen(rec, sample=(s > 0 or k == 1 and args.vote_temperature > 0))
+            raws.append(content[-200:])
+            for pr in _parse_pairs(content, rec["n_steps"]):
+                votes[tuple(pr)] += 1
+        thresh = (k // 2) + 1 if k > 1 else 1
+        edges = sorted([list(e) for e, c in votes.items() if c >= thresh])
+        return edges, raws
 
     with out.open("a" if args.resume else "w") as f:
         for k, rec in enumerate(todo):
             try:
-                content = _gen(rec)
-                pairs = _parse_pairs(content, rec["n_steps"])
+                if args.votes > 1:
+                    pairs, raws = _vote(rec)
+                    raw_str = " || ".join(raws)
+                else:
+                    content = _gen(rec, sample=False)
+                    pairs = _parse_pairs(content, rec["n_steps"])
+                    raw_str = content[-400:]
                 err = None
             except Exception as e:  # noqa: BLE001
-                content, pairs, err = "", [], str(e)[:160]
+                pairs, raw_str, err = [], "", str(e)[:160]
             f.write(
                 json.dumps(
                     {
                         "record_id": rec["record_id"],
                         "n_steps": rec["n_steps"],
                         "llm_edges": pairs,
-                        "raw": content[-400:],
+                        "raw": raw_str,
                         "error": err,
+                        "votes": args.votes,
                     },
                     ensure_ascii=False,
                 )
@@ -226,7 +254,7 @@ def cmd_annotate_local(args: argparse.Namespace) -> None:
             )
             f.flush()
             print(f"[annotate-local {k+1}/{len(todo)}] {rec['record_id']} "
-                  f"{'ERR' if err else 'ok'} edges={len(pairs)}", flush=True)
+                  f"{'ERR' if err else 'ok'} edges={len(pairs)} votes={args.votes}", flush=True)
     print(f"[annotate-local] wrote {len(todo)} annotations -> {out}")
 
 
@@ -384,6 +412,10 @@ def main() -> None:
     a.add_argument("--tp", type=int, default=2, help="tensor parallel size for local vLLM")
     a.add_argument("--max-model-len", type=int, default=8192)
     a.add_argument("--max-tokens", type=int, default=512)
+    a.add_argument("--votes", type=int, default=1,
+                   help="self-consistency: number of judge samples; majority vote if >1")
+    a.add_argument("--vote-temperature", type=float, default=0.7,
+                   help="sampling temperature for the vote samples (>0)")
     a.set_defaults(func=cmd_annotate)
 
     c = sub.add_parser("score")

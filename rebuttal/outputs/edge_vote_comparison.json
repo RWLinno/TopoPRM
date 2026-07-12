@@ -1,0 +1,34 @@
+{
+  "single_judge_guard_off": {
+    "precision": 0.4796,
+    "recall": 0.5913,
+    "f1": 0.5297,
+    "n": 120
+  },
+  "single_judge_guard_on": {
+    "precision": 0.5723,
+    "recall": 0.6781,
+    "f1": 0.6207,
+    "n": 120
+  },
+  "vote_judge_guard_off": {
+    "precision": 0.4789,
+    "recall": 0.5965,
+    "f1": 0.5312,
+    "n": 92
+  },
+  "vote_judge_guard_on": {
+    "precision": 0.5802,
+    "recall": 0.6871,
+    "f1": 0.6292,
+    "n": 92
+  },
+  "_notes": {
+    "baseline_f1": 0.5297,
+    "best_f1": 0.6292,
+    "best_config": "var_ref guard (>=2 shared vars) + vote judge labels",
+    "relative_gain_pct": 18.8,
+    "self_consistency_marginal": "vote vs single judge: F1 0.6207->0.6292 (+0.8%), judge already stable at T=0",
+    "seq_no_dep_and_barrier_strict": "reduce recall, net F1 down; not used"
+  }
+}

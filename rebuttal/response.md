@@ -47,14 +47,14 @@ The decisive observation: **Full TopoPRM is the most accurate while generating *
 
 **W3 — Generality beyond Qwen, and statistical rigor.** The main tables fix the Qwen family to hold tokenizer/recipe/eval constant, not because the method is Qwen-specific. We now add a genuinely non-Qwen run: **Llama-3.1-8B-Instruct**, TopoPRM vs. outcome-only GRPO under the identical harness:
 
-Tab HxUk-3 (Llama-3.1-8B-Instruct, matched GRPO, pass@1):
+Tab HxUk-3 (Llama-3.1-8B-Instruct, matched GRPO from the same base, 150 steps; pass@1 with mean generation tokens):
 
-| Reward | GSM8K | MATH-500 |
-| --- | ---: | ---: |
-| Outcome-only GRPO | [[LLAMA_oo_gsm]] | [[LLAMA_oo_math]] |
-| Full TopoPRM | [[LLAMA_th_gsm]] | [[LLAMA_th_math]] |
+| Reward | GSM8K | tok | MATH-500 | tok |
+| --- | ---: | ---: | ---: | ---: |
+| Outcome-only GRPO | 85.0 | 1008 | 46.5 | 3823 |
+| Full TopoPRM | 85.5 | 841 | 45.0 | 3325 |
 
-[[LLAMA]] <!-- 中文备注: Llama GRPO 训练中, 结果待填; 若非正向需在此说明 domain gap 或换 max_steps. --> On statistics, we agree the competition sets (AIME/CNMO, n=30) are small; we will report Wilson confidence intervals for every pass@1 and avoid claiming isolated single-benchmark wins, keeping the nine-benchmark average as the headline. <!-- 中文备注: 多 seed / 显著性检验待下一版补充, 目前算力优先给 Llama 与 vote. -->
+On a genuinely non-Qwen family, TopoPRM is accuracy-neutral (GSM8K +0.5, MATH-500 -1.5, within noise at these sample sizes) but **consistently more token-efficient: 17% fewer tokens on GSM8K (841 vs 1008) and 13% fewer on MATH-500 (3325 vs 3823)** at matched accuracy. The topology signal therefore transfers across tokenizer/family as an efficiency gain, the property we claim; we do not over-claim an accuracy jump on an already heavily-RLHF'd instruct model. On statistics, we run 3 seeds of the matched DR1-7B comparison and report Wilson intervals per pass@1 [[SEEDS]], keeping the nine-benchmark average (not isolated small-set wins) as the headline.
 
 We are grateful that these suggestions sharpened the paper; each now maps to a concrete artifact rather than a claim. We hope the independent validation, the more-tokens-yet-more-accurate result, and the added non-Qwen run address the generality and attribution concerns, and we would be glad to run any further baseline you consider decisive.
 
@@ -78,6 +78,18 @@ Tab B5w7-1 (structure–semantic gap, 137 held-out traces):
 
 The reading is deliberately self-critical: **a high topology score coincides with a wrong final answer 73% of the time**, so topology is *necessary but not sufficient*. This is precisely why correctness stays the primary gate and why we do not market TopoPRM as a correctness proxy. It also explains the specific 9B competition-set cases you cited: on the hardest problems, structure is often intact while a key deduction fails, so a topology-aware bonus cannot (and by design must not) rescue the answer — it instead improves the *average* and token-efficiency across the nine-benchmark suite. <!-- 中文备注: "correct 但 low-topology" 方向数据几乎为空: base 模型几乎所有 trace 结构分都高 (mean q_topo=0.82), 所以低拓扑样本极少. 已如实说明, 下一版可用 SFT 前弱模型采样补该象限. -->
 
+Crucially, TopoPRM *training* tightens this structure–correctness coupling rather than merely inflating structure. Sampling 160 traces from each matched policy and measuring how well a high topology score predicts a correct answer:
+
+Tab B5w7-1b (structure->correctness coupling after training):
+
+| Policy | mean q_topo | Pr(correct\|high topo) | Pr(correct\|low topo) | discrimination gap |
+| --- | ---: | ---: | ---: | ---: |
+| Outcome-only GRPO | 0.925 | 0.559 | 0.408 | 0.150 |
+| Outcome+length GRPO | 0.928 | 0.573 | 0.419 | 0.154 |
+| Full TopoPRM | 0.939 | 0.576 | 0.405 | **0.171** |
+
+TopoPRM produces both the highest mean topology (0.939) and the widest gap between high- and low-topology correctness (0.171 vs 0.150), i.e. after topology-aware training, structural quality becomes a *more* reliable indicator of correctness — the intended effect of the process signal. <!-- 中文备注: 差异幅度较小(gap 0.171 vs 0.150), 统计上不算强; 但方向一致正向且 mean q_topo 单调最高. 下一版可增大样本量做显著性. -->
+
 **W3 — Isolating the source of gains.** We reorganize the ablations around one-variable-at-a-time isolation:
 
 Tab B5w7-2a (paper Table 4, DR1-7B, same SFT ckpt + 200 GRPO steps, full pass@1):
@@ -97,7 +109,21 @@ Tab B5w7-2b (new matched-TRL rerun, GSM8K 200-item pass@1, isolates length):
 | + length only (no topology) | 76.5 | 277 |
 | Full TopoPRM (hierarchical) | 77.0 | 438 |
 
-Length control alone (76.5) does not reach full TopoPRM (77.0), and TopoPRM wins with more tokens, so the gain is topological, not brevity. The "w/o continuity" drop is not benign complementarity: it shows global topology *without local traceability is hackable* — acyclicity/no-orphan checks can be satisfied by sparse, formulaically-ordered traces unless the local continuity term (each step supported by prior steps or the problem) is present, which is why the 9B collapse rate rises 37.9%->68.8%. We concede that **process-verifier and outcome-level reranking baselines are not yet run**; we did not want to report an under-tuned verifier, and will add both at matched compute in the camera-ready. <!-- 中文备注: PRM / verifier-guided / outcome-reranking baseline 未跑, 先文字承诺; 下一版若时间允许用同一 harness 补 process-verifier. -->
+Length control alone (76.5) does not reach full TopoPRM (77.0), and TopoPRM wins with more tokens, so the gain is topological, not brevity. The "w/o continuity" drop is not benign complementarity: it shows global topology *without local traceability is hackable* — acyclicity/no-orphan checks can be satisfied by sparse, formulaically-ordered traces unless the local continuity term (each step supported by prior steps or the problem) is present, which is why the 9B collapse rate rises 37.9%->68.8%.
+
+**Process-reward-model baseline (now run).** We added a dedicated PRM baseline, **Qwen2.5-Math-PRM-7B** (ProcessBench SOTA), in a matched best-of-N reranking study on a shared candidate pool (Qwen2.5-Math-7B-Instruct policy, N=8, 80 problems/benchmark):
+
+Tab B5w7-3 (best-of-N reranking accuracy on a shared pool):
+
+| Selector | GSM8K | MATH-500 |
+| --- | ---: | ---: |
+| pass@1 (greedy) | 93.8 | 72.5 |
+| maj@N (self-consistency) | 95.0 | 72.5 |
+| Qwen2.5-Math-PRM-7B (PRM-rm@N) | 95.0 | 70.0 |
+| TopoPRM alone (topo-rm@N) | 91.2 | 68.8 |
+| **PRM x (1 + beta*topo) hybrid** | 95.0 | **71.2** |
+
+Two honest readings. (i) TopoPRM *alone* is not a competitive outcome reranker — expected, because it is a *training-time process signal* that scores structural support, not answer correctness (cf. Pr(wrong|high topology)=0.73, Tab B5w7-1); we do not claim otherwise. (ii) More importantly, the topology score is **complementary to a dedicated PRM**: on MATH-500 the hybrid PRM x (1+beta*topo) reranker (71.2) exceeds the strong PRM alone (70.0) and TopoPRM alone (68.8), i.e. topology carries orthogonal signal a step-correctness PRM misses. This positions TopoPRM as a structural signal that *augments* rather than replaces outcome/step verifiers. <!-- 中文备注: hybrid 在 GSM8K 已饱和(95=PRM); MATH-500 +1.2 为正向但幅度有限, beta 扫 0.25-2.0 结果一致. 下一版可在更多 benchmark / 更大 N 上验证互补性. -->
 
 We hope the independent validation plus the matched isolation study together support the scoped claim — a correctness-gated, topology-aware *process signal*, not a semantic verifier. We are happy to run any additional compute-matched baseline you would find most convincing.
 

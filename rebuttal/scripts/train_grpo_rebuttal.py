@@ -101,6 +101,7 @@ def main() -> None:
     ap.add_argument("--max_completion_len", type=int, default=2048)
     ap.add_argument("--max_prompt_len", type=int, default=1024)
     ap.add_argument("--report_to", default="wandb")
+    ap.add_argument("--seed", type=int, default=42)
     args = ap.parse_args()
 
     run_name = f"grpo_{args.reward}_{datetime.now().strftime('%m%d_%H%M')}"
@@ -143,6 +144,7 @@ def main() -> None:
         bf16=True,
         gradient_checkpointing=True,
         use_vllm=False,
+        seed=args.seed,
         report_to=args.report_to,
         run_name=run_name,
         remove_unused_columns=False,

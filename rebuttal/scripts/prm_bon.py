@@ -180,41 +180,60 @@ def cmd_score(args: argparse.Namespace) -> None:
         except Exception:
             return 0.0
 
+    import math
     from collections import defaultdict
-    agg = defaultdict(lambda: defaultdict(int))  # bench -> metric -> correct count
-    n_by_bench: Counter = Counter()
 
+    def _norm(xs: list[float]) -> list[float]:
+        lo, hi = min(xs), max(xs)
+        if hi - lo < 1e-9:
+            return [0.5] * len(xs)
+        return [(x - lo) / (hi - lo) for x in xs]
+
+    def _argmax_correct(scores, flags):
+        return int(flags[int(max(range(len(scores)), key=lambda i: scores[i]))])
+
+    # Per-candidate raw scores are cached so beta sweeps need no model reruns.
+    percand = []  # list of dicts: bench, flags, prm_s, topo_s, preds
     for r in rows:
         bench, gold, cands = r["bench"], r["gold"], r["candidates"]
-        n_by_bench[bench] += 1
         flags = [_correct(_boxed(c), gold) for c in cands]
         preds = [_boxed(c) for c in cands]
+        prm_s = [_agg(_prm_scores(pmodel, ptok, sep_id, r["question"], c), args.prm_agg) for c in cands]
+        topo_s = [topo_score(c) for c in cands]
+        percand.append({"bench": bench, "gold": gold, "flags": flags,
+                        "preds": preds, "prm_s": prm_s, "topo_s": topo_s})
+    Path("rebuttal/outputs/prm_bon_percand.json").write_text(json.dumps(percand))
 
-        # pass@1 (greedy = sample 0)
+    betas = [float(b) for b in args.betas.split(",")]
+    agg = defaultdict(lambda: defaultdict(int))
+    n_by_bench: Counter = Counter()
+    for r in percand:
+        bench, flags, preds = r["bench"], r["flags"], r["preds"]
+        prm_s, topo_s = r["prm_s"], r["topo_s"]
+        n_by_bench[bench] += 1
         agg[bench]["pass@1"] += int(flags[0])
-        # oracle pass@N
         agg[bench]["pass@N"] += int(any(flags))
-        # maj@N
         vote = Counter(p for p in preds if p is not None)
         if vote:
-            maj = vote.most_common(1)[0][0]
-            agg[bench]["maj@N"] += int(_correct(maj, gold))
-        # PRM-rm@N
-        prm_s = [_agg(_prm_scores(pmodel, ptok, sep_id, r["question"], c), args.prm_agg) for c in cands]
-        agg[bench][f"prm-rm@N"] += int(flags[int(max(range(len(cands)), key=lambda i: prm_s[i]))])
-        # Topo-rm@N
-        topo_s = [topo_score(c) for c in cands]
-        agg[bench]["topo-rm@N"] += int(flags[int(max(range(len(cands)), key=lambda i: topo_s[i]))])
+            agg[bench]["maj@N"] += int(_correct(vote.most_common(1)[0][0], r["gold"]))
+        agg[bench]["prm-rm@N"] += _argmax_correct(prm_s, flags)
+        agg[bench]["topo-rm@N"] += _argmax_correct(topo_s, flags)
+        # Hybrid: rerank by normalized PRM * (1 + beta * normalized topo).
+        pn, tn = _norm(prm_s), _norm(topo_s)
+        for b in betas:
+            hyb = [pn[i] * (1.0 + b * tn[i]) for i in range(len(pn))]
+            agg[bench][f"hybrid@N(b={b})"] += _argmax_correct(hyb, flags)
 
+    metrics = ["pass@1", "maj@N", "prm-rm@N", "topo-rm@N"] + \
+              [f"hybrid@N(b={b})" for b in betas] + ["pass@N"]
     result = {}
     for bench, n in n_by_bench.items():
-        result[bench] = {m: round(agg[bench][m] / n, 4) for m in
-                         ["pass@1", "maj@N", "prm-rm@N", "topo-rm@N", "pass@N"]}
+        result[bench] = {m: round(agg[bench][m] / n, 4) for m in metrics}
         result[bench]["n"] = n
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(result, indent=2))
     print(json.dumps(result, indent=2))
-    print(f"[score] prm_agg={args.prm_agg} -> {args.out}")
+    print(f"[score] prm_agg={args.prm_agg} betas={betas} -> {args.out}")
 
 
 def main() -> None:
@@ -235,6 +254,8 @@ def main() -> None:
     s.add_argument("--pool", default="rebuttal/outputs/prm_bon_pool.jsonl")
     s.add_argument("--prm", default="/Knowin/foundation/models/Qwen/Qwen2.5-Math-PRM-7B")
     s.add_argument("--prm_agg", default="prod", choices=["prod", "min", "last", "mean"])
+    s.add_argument("--betas", default="0.25,0.5,1.0",
+                   help="comma-separated beta values for hybrid PRM*(1+beta*topo) reranking")
     s.add_argument("--out", default="rebuttal/outputs/prm_bon_results.json")
     s.set_defaults(func=cmd_score)
     args = ap.parse_args()

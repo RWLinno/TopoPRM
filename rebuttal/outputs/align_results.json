@@ -1,0 +1,26 @@
+{
+  "outcome_length": {
+    "n": 160,
+    "acc": 0.5312,
+    "mean_qtopo": 0.9284,
+    "pr_correct_given_high_topo": 0.5726,
+    "pr_correct_given_low_topo": 0.4186,
+    "topo_correctness_corr": 0.0343
+  },
+  "outcome_only": {
+    "n": 160,
+    "acc": 0.5125,
+    "mean_qtopo": 0.9245,
+    "pr_correct_given_high_topo": 0.5586,
+    "pr_correct_given_low_topo": 0.4082,
+    "topo_correctness_corr": 0.1531
+  },
+  "topo_hier": {
+    "n": 160,
+    "acc": 0.5312,
+    "mean_qtopo": 0.9394,
+    "pr_correct_given_high_topo": 0.5763,
+    "pr_correct_given_low_topo": 0.4048,
+    "topo_correctness_corr": 0.1512
+  }
+}

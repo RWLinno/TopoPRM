@@ -1,0 +1,36 @@
+{
+  "n_items": 30,
+  "error_count": 19,
+  "correct_count": 11,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 0.3667,
+  "pass@1": 0.3667,
+  "maj@1": 0.3667,
+  "avg_tokens": 8192.0,
+  "prm@1": 0.3667,
+  "accuracy": 0.3667,
+  "accuracy_pct": 36.67,
+  "correct": 11,
+  "error": 19,
+  "num_samples": 30,
+  "pass_at_k": {
+    "1": 0.3667
+  },
+  "maj_at_k": {
+    "1": 0.3667
+  },
+  "prm_at_k": {
+    "1": 0.3667
+  },
+  "elapsed_sec": 2529.8,
+  "backend": "transformers",
+  "label": "dr1llama8b_topo",
+  "num_samples_per_item": 1,
+  "k_values": [
+    1
+  ],
+  "use_chat_template": true,
+  "sft_style": false,
+  "fewshot": false
+}

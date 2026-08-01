@@ -1,0 +1,36 @@
+{
+  "n_items": 100,
+  "error_count": 15,
+  "correct_count": 85,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 0.88,
+  "pass@1": 0.88,
+  "maj@1": 0.85,
+  "avg_tokens": 410.8,
+  "prm@1": 0.88,
+  "accuracy": 0.88,
+  "accuracy_pct": 88.0,
+  "correct": 88,
+  "error": 12,
+  "num_samples": 100,
+  "pass_at_k": {
+    "1": 0.88
+  },
+  "maj_at_k": {
+    "1": 0.85
+  },
+  "prm_at_k": {
+    "1": 0.88
+  },
+  "elapsed_sec": 123.6,
+  "backend": "transformers",
+  "label": "phi4_probe",
+  "num_samples_per_item": 1,
+  "k_values": [
+    1
+  ],
+  "use_chat_template": true,
+  "sft_style": false,
+  "fewshot": false
+}

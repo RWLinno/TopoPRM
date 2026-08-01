@@ -1,0 +1,53 @@
+{
+  "label": "outcome_only",
+  "model": "output/merged_outcome_only_matched",
+  "draws": [
+    {
+      "seed": 11,
+      "acc": 0.67,
+      "n": 200,
+      "mean_tokens": 216.9,
+      "correct": 134
+    },
+    {
+      "seed": 23,
+      "acc": 0.67,
+      "n": 200,
+      "mean_tokens": 178.9,
+      "correct": 134
+    },
+    {
+      "seed": 42,
+      "acc": 0.665,
+      "n": 200,
+      "mean_tokens": 165.2,
+      "correct": 133
+    },
+    {
+      "seed": 77,
+      "acc": 0.68,
+      "n": 200,
+      "mean_tokens": 213.0,
+      "correct": 136
+    },
+    {
+      "seed": 101,
+      "acc": 0.715,
+      "n": 200,
+      "mean_tokens": 216.7,
+      "correct": 143
+    }
+  ],
+  "acc_mean": 0.68,
+  "acc_std": 0.018,
+  "tokens_mean": 198.14,
+  "tokens_std": 21.783,
+  "best_efficiency_draw": {
+    "seed": 23,
+    "acc": 0.67,
+    "n": 200,
+    "mean_tokens": 178.9,
+    "correct": 134
+  },
+  "elapsed_sec": 2497.1
+}

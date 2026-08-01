@@ -801,6 +801,27 @@ def build_chat_messages(
     return messages
 
 
+def _fold_system_into_user(messages: list[dict]) -> list[dict]:
+    """Return a copy of messages with any leading system message merged into the
+    first user turn. Used for chat templates that do not support a system role
+    (e.g. Gemma). The instruction content is preserved verbatim."""
+    if not messages or messages[0].get("role") != "system":
+        return messages
+    sys_content = messages[0]["content"]
+    rest = messages[1:]
+    folded: list[dict] = []
+    injected = False
+    for m in rest:
+        if not injected and m.get("role") == "user":
+            folded.append({"role": "user", "content": f"{sys_content}\n\n{m['content']}"})
+            injected = True
+        else:
+            folded.append(m)
+    if not injected:  # no user turn at all; prepend as a user message
+        folded.insert(0, {"role": "user", "content": sys_content})
+    return folded
+
+
 # ---------------------------------------------------------------------------
 # Adapter namespace patch (swift -> transformers)
 # ---------------------------------------------------------------------------
@@ -886,9 +907,18 @@ def run_benchmark(
                     it["question"], it["source"],
                     sft_style=sft_style, fewshot=fewshot,
                 )
-                t = tokenizer.apply_chat_template(
-                    msgs, tokenize=False, add_generation_prompt=True,
-                )
+                try:
+                    t = tokenizer.apply_chat_template(
+                        msgs, tokenize=False, add_generation_prompt=True,
+                    )
+                except Exception:
+                    # Some chat templates (e.g. Gemma) do not support a system
+                    # role. Fold the system content into the first user turn so
+                    # the same instruction is delivered without breaking.
+                    folded = _fold_system_into_user(msgs)
+                    t = tokenizer.apply_chat_template(
+                        folded, tokenize=False, add_generation_prompt=True,
+                    )
                 texts.append(t)
             else:
                 texts.append(build_text_prompt(

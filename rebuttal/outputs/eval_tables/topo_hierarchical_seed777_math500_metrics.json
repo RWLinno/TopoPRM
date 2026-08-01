@@ -1,0 +1,36 @@
+{
+  "n_items": 200,
+  "error_count": 124,
+  "correct_count": 76,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 0.395,
+  "pass@1": 0.395,
+  "maj@1": 0.38,
+  "avg_tokens": 6100.8,
+  "prm@1": 0.395,
+  "accuracy": 0.395,
+  "accuracy_pct": 39.5,
+  "correct": 79,
+  "error": 121,
+  "num_samples": 200,
+  "pass_at_k": {
+    "1": 0.395
+  },
+  "maj_at_k": {
+    "1": 0.38
+  },
+  "prm_at_k": {
+    "1": 0.395
+  },
+  "elapsed_sec": 9240.1,
+  "backend": "transformers",
+  "label": "topo_hierarchical_seed777",
+  "num_samples_per_item": 1,
+  "k_values": [
+    1
+  ],
+  "use_chat_template": true,
+  "sft_style": true,
+  "fewshot": false
+}

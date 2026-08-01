@@ -1,0 +1,36 @@
+{
+  "n_items": 200,
+  "error_count": 53,
+  "correct_count": 147,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 0.75,
+  "pass@1": 0.75,
+  "maj@1": 0.735,
+  "avg_tokens": 501.5,
+  "prm@1": 0.75,
+  "accuracy": 0.75,
+  "accuracy_pct": 75.0,
+  "correct": 150,
+  "error": 50,
+  "num_samples": 200,
+  "pass_at_k": {
+    "1": 0.75
+  },
+  "maj_at_k": {
+    "1": 0.735
+  },
+  "prm_at_k": {
+    "1": 0.75
+  },
+  "elapsed_sec": 547.9,
+  "backend": "transformers",
+  "label": "nemo12b_topo",
+  "num_samples_per_item": 1,
+  "k_values": [
+    1
+  ],
+  "use_chat_template": true,
+  "sft_style": false,
+  "fewshot": false
+}

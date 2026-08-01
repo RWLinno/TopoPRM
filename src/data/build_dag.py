@@ -379,6 +379,63 @@ def _dag_seq_when_no_dep_only() -> bool:
     return _env_bool("TOPO_DAG_SEQ_WHEN_NO_DEP_ONLY", False)
 
 
+def _var_ref_min_shared() -> int:
+    """Minimum number of shared variables required to keep a var_ref edge.
+
+    Only consulted when TOPO_VAR_REF_REQUIRE_MULTI=1.  Default 2 (the rebuttal
+    precision guard); larger values trade recall for precision.
+    """
+    return max(2, _env_int("TOPO_VAR_REF_MIN_SHARED", 2))
+
+
+def _seq_require_overlap() -> bool:
+    """Require lexical overlap between consecutive steps before adding an
+    'order' (sequential-weak) fallback edge.
+
+    Edge-validation finding: bare positional 'order' edges are the largest
+    single false-positive source after var_ref (82 FP, P~0.61).  Many are
+    adjacency artifacts between steps that share no content (e.g. a claim
+    marker followed by an unrelated align block).  Gating the fallback on a
+    minimum token-overlap removes those spurious adjacency edges while keeping
+    the genuine "carry the previous result forward" chains.  Off by default to
+    preserve released-checkpoint behaviour.
+    """
+    return _env_bool("TOPO_SEQ_REQUIRE_OVERLAP", False)
+
+
+def _seq_min_overlap() -> float:
+    try:
+        return float(os.environ.get("TOPO_SEQ_MIN_OVERLAP", "0.12") or 0.12)
+    except ValueError:
+        return 0.12
+
+
+def _order_require_numeric() -> bool:
+    """Require a shared numeric token (>=2 digits) between consecutive steps
+    for an 'order' fallback edge.  Stronger, more precise carry-forward signal
+    than lexical overlap alone.  Off by default."""
+    return _env_bool("TOPO_ORDER_REQUIRE_NUMERIC", False)
+
+
+def _var_ref_distinctive_enabled() -> bool:
+    """When the >=2-shared-var guard is active, still keep a single-shared
+    var_ref edge if that variable is *distinctive*: it is multi-character
+    (e.g. 'theta', 'x_1') or appears inside an extracted expression of BOTH
+    steps.  A distinctive shared symbol is far more likely to encode a real
+    support relation than a bare single-letter reuse, so this recovers recall
+    lost by the blanket >=2 requirement without reintroducing the generic
+    single-letter false positives.  Off by default."""
+    return _env_bool("TOPO_VAR_REF_DISTINCTIVE", False)
+
+
+def _is_distinctive_shared_var(var: str, src_step: "ParsedStep", step: "ParsedStep") -> bool:
+    if len(var) > 1:
+        return True
+    in_src_expr = any(var in e for e in src_step.exprs)
+    in_tgt_expr = any(var in e for e in step.exprs)
+    return in_src_expr and in_tgt_expr
+
+
 def _is_formatting_noise(line: str) -> bool:
     t = line.strip()
     if not t:
@@ -637,8 +694,15 @@ def build_dependency_edges_by_rules(
                         set(step.variables) & set(src_step.variables)
                         if src_step is not None else {var}
                     )
-                    if len(shared) < 2:
-                        continue
+                    if len(shared) < _var_ref_min_shared():
+                        keep = False
+                        if _var_ref_distinctive_enabled() and src_step is not None:
+                            keep = any(
+                                _is_distinctive_shared_var(v, src_step, step)
+                                for v in shared
+                            )
+                        if not keep:
+                            continue
                 edges.append((src, step.step_id, VIRTUAL_EDGE, "var_ref"))
                 evidences.append(EdgeEvidence(src, step.step_id, VIRTUAL_EDGE, "var_ref", f"var={var}"))
                 seen_sources.add(src)
@@ -926,16 +990,33 @@ def _should_add_seq_edge(dag: ReasoningDAG, src_id: int, tgt_id: int) -> bool:
     return True
 
 
+def _shared_numeric_tokens(a: str, b: str) -> bool:
+    """True if the two texts share a numeric token with >=2 digits."""
+    na = {t for t in re.findall(r"-?\d+(?:\.\d+)?", a) if len(t.lstrip("-").split(".")[0]) >= 2}
+    nb = {t for t in re.findall(r"-?\d+(?:\.\d+)?", b) if len(t.lstrip("-").split(".")[0]) >= 2}
+    return bool(na & nb)
+
+
 def _add_sequential_weak_edges(
     dag: ReasoningDAG,
     parsed_steps: List[ParsedStep],
 ) -> int:
     ids = sorted(dag.nodes)
     sid_to_subq = {s.step_id: s.sub_question_id for s in parsed_steps}
+    sid_to_text = {s.step_id: s.normalized_text for s in parsed_steps}
+    require_overlap = _seq_require_overlap()
+    min_overlap = _seq_min_overlap()
+    require_numeric = _order_require_numeric()
     added = 0
     for a, b in zip(ids, ids[1:]):
         if not _same_sub_question(sid_to_subq.get(a), sid_to_subq.get(b)):
             continue
+        if require_overlap or require_numeric:
+            ta, tb = sid_to_text.get(a, ""), sid_to_text.get(b, "")
+            if require_overlap and _overlap_ratio(ta, tb) < min_overlap:
+                continue
+            if require_numeric and not _shared_numeric_tokens(ta, tb):
+                continue
         if _should_add_seq_edge(dag, a, b) and not dag.graph.has_edge(a, b):
             dag.graph.add_edge(
                 a,

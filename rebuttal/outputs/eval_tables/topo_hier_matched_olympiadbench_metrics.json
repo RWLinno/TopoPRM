@@ -1,0 +1,36 @@
+{
+  "n_items": 120,
+  "error_count": 74,
+  "correct_count": 46,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 0.3833,
+  "pass@1": 0.3833,
+  "maj@1": 0.3833,
+  "avg_tokens": 4580.3,
+  "prm@1": 0.3833,
+  "accuracy": 0.3833,
+  "accuracy_pct": 38.33,
+  "correct": 46,
+  "error": 74,
+  "num_samples": 120,
+  "pass_at_k": {
+    "1": 0.3833
+  },
+  "maj_at_k": {
+    "1": 0.3833
+  },
+  "prm_at_k": {
+    "1": 0.3833
+  },
+  "elapsed_sec": 4155.3,
+  "backend": "transformers",
+  "label": "topo_hier_matched",
+  "num_samples_per_item": 1,
+  "k_values": [
+    1
+  ],
+  "use_chat_template": true,
+  "sft_style": true,
+  "fewshot": false
+}

@@ -1,0 +1,36 @@
+{
+  "n_items": 200,
+  "error_count": 149,
+  "correct_count": 51,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 0.275,
+  "pass@1": 0.275,
+  "maj@1": 0.255,
+  "avg_tokens": 1118.1,
+  "prm@1": 0.275,
+  "accuracy": 0.275,
+  "accuracy_pct": 27.5,
+  "correct": 55,
+  "error": 145,
+  "num_samples": 200,
+  "pass_at_k": {
+    "1": 0.275
+  },
+  "maj_at_k": {
+    "1": 0.255
+  },
+  "prm_at_k": {
+    "1": 0.275
+  },
+  "elapsed_sec": 1091.4,
+  "backend": "transformers",
+  "label": "hermes8b_topo",
+  "num_samples_per_item": 1,
+  "k_values": [
+    1
+  ],
+  "use_chat_template": true,
+  "sft_style": false,
+  "fewshot": false
+}

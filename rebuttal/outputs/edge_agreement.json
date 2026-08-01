@@ -1,0 +1,31 @@
+{
+  "n_traces": 119,
+  "raw_agreement": 0.8977,
+  "cohen_kappa": 0.7338,
+  "counts": {
+    "both_support": 368,
+    "both_none": 1221,
+    "A_only": 68,
+    "B_only": 113
+  },
+  "extractor_vs_A_qwen3_32b": {
+    "P": 0.4777,
+    "R": 0.5894,
+    "F": 0.5277
+  },
+  "extractor_vs_B_qwen25_32b": {
+    "P": 0.4833,
+    "R": 0.5405,
+    "F": 0.5103
+  },
+  "extractor_vs_consensus": {
+    "P": 0.4275,
+    "R": 0.625,
+    "F": 0.5077
+  },
+  "extractor_vs_union": {
+    "P": 0.5335,
+    "R": 0.5228,
+    "F": 0.5281
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "n_items": 200,
+  "error_count": 168,
+  "correct_count": 32,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 0.17,
+  "pass@1": 0.17,
+  "maj@1": 0.16,
+  "avg_tokens": 462.6,
+  "prm@1": 0.17,
+  "accuracy": 0.17,
+  "accuracy_pct": 17.0,
+  "correct": 34,
+  "error": 166,
+  "num_samples": 200,
+  "pass_at_k": {
+    "1": 0.17
+  },
+  "maj_at_k": {
+    "1": 0.16
+  },
+  "prm_at_k": {
+    "1": 0.17
+  },
+  "elapsed_sec": 184.5,
+  "backend": "transformers",
+  "label": "mistral7b_base",
+  "num_samples_per_item": 1,
+  "k_values": [
+    1
+  ],
+  "use_chat_template": true,
+  "sft_style": false,
+  "fewshot": false
+}

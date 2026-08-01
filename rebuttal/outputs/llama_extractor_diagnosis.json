@@ -1,0 +1,32 @@
+{
+  "llama_style": {
+    "default": {
+      "mean_nodes": 1,
+      "mean_edges": 0,
+      "q_topo_mean": 0.0,
+      "q_topo_std": 0.0
+    },
+    "prose_profile": {
+      "mean_nodes": 2.6666666666666665,
+      "mean_edges": 1.6666666666666667,
+      "q_topo_mean": 0.0,
+      "q_topo_std": 0.0
+    }
+  },
+  "qwen_style_default": {
+    "mean_nodes": 4,
+    "mean_edges": 3,
+    "q_topo_mean": 0.0,
+    "q_topo_std": 0.0
+  },
+  "prose_profile_flags": {
+    "TOPO_DAG_SENTENCE_FALLBACK": "1",
+    "TOPO_DAG_EXTRA_STEP_MARKERS": "1",
+    "TOPO_DAG_FILTER_FORMATTING": "1",
+    "TOPO_DAG_SENTENCE_MIN_LEN": "20",
+    "TOPO_VAR_REF_REQUIRE_MULTI": "1",
+    "TOPO_SEQ_WEAK_EDGE_MODE": "full",
+    "TOPO_SEQ_REQUIRE_OVERLAP": "1",
+    "TOPO_SEQ_MIN_OVERLAP": "0.06"
+  }
+}

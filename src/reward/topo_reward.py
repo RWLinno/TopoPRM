@@ -410,9 +410,20 @@ class TopoReward(ORM):
         rewards: list[float] = []
         diag_rows: list[dict[str, float]] = []
         self.last_diagnostics = []
+        no_think_fallback = os.environ.get("TOPO_TOPO_NO_THINK_FALLBACK", "0") not in {"0", "false", "False", ""}
         for idx, completion in enumerate(completions):
             text = completion_to_text(completion)
             think_text = extract_think_block(text)
+            if not think_text and no_think_fallback:
+                # Non-Qwen / non-SFT models (e.g. Llama-3.1-8B-Instruct) emit
+                # plain prose with no <think> block, so the think-only path
+                # yields 0 steps and a constant-0 topology reward for EVERY
+                # rollout — the topology signal is silently inert and "Full
+                # TopoPRM" degenerates to outcome+format+length.  When enabled,
+                # fall back to scoring the whole completion (minus any answer
+                # tag) so the process signal survives on prose CoT models.
+                import re as _re
+                think_text = _re.sub(r"<answer>.*?</answer>", " ", text, flags=_re.DOTALL).strip() or text
             steps = extract_steps_from_answer(think_text)
             if not steps:
                 rewards.append(0.0)

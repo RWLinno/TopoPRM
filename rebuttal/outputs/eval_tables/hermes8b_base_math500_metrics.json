@@ -1,0 +1,36 @@
+{
+  "n_items": 200,
+  "error_count": 148,
+  "correct_count": 52,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 0.28,
+  "pass@1": 0.28,
+  "maj@1": 0.26,
+  "avg_tokens": 902.8,
+  "prm@1": 0.28,
+  "accuracy": 0.28,
+  "accuracy_pct": 28.0,
+  "correct": 56,
+  "error": 144,
+  "num_samples": 200,
+  "pass_at_k": {
+    "1": 0.28
+  },
+  "maj_at_k": {
+    "1": 0.26
+  },
+  "prm_at_k": {
+    "1": 0.28
+  },
+  "elapsed_sec": 842.6,
+  "backend": "transformers",
+  "label": "hermes8b_base",
+  "num_samples_per_item": 1,
+  "k_values": [
+    1
+  ],
+  "use_chat_template": true,
+  "sft_style": false,
+  "fewshot": false
+}

@@ -1,0 +1,36 @@
+{
+  "n_items": 100,
+  "error_count": 48,
+  "correct_count": 52,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 0.55,
+  "pass@1": 0.55,
+  "maj@1": 0.52,
+  "avg_tokens": 303.1,
+  "prm@1": 0.55,
+  "accuracy": 0.55,
+  "accuracy_pct": 55.0,
+  "correct": 55,
+  "error": 45,
+  "num_samples": 100,
+  "pass_at_k": {
+    "1": 0.55
+  },
+  "maj_at_k": {
+    "1": 0.52
+  },
+  "prm_at_k": {
+    "1": 0.55
+  },
+  "elapsed_sec": 59.5,
+  "backend": "transformers",
+  "label": "hermes3_probe",
+  "num_samples_per_item": 1,
+  "k_values": [
+    1
+  ],
+  "use_chat_template": true,
+  "sft_style": false,
+  "fewshot": false
+}

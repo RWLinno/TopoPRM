@@ -1,0 +1,53 @@
+{
+  "label": "topo_hier",
+  "model": "output/merged_topo_hier_matched",
+  "draws": [
+    {
+      "seed": 11,
+      "acc": 0.69,
+      "n": 200,
+      "mean_tokens": 206.7,
+      "correct": 138
+    },
+    {
+      "seed": 23,
+      "acc": 0.695,
+      "n": 200,
+      "mean_tokens": 234.4,
+      "correct": 139
+    },
+    {
+      "seed": 42,
+      "acc": 0.655,
+      "n": 200,
+      "mean_tokens": 175.6,
+      "correct": 131
+    },
+    {
+      "seed": 77,
+      "acc": 0.655,
+      "n": 200,
+      "mean_tokens": 220.3,
+      "correct": 131
+    },
+    {
+      "seed": 101,
+      "acc": 0.695,
+      "n": 200,
+      "mean_tokens": 169.7,
+      "correct": 139
+    }
+  ],
+  "acc_mean": 0.678,
+  "acc_std": 0.019,
+  "tokens_mean": 201.34,
+  "tokens_std": 25.079,
+  "best_efficiency_draw": {
+    "seed": 101,
+    "acc": 0.695,
+    "n": 200,
+    "mean_tokens": 169.7,
+    "correct": 139
+  },
+  "elapsed_sec": 2296.0
+}

@@ -1,0 +1,36 @@
+{
+  "n_items": 200,
+  "error_count": 103,
+  "correct_count": 97,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 0.5,
+  "pass@1": 0.5,
+  "maj@1": 0.485,
+  "avg_tokens": 4096.0,
+  "prm@1": 0.5,
+  "accuracy": 0.5,
+  "accuracy_pct": 50.0,
+  "correct": 100,
+  "error": 100,
+  "num_samples": 200,
+  "pass_at_k": {
+    "1": 0.5
+  },
+  "maj_at_k": {
+    "1": 0.485
+  },
+  "prm_at_k": {
+    "1": 0.5
+  },
+  "elapsed_sec": 4342.0,
+  "backend": "transformers",
+  "label": "dr1llama8b_base_matched",
+  "num_samples_per_item": 1,
+  "k_values": [
+    1
+  ],
+  "use_chat_template": true,
+  "sft_style": false,
+  "fewshot": false
+}

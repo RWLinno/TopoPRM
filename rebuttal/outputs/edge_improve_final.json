@@ -1,0 +1,164 @@
+{
+  "chosen_config": {
+    "TOPO_VAR_REF_REQUIRE_MULTI": "1",
+    "TOPO_SEQ_WEAK_EDGE_MODE": "full",
+    "TOPO_SEQ_REQUIRE_OVERLAP": "1",
+    "TOPO_SEQ_MIN_OVERLAP": "0.06"
+  },
+  "label_sets": {
+    "single_judge_120": {
+      "baseline": {
+        "precision": 0.4796,
+        "recall": 0.5913,
+        "f1": 0.5297,
+        "tp": 259,
+        "fp": 281,
+        "fn": 179,
+        "per_dep_type": {
+          "expr_ref": {
+            "precision": 0.5904,
+            "tp": 49,
+            "fp": 34
+          },
+          "expr_overlap": {
+            "precision": 0.6333,
+            "tp": 19,
+            "fp": 11
+          },
+          "implicit_block": {
+            "precision": 0.625,
+            "tp": 15,
+            "fp": 9
+          },
+          "order": {
+            "precision": 0.6077,
+            "tp": 127,
+            "fp": 82
+          },
+          "var_ref": {
+            "precision": 0.2526,
+            "tp": 49,
+            "fp": 145
+          }
+        }
+      },
+      "improved": {
+        "precision": 0.5796,
+        "recall": 0.7146,
+        "f1": 0.6401,
+        "tp": 313,
+        "fp": 227,
+        "fn": 125,
+        "per_dep_type": {
+          "expr_ref": {
+            "precision": 0.5904,
+            "tp": 49,
+            "fp": 34
+          },
+          "expr_overlap": {
+            "precision": 0.6333,
+            "tp": 19,
+            "fp": 11
+          },
+          "implicit_block": {
+            "precision": 0.6667,
+            "tp": 26,
+            "fp": 13
+          },
+          "order": {
+            "precision": 0.6164,
+            "tp": 196,
+            "fp": 122
+          },
+          "var_ref": {
+            "precision": 0.3286,
+            "tp": 23,
+            "fp": 47
+          }
+        }
+      },
+      "relative_gain_pct": {
+        "precision": 20.9,
+        "recall": 20.9,
+        "f1": 20.8
+      }
+    },
+    "vote5_judge_92": {
+      "baseline": {
+        "precision": 0.4789,
+        "recall": 0.5965,
+        "f1": 0.5312,
+        "tp": 204,
+        "fp": 222,
+        "fn": 138,
+        "per_dep_type": {
+          "expr_ref": {
+            "precision": 0.5915,
+            "tp": 42,
+            "fp": 29
+          },
+          "expr_overlap": {
+            "precision": 0.6316,
+            "tp": 12,
+            "fp": 7
+          },
+          "implicit_block": {
+            "precision": 0.6316,
+            "tp": 12,
+            "fp": 7
+          },
+          "order": {
+            "precision": 0.5976,
+            "tp": 98,
+            "fp": 66
+          },
+          "var_ref": {
+            "precision": 0.2614,
+            "tp": 40,
+            "fp": 113
+          }
+        }
+      },
+      "improved": {
+        "precision": 0.5788,
+        "recall": 0.7193,
+        "f1": 0.6415,
+        "tp": 246,
+        "fp": 179,
+        "fn": 96,
+        "per_dep_type": {
+          "expr_ref": {
+            "precision": 0.5915,
+            "tp": 42,
+            "fp": 29
+          },
+          "expr_overlap": {
+            "precision": 0.6316,
+            "tp": 12,
+            "fp": 7
+          },
+          "implicit_block": {
+            "precision": 0.7097,
+            "tp": 22,
+            "fp": 9
+          },
+          "order": {
+            "precision": 0.6024,
+            "tp": 150,
+            "fp": 99
+          },
+          "var_ref": {
+            "precision": 0.3636,
+            "tp": 20,
+            "fp": 35
+          }
+        }
+      },
+      "relative_gain_pct": {
+        "precision": 20.9,
+        "recall": 20.6,
+        "f1": 20.8
+      }
+    }
+  }
+}

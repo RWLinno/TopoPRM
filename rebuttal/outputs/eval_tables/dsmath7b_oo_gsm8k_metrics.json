@@ -1,0 +1,36 @@
+{
+  "n_items": 200,
+  "error_count": 35,
+  "correct_count": 165,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 0.825,
+  "pass@1": 0.825,
+  "maj@1": 0.825,
+  "avg_tokens": 396.6,
+  "prm@1": 0.825,
+  "accuracy": 0.825,
+  "accuracy_pct": 82.5,
+  "correct": 165,
+  "error": 35,
+  "num_samples": 200,
+  "pass_at_k": {
+    "1": 0.825
+  },
+  "maj_at_k": {
+    "1": 0.825
+  },
+  "prm_at_k": {
+    "1": 0.825
+  },
+  "elapsed_sec": 242.7,
+  "backend": "transformers",
+  "label": "dsmath7b_oo",
+  "num_samples_per_item": 1,
+  "k_values": [
+    1
+  ],
+  "use_chat_template": true,
+  "sft_style": false,
+  "fewshot": false
+}

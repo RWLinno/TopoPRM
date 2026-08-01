@@ -1,0 +1,53 @@
+{
+  "label": "outcome_length",
+  "model": "output/merged_outcome_length_matched",
+  "draws": [
+    {
+      "seed": 11,
+      "acc": 0.655,
+      "n": 200,
+      "mean_tokens": 229.1,
+      "correct": 131
+    },
+    {
+      "seed": 23,
+      "acc": 0.64,
+      "n": 200,
+      "mean_tokens": 203.5,
+      "correct": 128
+    },
+    {
+      "seed": 42,
+      "acc": 0.705,
+      "n": 200,
+      "mean_tokens": 192.2,
+      "correct": 141
+    },
+    {
+      "seed": 77,
+      "acc": 0.69,
+      "n": 200,
+      "mean_tokens": 163.8,
+      "correct": 138
+    },
+    {
+      "seed": 101,
+      "acc": 0.705,
+      "n": 200,
+      "mean_tokens": 183.2,
+      "correct": 141
+    }
+  ],
+  "acc_mean": 0.679,
+  "acc_std": 0.027,
+  "tokens_mean": 194.36,
+  "tokens_std": 21.696,
+  "best_efficiency_draw": {
+    "seed": 77,
+    "acc": 0.69,
+    "n": 200,
+    "mean_tokens": 163.8,
+    "correct": 138
+  },
+  "elapsed_sec": 2359.3
+}

@@ -50,49 +50,43 @@ class ContinuityReward(ORM):
         rewards: list[float] = []
         for completion in completions:
             text = completion_to_text(completion)
-            think_text = extract_think_block(text)
-
-            steps = extract_steps_from_answer(think_text)
-            if not steps:
-                rewards.append(0.0)
-                continue
-
-            prior_exprs: set[str] = set()
-            prior_claims: set[str] = set()
-            continuous_count = 0
-
-            for step in steps:
-                step_text = step["raw_text"] if isinstance(step, dict) else str(step)
-                cur_exprs = {canonicalize_expression(e) for e in extract_expressions(step_text)}
-                # Use canonical claim keys for continuity matching.
-                # Sentence-level claims are kept for display/debug, not matching.
-                cur_claims = set(extract_claim_keys(step_text))
-
-                if self._is_given_step(step_text):
-                    continuous_count += 1
-                elif not cur_exprs and not cur_claims:
-                    # P3 patch: by default we give the benefit of the doubt
-                    # and count an evidence-free step as continuous (this is
-                    # the v1 released behaviour).  When the env var
-                    # ``TOPO_CONT_REQUIRE_EVIDENCE=1`` is set we instead
-                    # treat such steps as broken so that q_cont actually
-                    # provides a gradient on natural-language CoT traces.
-                    if not RewardConfig.CONTINUITY_REQUIRE_EVIDENCE:
-                        continuous_count += 1
-                else:
-                    overlaps_expr = bool(cur_exprs & prior_exprs)
-                    overlaps_claim = bool(cur_claims & prior_claims)
-                    if overlaps_expr or overlaps_claim:
-                        continuous_count += 1
-
-                prior_exprs.update(cur_exprs)
-                prior_claims.update(cur_claims)
-
-            total = len(steps)
-            ratio = continuous_count / total
-            if ratio >= 1.0:
-                rewards.append(1.0)
-            else:
-                rewards.append(ratio * self.BROKEN_CHAIN_PENALTY)
-
+            score, _ = self.diagnose(text)
+            rewards.append(score)
         return rewards
+
+    def diagnose(self, text: str) -> tuple[float, list[int]]:
+        """Return the continuity score and localized unsupported step indices."""
+        think_text = extract_think_block(text)
+
+        steps = extract_steps_from_answer(think_text)
+        if not steps:
+            return 0.0, []
+
+        prior_exprs: set[str] = set()
+        prior_claims: set[str] = set()
+        continuous_count = 0
+        breaks: list[int] = []
+
+        for index, step in enumerate(steps):
+            step_text = step["raw_text"] if isinstance(step, dict) else str(step)
+            cur_exprs = {canonicalize_expression(e) for e in extract_expressions(step_text)}
+            cur_claims = set(extract_claim_keys(step_text))
+            is_continuous = False
+
+            if self._is_given_step(step_text):
+                is_continuous = True
+            elif not cur_exprs and not cur_claims:
+                is_continuous = not RewardConfig.CONTINUITY_REQUIRE_EVIDENCE
+            else:
+                is_continuous = bool(cur_exprs & prior_exprs) or bool(cur_claims & prior_claims)
+
+            if is_continuous:
+                continuous_count += 1
+            else:
+                breaks.append(index)
+            prior_exprs.update(cur_exprs)
+            prior_claims.update(cur_claims)
+
+        ratio = continuous_count / len(steps)
+        score = 1.0 if ratio >= 1.0 else ratio * self.BROKEN_CHAIN_PENALTY
+        return score, breaks

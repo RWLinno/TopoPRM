@@ -1,0 +1,138 @@
+% ---------------------------------------------------------------
+% Table 1: ICLR-protocol reproduction, public checkpoints.
+% ---------------------------------------------------------------
+\begin{table*}[!t]
+\centering
+\caption{ICLR-protocol reproduction, public checkpoints (in progress). Cells report
+pass@1 (\%) and mean visible response tokens from one seed-0 sample per item under
+matched sampling, task content, and a 4,096-token cap; released chat templates and
+required thinking controls are retained. Empty \tbd{--} cells are pending runs, not zero
+results; no claim is made from this table in its current state. The reported main results
+are Table~\ref{tab:main_emnlp_promoted}.}
+\label{tab:iclr_public}
+\vspace{2pt}
+\setlength{\tabcolsep}{4.2pt}
+\renewcommand{\arraystretch}{1.10}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l cc cc cc cc cc@{}}
+\toprule
+& \multicolumn{2}{c}{\textbf{GSM8K}}
+& \multicolumn{2}{c}{\textbf{MATH-500}}
+& \multicolumn{2}{c}{\textbf{OlympiadBench}}
+& \multicolumn{2}{c}{\textbf{AIME 2024}}
+& \multicolumn{2}{c}{\textbf{Macro avg.}} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}\cmidrule(lr){10-11}
+\textbf{Method} & Acc. & Tok. & Acc. & Tok. & Acc. & Tok. & Acc. & Tok. & Acc. & Tok. \\
+\midrule
+Qwen3-8B~\citep{qwen3team2025}
+& 91.4 & 1,948 & 64.6 & 3,185
+& \tbd{--} & \tbd{--} & 0.0 & 4,096
+& \tbd{--} & \tbd{--} \\
+SpyRL-Qwen3-8B-Math~\citep{wang2026spyrl}
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} \\
+GoT-R1-8B~\citep{li2026gotr1}
+& 95.2 & 357 & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} & 16.7 & 2,018
+& \tbd{--} & \tbd{--} \\
+DeepSeek-R1-0528-Qwen3-8B~\citep{deepseekr1}
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} \\
+DeCS-7B~\citep{jiang2026decs}
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} \\
+MiMo-7B-RL-0530~\citep{xiaomi2025mimo}
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} \\
+Nemotron-Cascade-8B-Thinking~\citep{wang2025nemotroncascade}
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} \\
+Klear-Reasoner-8B~\citep{klearreasoner2025}
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} \\
+OpenReasoning-Nemotron-7B~\citep{openreasoningnemotron7b}
+& 83.0 & 2,429 & 51.2 & 3,260
+& \tbd{--} & \tbd{--} & 0.0 & 4,096
+& \tbd{--} & \tbd{--} \\
+AceMath-RL-Nemotron-7B~\citep{acemathrlnemotron7b}
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} \\
+Qwen3.5-9B~\citep{qwen35team2026}
+& 76.4 & 2,710 & 40.4 & 3,627
+& \tbd{--} & \tbd{--} & 0.0 & 4,096
+& \tbd{--} & \tbd{--} \\
+\bottomrule
+\end{tabular}%
+}
+
+\vspace{3pt}
+\parbox{\textwidth}{\footnotesize
+\emph{Note.} Accuracy intervals are Wilson; token and paired-difference intervals use item
+bootstrap. With one training run per row, neither measures training variance.
+\par}
+\end{table*}
+
+% ---------------------------------------------------------------
+% Table 2: ICLR-protocol reproduction, matched Qwen3.5-9B adaptation.
+% ---------------------------------------------------------------
+\begin{table*}[!t]
+\centering
+\caption{ICLR-protocol reproduction, matched Qwen3.5-9B adaptation (in progress). All rows
+start from the same Stage-I checkpoint and use one canonical seed-0 training run, with the
+same evaluator, sampling settings, task content, and 4,096-token cap as
+Table~\ref{tab:iclr_public}. Empty \tbd{--} cells are pending runs, not zero results; no
+claim is made from this table in its current state. The reported main results are
+Table~\ref{tab:main_emnlp_promoted}.}
+\label{tab:iclr_matched}
+\vspace{2pt}
+\setlength{\tabcolsep}{4.2pt}
+\renewcommand{\arraystretch}{1.10}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l cc cc cc cc cc@{}}
+\toprule
+& \multicolumn{2}{c}{\textbf{GSM8K}}
+& \multicolumn{2}{c}{\textbf{MATH-500}}
+& \multicolumn{2}{c}{\textbf{OlympiadBench}}
+& \multicolumn{2}{c}{\textbf{AIME 2024}}
+& \multicolumn{2}{c}{\textbf{Macro avg.}} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}\cmidrule(lr){10-11}
+\textbf{Method} & Acc. & Tok. & Acc. & Tok. & Acc. & Tok. & Acc. & Tok. & Acc. & Tok. \\
+\midrule
+Stage-I SFT
+& 85.8 & 137 & 59.6 & 283
+& 19.6 & 604 & 3.3 & 1,080
+& 42.1 & 526 \\
+Outcome-only GRPO
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} \\
+LASER-D (matched)~\citep{liu2026laser}
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} \\
+Matched additive reward
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} \\
+\rowcolor{blue!6}
+\method (Choquet)
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}
+& \tbd{--} & \tbd{--} \\
+\bottomrule
+\end{tabular}%
+}
+
+\vspace{3pt}
+\parbox{\textwidth}{\footnotesize
+\emph{Note.} Accuracy intervals are Wilson; token and paired-difference intervals use item
+bootstrap. With one training run per row, neither measures training variance.
+\par}
+\end{table*}

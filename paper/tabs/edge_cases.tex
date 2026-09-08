@@ -1,0 +1,19 @@
+\begin{table*}[!t]
+\centering
+\caption{Representative false-positive edges from the held-out audit. Text is shortened only at sentence boundaries. The examples illustrate three distinct extraction failure modes.}
+\label{tab:edge_cases}
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabularx}{\textwidth}{@{}p{1.85cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X p{3.15cm}@{}}
+\toprule
+\textbf{Edge type} & \textbf{Earlier step} & \textbf{Later step} & \textbf{Why the edge is spurious} \\
+\midrule
+Variable reference & ``For $x=1$, plug in each integer root to determine $a$.'' & ``Thus, the possible values of $a$ are $\{-71,-27,-11,9\}$.'' & A shared symbol is insufficient to identify which case supplies the conclusion. \\
+\addlinespace[2pt]
+Order fallback & ``The quarters total $10\times\$0.25=\$2.50$.'' & ``The dimes total $12\times\$0.10=\$1.20$.'' & Adjacent calculations are parallel branches, not a support relation. \\
+\addlinespace[2pt]
+Expression reference & ``One hundred patches cost $100\times\$1.25=\$125$.'' & ``Selling 100 patches yields $100\times\$12=\$1{,}200$.'' & Reusing the count 100 does not make the cost calculation a premise of revenue. \\
+\bottomrule
+\end{tabularx}
+\end{table*}

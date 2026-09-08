@@ -1,0 +1,30 @@
+\begin{table}[H]
+\centering
+\small
+\caption{Frozen-encoder sensitivity on 120 source traces. One deterministic seed-0 perturbation is applied per trace; intervals are paired source-trace bootstrap 95\% intervals. $p_{\mathrm{real}}$ is the realized modified-edge fraction. Deltas are corrupted minus original.}
+\label{tab:edge_noise}
+\setlength{\tabcolsep}{3.8pt}
+\renewcommand{\arraystretch}{1.08}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+\textbf{Perturbation} & $p$ & $p_{\mathrm{real}}$ & $\Delta q_{\mathrm{dir}}$ & $\Delta q_{\mathrm{acyc}}$ & $\Delta$Cov. & $\Delta$Cycle mass \\
+\midrule
+Random edge deletion
+& .10 & .068 & $-.017\;[-.031,-.005]$ & $-.012\;[-.029,+.003]$ & $-.033$ & $-.006$ \\
+& .20 & .161 & $-.027\;[-.047,-.008]$ & $-.042\;[-.061,-.023]$ & $-.091$ & $-.006$ \\
+& .30 & .274 & $-.067\;[-.092,-.044]$ & $-.073\;[-.097,-.049]$ & $-.154$ & $-.005$ \\
+\midrule
+Random false-edge addition
+& .10 & .046 & $-.013\;[-.021,-.004]$ & $-.043\;[-.065,-.023]$ & $+.008$ & $+.048$ \\
+& .20 & .124 & $-.034\;[-.050,-.019]$ & $-.099\;[-.136,-.064]$ & $+.013$ & $+.111$ \\
+& .30 & .244 & $-.073\;[-.095,-.051]$ & $-.190\;[-.244,-.138]$ & $+.031$ & $+.217$ \\
+\midrule
+Random direction flip
+& .10 & .097 & $-.052\;[-.084,-.023]$ & $-.018\;[-.036,-.003]$ & $.000$ & $+.021$ \\
+& .20 & .214 & $-.104\;[-.153,-.057]$ & $-.034\;[-.064,-.006]$ & $.000$ & $+.037$ \\
+& .30 & .300 & $-.180\;[-.234,-.129]$ & $-.052\;[-.088,-.020]$ & $.000$ & $+.059$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

@@ -1,0 +1,23 @@
+\begin{table*}[!t]
+\centering
+\caption{Post-hoc rule sensitivity on the 120-trace primary audit. The guarded configuration was designed after inspecting these labels and is evaluated on the same sample; the changes are descriptive and are not attributed to the policies in Table~\ref{tab:main_results}.}
+\label{tab:edge_revision_effect}
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.10}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l ccc ccc c@{}}
+\toprule
+& \multicolumn{3}{c}{\textbf{Released extractor}} & \multicolumn{3}{c}{\textbf{Guarded extractor}} & \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+\textbf{Evidence type} & \textbf{TP} & \textbf{FP} & \textbf{Prec.} & \textbf{TP} & \textbf{FP} & \textbf{Prec.} & \textbf{$\Delta$Prec.} \\
+\midrule
+Expression reference & 49 & 34 & .590 & 49 & 34 & .590 & .000 \\
+Expression overlap & 19 & 11 & .633 & 19 & 11 & .633 & .000 \\
+Implicit block & 15 & 9 & .625 & 26 & 13 & .667 & +.042 \\
+Order fallback & 127 & 82 & .608 & 196 & 122 & .616 & +.009 \\
+Variable reference & 49 & 145 & .253 & 23 & 47 & .329 & +.076 \\
+\midrule
+\textbf{Overall} & 259 & 281 & .480 & \textbf{313} & \textbf{227} & \textbf{.580} & \textbf{+.100} \\
+\bottomrule
+\end{tabular*}
+\end{table*}

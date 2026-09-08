@@ -1,0 +1,35 @@
+% Requires: \usepackage{pifont} and \usepackage[table]{xcolor}
+% Reward component ablation on Qwen3-32B (in-domain critique set).
+\begin{table}[H]
+\centering
+\small
+\caption{Reward component ablation on \textbf{Qwen3-32B} over the in-domain
+critique validation set. Each configuration toggles the topology
+($r_{\mathrm{topo}}$) and continuity ($r_{\mathrm{cont}}$) signals on top of
+the outcome reward $r_{\mathrm{out}}$. \textbf{Avg} is the unweighted mean of
+Middle- and High-school accuracy; $\Delta$ denotes the gap relative to the
+full TopoPRM. Rows are sorted by Avg in ascending order to highlight the
+monotonic contribution of each component.}
+\label{tab:ablation_cross_scale}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.20}
+\begin{tabular}{@{}l ccc cc cr@{}}
+\toprule
+& \multicolumn{3}{c}{\textbf{Reward Components}}
+& \multicolumn{2}{c}{\textbf{Accuracy (\%)}}
+& & \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-6}
+\textbf{Configuration}
+  & $r_{\mathrm{out}}$ & $r_{\mathrm{topo}}$ & $r_{\mathrm{cont}}$
+  & Mid & High
+  & \textbf{Avg} & $\Delta$\,\, \\
+\midrule
+Outcome Only        & \ding{51} & \ding{55} & \ding{55} & 19.5 & 13.0 & 16.3 & $-13.0$ \\
+w/o Topology        & \ding{51} & \ding{55} & \ding{51} & 23.0 & 16.5 & 19.8 & $\phantom{0}-9.5$ \\
+w/o Continuity      & \ding{51} & \ding{51} & \ding{55} & 27.5 & 20.0 & 23.8 & $\phantom{0}-5.5$ \\
+\rowcolor{blue!8}
+\textbf{TopoPRM (Full)} & \ding{51} & \ding{51} & \ding{51}
+  & \textbf{33.0} & \textbf{25.5} & \textbf{29.3} & \,---\, \\
+\bottomrule
+\end{tabular}
+\end{table}

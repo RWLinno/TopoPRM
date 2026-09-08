@@ -59,8 +59,8 @@ class RewardConfig:
     TOPO_W_DIRECTION = env_float("TOPO_W_DIRECTION", 0.15)
     TOPO_W_STEP_ALIGN = env_float("TOPO_W_STEP_ALIGN", 0.10)
     TOPO_W_REF_EDGE_F1 = env_float("TOPO_W_REF_EDGE_F1", 0.25)
-    # Formula-aligned lambda terms for:
-    # r_topo = λ_b*I[|V|>0] + λ_a*I[acyclic] + λ_o*I[rho_orphan=0] + λ_d*delta + λ_k*kappa
+    # Formula-aligned terms: graph existence, coverage-adjusted acyclicity,
+    # no-orphan support, coverage-adjusted direction, and optional reference F1.
     TOPO_LAMBDA_BASE = env_float("TOPO_LAMBDA_BASE", TOPO_W_VALID)
     TOPO_LAMBDA_ACYCLIC = env_float("TOPO_LAMBDA_ACYCLIC", TOPO_W_ACYCLIC)
     TOPO_LAMBDA_ORPHAN = env_float("TOPO_LAMBDA_ORPHAN", TOPO_W_NO_ORPHAN)
@@ -124,6 +124,7 @@ class RewardConfig:
     DAG_LATEX_EXPR = env_bool("TOPO_DAG_LATEX_EXPR", False)
     DAG_BARRIER_STRICT = env_bool("TOPO_DAG_BARRIER_STRICT", False)
     DAG_BARRIER_MIN_OVERLAP = env_float("TOPO_DAG_BARRIER_MIN_OVERLAP", 0.20)
+    DAG_RAW_DIRECTED = env_bool("TOPO_DAG_RAW_DIRECTED", False)
 
     # Hybrid DAG extraction: rule-based bootstrap plus local pretrained-LLM
     # refinement for implicit semantic dependencies.  This is intended for

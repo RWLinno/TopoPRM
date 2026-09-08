@@ -1,0 +1,85 @@
+% \begin{table*}[!t]
+% \centering
+% \caption{Reward-source sensitivity across archived Qwen3.5-9B runs from a shared Stage-I initialization. Each benchmark cell reports pass@1 (\%) / mean visible tokens; the final columns report the four-task macro-average and mean response length. Bold and underlined values are the best and second-best, respectively, among post-training variants. The complete reward attains the highest average accuracy while producing the shortest responses.}
+% \label{tab:main_ablation}
+% \small
+% \setlength{\tabcolsep}{5.2pt}
+% \renewcommand{\arraystretch}{1.12}
+% \begin{tabular}{@{}l cc cc cc@{}}
+% \toprule
+% \multirow{2}{*}{\textbf{Reward configuration}}
+% & \multicolumn{4}{c}{\textbf{pass@1 $\uparrow$ / tokens $\downarrow$}}
+% & \multirow{2}{*}{\makecell{\textbf{Avg.}\\\scriptsize pass@1 $\uparrow$}}
+% & \multirow{2}{*}{\makecell{\textbf{Mean}\\\scriptsize tokens $\downarrow$}} \\
+% \cmidrule(lr){2-5}
+% & \textbf{GSM8K} & \textbf{MATH-500} & \textbf{OlympiadBench} & \textbf{AIME 2024} & & \\
+% \midrule
+% \rowcolor{black!4}
+% \multicolumn{7}{@{}l}{\textit{Stage-I reference}} \\
+% Base & 55.2 / 1{,}536 & 19.8 / 1{,}536 & 11.2 / 2{,}560 & 16.7 / 4{,}083 & 25.7 & 2{,}429 \\
+% \midrule
+% \rowcolor{black!4}
+% \multicolumn{7}{@{}l}{\textit{Post-training variants}} \\
+% Outcome Only
+% & \underline{93.3} / 1{,}047
+% & \underline{50.8} / 1{,}511
+% & \underline{31.3} / \underline{2{,}043}
+% & 16.7 / \underline{2{,}546}
+% & 48.0 & \underline{1{,}787} \\
+% w/o Topology
+% & 93.0 / \underline{946}
+% & \textbf{51.0} / \underline{1{,}506}
+% & 29.8 / 2{,}468
+% & \underline{20.0} / 2{,}560
+% & \underline{48.5} & 1{,}870 \\
+% w/o Continuity
+% & 51.0 / 1{,}528
+% & 21.6 / 1{,}536
+% & 8.2 / 2{,}560
+% & 6.7 / 2{,}560
+% & 21.9 & 2{,}046 \\
+% \rowcolor{blue!6}
+% \textbf{\method (Full)}
+% & \textbf{94.1} / \textbf{796}
+% & \textbf{51.0} / \textbf{1{,}454}
+% & \textbf{32.8} / \textbf{1{,}768}
+% & \textbf{30.0} / \textbf{2{,}431}
+% & \textbf{52.0} & \textbf{1{,}612} \\
+% \bottomrule
+% \end{tabular}
+% \end{table*}
+
+\begin{table}[H]
+\centering
+\caption{End-to-end ablation on Qwen3.5-9B from a shared Stage-I initialization. Cells report pass@1 (\%) / mean visible tokens; the last columns give the four-task macro-average and mean length. Gold/blue shading marks the TGD-matched control/Full.}
+\label{tab:main_ablation}
+\small
+\setlength{\tabcolsep}{3.4pt}
+\renewcommand{\arraystretch}{1.10}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l c c c c c c c@{}}
+\toprule
+\multirow{2}{*}{\textbf{Configuration}} & \multirow{2}{*}{\textbf{TGD}}
+& \multicolumn{4}{c}{\textbf{pass@1 $\uparrow$ / tokens $\downarrow$}}
+& \multirow{2}{*}{\makecell{\textbf{Avg.}\\[-1pt]\scriptsize pass@1 $\uparrow$}}
+& \multirow{2}{*}{\makecell{\textbf{Mean}\\[-1pt]\scriptsize tokens $\downarrow$}} \\
+\cmidrule(lr){3-6}
+& & \textbf{GSM8K} & \textbf{MATH-500} & \textbf{OlympiadBench} & \textbf{AIME 2024} & & \\
+\midrule
+\rowcolor{tablegroup}
+\multicolumn{8}{@{}l}{\textit{Stage-I reference}} \\
+Base & -- & 55.2 / 1{,}536 & 19.8 / 1{,}536 & 11.2 / 2{,}560 & 16.7 / 4{,}083 & 25.7 & 2{,}429 \\
+\midrule
+\rowcolor{tablegroup}
+\multicolumn{8}{@{}l}{\textit{Post-training variants}} \\
+Outcome Only & No & 93.3 / 1{,}047 & 50.8 / 1{,}511 & 31.3 / 2{,}043 & 16.7 / 2{,}546 & 48.0 & 1{,}787 \\
+w/o Topology & No & 93.0 / 946 & 51.0 / 1{,}506 & 29.8 / 2{,}468 & 20.0 / 2{,}560 & 48.5 & 1{,}870 \\
+w/o Continuity & No & 51.0 / 1{,}528 & 21.6 / 1{,}536 & 8.2 / 2{,}560 & 6.7 / 2{,}560 & 21.9 & 2{,}046 \\
+\rowcolor{tablematched}
+w/o ACE & Yes & 93.8 / 1{,}006 & 50.8 / 1{,}515 & 32.8 / 2{,}491 & 20.0 / 2{,}560 & 49.4 & 1{,}893 \\
+\rowcolor{tableours}
+\textbf{\method (Full)} & \textbf{Yes} & \textbf{94.1 / 796} & \textbf{51.0 / 1{,}454} & \textbf{32.8 / 1{,}768} & \textbf{30.0 / 2{,}431} & \textbf{52.0} & \textbf{1{,}612} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

@@ -1,0 +1,18 @@
+\begin{table}[!ht]
+\centering
+\caption{Cross-backbone check on 200 items per benchmark with Llama-3.1-8B-Instruct.}
+\label{tab:cross_backbone}
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.10}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lcccc@{}}
+\toprule
+& \multicolumn{2}{c}{\textbf{GSM8K}} & \multicolumn{2}{c}{\textbf{MATH-500}} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+\textbf{Policy reward} & \textbf{p@1} & \textbf{Tokens} & \textbf{p@1} & \textbf{Tokens} \\
+\midrule
+Outcome only & 85.0 & 1{,}008 & 46.5 & 3{,}823 \\
+\method      & 85.0 & 619 & 42.5 & 3{,}427 \\
+\bottomrule
+\end{tabular*}
+\end{table}

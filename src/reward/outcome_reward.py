@@ -3,8 +3,13 @@ from __future__ import annotations
 import re
 from typing import Any, Optional
 
-from math_verify import LatexExtractionConfig, parse, verify
 from swift.rewards import ORM, orms
+from src.eval.math_scoring import (
+    extract_last_boxed,
+    parse_answer_candidate,
+    verify_answer_equivalence,
+    verify_math_response,
+)
 from src.reward.utils import completion_to_text
 
 
@@ -21,17 +26,26 @@ class OutcomeReward(ORM):
     Returns 1.0 for correct, 0.0 for incorrect or unparseable.
     """
 
-    _BOXED_RE = re.compile(r"\\boxed\{([^}]*(?:\{[^}]*\}[^}]*)*)\}")
+    _BOXED_START_RE = re.compile(r"\\boxed\{")
     _LAST_NUM_RE = re.compile(r"(?:=\s*|is\s+|answer\s+is\s+)([-+]?\d*\.?\d+)")
     _PLAIN_NUM_RE = re.compile(r"([-+]?\d+\.?\d*)\s*$")
+
+    @classmethod
+    def _extract_last_boxed(cls, text: str) -> Optional[str]:
+        return extract_last_boxed(text)
+
+    @staticmethod
+    def _parse_answer_candidate(value: str) -> list:
+        """Parse a known final-answer candidate as one complete math object."""
+        return parse_answer_candidate(value)
 
     @classmethod
     def _extract_answer(cls, text: str) -> Optional[str]:
         """Extract the model's final answer from completion text."""
         # Priority 1: \\boxed{}
-        matches = cls._BOXED_RE.findall(text)
-        if matches:
-            return matches[-1].strip()
+        boxed = cls._extract_last_boxed(text)
+        if boxed is not None:
+            return boxed
         # Priority 2: "= X" or "answer is X" pattern
         matches = cls._LAST_NUM_RE.findall(text)
         if matches:
@@ -45,17 +59,12 @@ class OutcomeReward(ORM):
     @staticmethod
     def _verify_equivalence(prediction: str, ground_truth: str) -> bool:
         """Check mathematical equivalence using math_verify."""
-        config = LatexExtractionConfig(boxed_match_priority=0)
-        parsed_pred = parse(prediction, extraction_config=[config])
-        parsed_gt = parse(ground_truth, extraction_config=[config])
-        if parsed_pred and parsed_gt:
-            return verify(parsed_pred, parsed_gt)
-        # Fallback: direct string comparison after normalization
-        pred_clean = prediction.strip().rstrip(".").strip()
-        gt_clean = ground_truth.strip().rstrip(".").strip()
-        return pred_clean == gt_clean
+        return verify_answer_equivalence(prediction, ground_truth)
 
-    _DEBUG_LOGGED: bool = False
+    @staticmethod
+    def verify_math_response(response: str, ground_truth: str) -> bool:
+        """Score the final non-empty box or an explicit final-answer region."""
+        return verify_math_response(response, ground_truth)
 
     def __call__(
         self,
@@ -64,13 +73,6 @@ class OutcomeReward(ORM):
         **kwargs: Any,
     ) -> list[float]:
         """Return 1.0 for correct answer, 0.0 otherwise."""
-        if not OutcomeReward._DEBUG_LOGGED:
-            OutcomeReward._DEBUG_LOGGED = True
-            print(f"[OutcomeReward DEBUG] solution type={type(solution).__name__}, "
-                  f"value={str(solution)[:200]}", flush=True)
-            if completions:
-                sample = completion_to_text(completions[0])
-                print(f"[OutcomeReward DEBUG] completion[0]={sample[:200]}", flush=True)
         if solution is None:
             return [0.0] * len(completions)
 

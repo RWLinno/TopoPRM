@@ -1,0 +1,550 @@
+\begin{thebibliography}{66}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Agarwal et~al.(2024)Agarwal, Vieillard, Zhou, Stanczyk, Ramos, Geist,
+  and Bachem]{agarwal2024gkd}
+Rishabh Agarwal, Nino Vieillard, Yongchao Zhou, Piotr Stanczyk, Sabela Ramos,
+  Matthieu Geist, and Olivier Bachem.
+\newblock On-policy distillation of language models: Learning from
+  self-generated mistakes.
+\newblock In \emph{International Conference on Learning Representations}, 2024.
+
+\bibitem[Aggarwal \& Welleck(2025)Aggarwal and Welleck]{aggarwal2025l1}
+Pranjal Aggarwal and Sean Welleck.
+\newblock L1: Controlling how long a reasoning model thinks with reinforcement
+  learning.
+\newblock \emph{arXiv preprint arXiv:2503.04697}, 2025.
+
+\bibitem[Arora \& Zanette(2025)Arora and Zanette]{arora2026training}
+Daman Arora and Andrea Zanette.
+\newblock Training language models to reason efficiently.
+\newblock \emph{Advances in Neural Information Processing Systems},
+  38:\penalty0 60770--60808, 2025.
+
+\bibitem[Besta et~al.(2024)Besta, Blach, Kubicek, Gerstenberger, Podstawski,
+  Gianinazzi, Gajda, Lehmann, Nyczyk, Copik, and Hoefler]{besta2024graph}
+Maciej Besta, Nils Blach, Ales Kubicek, Robert Gerstenberger, Michal
+  Podstawski, Lukas Gianinazzi, Joanna Gajda, Tomasz Lehmann, Hubert Nyczyk,
+  Marcin Copik, and Torsten Hoefler.
+\newblock Graph of thoughts: Solving elaborate problems with large language
+  models.
+\newblock \emph{Proceedings of the AAAI Conference on Artificial Intelligence},
+  38\penalty0 (16):\penalty0 17682--17690, 2024.
+
+\bibitem[Cobbe et~al.(2021)Cobbe, Kosaraju, Bavarian, Chen, Jun, Kaiser,
+  Plappert, Tworek, Hilton, Nakano, Hesse, and Schulman]{cobbe2021gsm8k}
+Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz
+  Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano,
+  Christopher Hesse, and John Schulman.
+\newblock Training verifiers to solve math word problems.
+\newblock \emph{arXiv preprint arXiv:2110.14168}, 2021.
+
+\bibitem[Cui et~al.(2026)Cui, Yuan, Wang, Wang, Zhang, Chen, Li, He, Fan, Yu,
+  Xu, Chen, Yuan, Chen, Zhang, Lv, Wang, Yao, Han, Peng, Cheng, Liu, Sun, Zhou,
+  and Ding]{cui2026prime}
+Ganqu Cui, Lifan Yuan, Zefan Wang, Hanbin Wang, Yuchen Zhang, Jiacheng Chen,
+  Wendi Li, Bingxiang He, Yuchen Fan, Tianyu Yu, Qixin Xu, Weize Chen, Jiarui
+  Yuan, Huayu Chen, Kaiyan Zhang, Xingtai Lv, Shuo Wang, Yuan Yao, Xu~Han, Hao
+  Peng, Yu~Cheng, Zhiyuan Liu, Maosong Sun, Bowen Zhou, and Ning Ding.
+\newblock Process reinforcement through implicit rewards.
+\newblock \emph{Transactions on Machine Learning Research}, 2026.
+\newblock URL \url{https://openreview.net/forum?id=lNGCIHWARF}.
+
+\bibitem[{DeepSeek-AI}(2025)]{deepseekr1}
+{DeepSeek-AI}.
+\newblock {DeepSeek-R1}: Incentivizing reasoning capability in {LLMs} via
+  reinforcement learning.
+\newblock \emph{arXiv preprint arXiv:2501.12948}, 2025.
+
+\bibitem[Gao et~al.(2024{\natexlab{a}})Gao, Song, Yang, Cai, Miao, Dong, Li,
+  Ma, Chen, Xu, et~al.]{gao2024omnimath}
+Bofei Gao, Feifan Song, Zhe Yang, Zefan Cai, Yibo Miao, Qingxiu Dong, Lei Li,
+  Chenghao Ma, Liang Chen, Runxin Xu, et~al.
+\newblock {Omni-MATH}: A universal olympiad-level mathematics benchmark for
+  large language models.
+\newblock \emph{arXiv preprint arXiv:2410.07985}, 2024{\natexlab{a}}.
+\newblock URL \url{https://arxiv.org/abs/2410.07985}.
+
+\bibitem[Gao et~al.(2024{\natexlab{b}})Gao, Xu, Ye, Liu, He, Fu, Mei, Wang, and
+  Wu]{gao2024designing}
+Jiaxuan Gao, Shusheng Xu, Wenjie Ye, Weilin Liu, Chuyi He, Wei Fu, Zhiyu Mei,
+  Guangju Wang, and Yi~Wu.
+\newblock On designing effective {RL} reward at training time for {LLM}
+  reasoning.
+\newblock \emph{arXiv preprint arXiv:2410.15115}, 2024{\natexlab{b}}.
+\newblock URL \url{https://arxiv.org/abs/2410.15115}.
+
+\bibitem[Gao et~al.(2023)Gao, Schulman, and Hilton]{gao2023scaling}
+Leo Gao, John Schulman, and Jacob Hilton.
+\newblock Scaling laws for reward model overoptimization.
+\newblock In \emph{International Conference on Machine Learning}, pp.\
+  10835--10866. PMLR, 2023.
+
+\bibitem[Grattafiori et~al.(2024)Grattafiori, Dubey, Jauhri, Pandey, Kadian,
+  Al-Dahle, Letman, Mathur, Schelten, Vaughan, et~al.]{grattafiori2024llama}
+Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek
+  Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Alex
+  Vaughan, et~al.
+\newblock The llama 3 herd of models.
+\newblock \emph{arXiv preprint arXiv:2407.21783}, 2024.
+
+\bibitem[Gu et~al.(2024)Gu, Dong, Wei, and Huang]{minillm2023}
+Yuxian Gu, Li~Dong, Furu Wei, and Minlie Huang.
+\newblock {MiniLLM}: Knowledge distillation of large language models.
+\newblock In \emph{International Conference on Learning Representations}, 2024.
+
+\bibitem[He et~al.(2024)He, Luo, Bai, Hu, Thai, Shen, Hu, Xu, Huang, Zhang,
+  Liu, Qi, Liu, and Sun]{he2024olympiadbench}
+Chaoqun He, Renjie Luo, Yuzhuo Bai, Shengding Hu, Zhen Thai, Junhao Shen, Jinyi
+  Hu, Han Xu, Yujie Huang, Yuxiang Zhang, Jie Liu, Lei Qi, Zhiyuan Liu, and
+  Maosong Sun.
+\newblock {OlympiadBench}: A challenging benchmark for promoting {AGI} with
+  olympiad-level bilingual multimodal scientific problems.
+\newblock In \emph{Proceedings of the 62nd Annual Meeting of the Association
+  for Computational Linguistics (Volume 1: Long Papers)}, pp.\  3828--3850,
+  2024.
+\newblock \doi{10.18653/v1/2024.acl-long.211}.
+\newblock URL \url{https://aclanthology.org/2024.acl-long.211/}.
+
+\bibitem[Hendrycks et~al.(2020)Hendrycks, Burns, Basart, Zou, Mazeika, Song,
+  and Steinhardt]{hendrycks2020mmlu}
+Dan Hendrycks, Collin Burns, Steven Basart, Andy Zou, Mantas Mazeika, Dawn
+  Song, and Jacob Steinhardt.
+\newblock Measuring massive multitask language understanding.
+\newblock \emph{arXiv preprint arXiv:2009.03300}, 2020.
+\newblock URL \url{https://arxiv.org/abs/2009.03300}.
+
+\bibitem[Hendrycks et~al.(2021)Hendrycks, Burns, Kadavath, Arora, Basart, Tang,
+  Song, and Steinhardt]{hendrycks2021math}
+Dan Hendrycks, Collin Burns, Saurav Kadavath, Akul Arora, Steven Basart, Eric
+  Tang, Dawn Song, and Jacob Steinhardt.
+\newblock Measuring mathematical problem solving with the {MATH} dataset.
+\newblock \emph{Advances in Neural Information Processing Systems, Datasets and
+  Benchmarks Track}, 34, 2021.
+\newblock URL \url{https://openreview.net/forum?id=7Bywt2mQsCe}.
+
+\bibitem[Hinton et~al.(2015)Hinton, Vinyals, and Dean]{hinton2015distilling}
+Geoffrey Hinton, Oriol Vinyals, and Jeff Dean.
+\newblock Distilling the knowledge in a neural network.
+\newblock \emph{arXiv preprint arXiv:1503.02531}, 2015.
+
+\bibitem[Hu et~al.(2022)Hu, Shen, Wallis, Allen-Zhu, Li, Wang, Wang, and
+  Chen]{hu2022lora}
+Edward~J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean
+  Wang, Lu~Wang, and Weizhu Chen.
+\newblock {LoRA}: Low-rank adaptation of large language models.
+\newblock \emph{International Conference on Learning Representations}, 2022.
+\newblock URL \url{https://openreview.net/forum?id=nZeVKeeFYf9}.
+
+\bibitem[Hu et~al.(2025)Hu, Zhang, Han, Jiang, Zhang, and Shum]{hu2026open}
+Jingcheng Hu, Yinmin Zhang, Qi~Han, Daxin Jiang, Xiangyu Zhang, and Heung-Yeung
+  Shum.
+\newblock Open-reasoner-zero: An open source approach to scaling up
+  reinforcement learning on the base model.
+\newblock \emph{Advances in Neural Information Processing Systems},
+  38:\penalty0 162239--162262, 2025.
+
+\bibitem[Kazemnejad et~al.(2025)Kazemnejad, Aghajohari, Portelance, Sordoni,
+  Reddy, Courville, and Le~Roux]{kazemnejad2025vineppo}
+Amirhossein Kazemnejad, Milad Aghajohari, Eva Portelance, Alessandro Sordoni,
+  Siva Reddy, Aaron Courville, and Nicolas Le~Roux.
+\newblock {VinePPO}: Refining credit assignment in {RL} training of {LLM}s.
+\newblock In \emph{Proceedings of the 42nd International Conference on Machine
+  Learning}, 2025.
+
+\bibitem[Ke et~al.(2025)Ke, Jiao, Ming, Nguyen, Xu, Long, Li, Qin, Wang,
+  Savarese, Xiong, and Joty]{ke2026com}
+Zixuan Ke, Fangkai Jiao, Yifei Ming, Xuan-Phi Nguyen, Austin Xu, Do~Xuan Long,
+  Minzhi Li, Chengwei Qin, Peifeng Wang, Silvio Savarese, Caiming Xiong, and
+  Shafiq Joty.
+\newblock A survey of frontiers in llm reasoning: Inference scaling, learning
+  to reason, and agentic systems, 2025.
+\newblock URL \url{https://arxiv.org/abs/2504.09037}.
+
+\bibitem[Khalifa et~al.(2025)Khalifa, Agarwal, Logeswaran, Kim, Peng, Lee, Lee,
+  and Wang]{thinkprm2025}
+Muhammad Khalifa, Rishabh Agarwal, Lajanugen Logeswaran, Jaekyeom Kim, Hao
+  Peng, Moontae Lee, Honglak Lee, and Lu~Wang.
+\newblock Process reward models that think.
+\newblock \emph{arXiv preprint arXiv:2504.16828}, 2025.
+
+\bibitem[Ko et~al.(2024)Ko, Kim, Chen, and Yun]{ko2024distillm}
+Jongwoo Ko, Sungnyun Kim, Tianyi Chen, and Se-Young Yun.
+\newblock Distillm: Towards streamlined distillation for large language models.
+\newblock \emph{arXiv preprint arXiv:2402.03898}, 2024.
+
+\bibitem[Kojima et~al.(2022)Kojima, Gu, Reid, Matsuo, and
+  Iwasawa]{kojima2022large}
+Takeshi Kojima, Shixiang~Shane Gu, Machel Reid, Yutaka Matsuo, and Yusuke
+  Iwasawa.
+\newblock Large language models are zero-shot reasoners.
+\newblock \emph{Advances in neural information processing systems},
+  35:\penalty0 22199--22213, 2022.
+
+\bibitem[Lambert et~al.(2024)Lambert, Morrison, Pyatkin, Huang, Ivison,
+  Brahman, Miranda, Liu, Dziri, Lyu, Gu, Malik, Graf, Hwang, Yang, Bras,
+  Tafjord, Wilhelm, Soldaini, Smith, Wang, Dasigi, and
+  Hajishirzi]{lambert2024tulu3}
+Nathan Lambert, Jacob Morrison, Valentina Pyatkin, Shengyi Huang, Hamish
+  Ivison, Faeze Brahman, Lester James~V Miranda, Alisa Liu, Nouha Dziri, Xinxi
+  Lyu, Yuling Gu, Saumya Malik, Victoria Graf, Jena~D Hwang, Jiangjiang Yang,
+  Ronan~Le Bras, Oyvind Tafjord, Chris Wilhelm, Luca Soldaini, Noah~A Smith,
+  Yizhong Wang, Pradeep Dasigi, and Hannaneh Hajishirzi.
+\newblock {T\"ulu} 3: Pushing frontiers in open language model post-training.
+\newblock \emph{arXiv preprint arXiv:2411.15124}, 2024.
+
+\bibitem[Lightman et~al.(2023)Lightman, Kosaraju, Burda, Edwards, Baker, Lee,
+  Leike, Schulman, Sutskever, and Cobbe]{lightman2023lets}
+Hunter Lightman, Vineet Kosaraju, Yura Burda, Harrison Edwards, Bowen Baker,
+  Teddy Lee, Jan Leike, John Schulman, Ilya Sutskever, and Karl Cobbe.
+\newblock Let's verify step by step.
+\newblock \emph{arXiv preprint arXiv:2305.20050}, 2023.
+
+\bibitem[Liu et~al.(2026)Liu, Ou, Ma, Wang, Liang, Li, He, Chu, Mu, Wang,
+  et~al.]{liu2026graph}
+Runxuan Liu, Xianhao Ou, Xinyan Ma, Jiyuan Wang, Jiafeng Liang, Jiaqi Li, Tao
+  He, Zheng Chu, Rongchuan Mu, Zekun Wang, et~al.
+\newblock Graph reasoning paradigm: Structured and symbolic reasoning with
+  topology-aware reinforcement learning for large language models.
+\newblock In \emph{Proceedings of the 64th Annual Meeting of the Association
+  for Computational Linguistics (Volume 1: Long Papers)}, 2026.
+\newblock URL \url{https://aclanthology.org/2026.acl-long.1660/}.
+
+\bibitem[Lu et~al.(2024)Lu, Dou, Wang, Cao, Dai, Wan, Feng, and
+  Guo]{lu2024autopsv}
+Jianqiao Lu, Zhiyang Dou, Hongru Wang, Zeyu Cao, Jianbo Dai, Yingjia Wan,
+  Yunlong Feng, and Zhijiang Guo.
+\newblock Autopsv: Automated process-supervised verifier.
+\newblock \emph{Advances in Neural Information Processing Systems},
+  37:\penalty0 79935--79962, 2024.
+
+\bibitem[Luo et~al.(2025)Luo, Shen, He, Wang, Liu, Li, Tan, Cao, and
+  Tao]{luo2025o1}
+Haotian Luo, Li~Shen, Haiying He, Yibo Wang, Shiwei Liu, Wei Li, Naiqiang Tan,
+  Xiaochun Cao, and Dacheng Tao.
+\newblock O1-pruner: Length-harmonizing fine-tuning for o1-like reasoning
+  pruning.
+\newblock \emph{arXiv preprint arXiv:2501.12570}, 2025.
+
+\bibitem[Luo et~al.(2024)Luo, Liu, Liu, Phatale, Guo, Lara, Li, Shu, Zhu, Meng,
+  Sun, and Rastogi]{luo2024omegaprm}
+Liangchen Luo, Yinxiao Liu, Rosanne Liu, Samrat Phatale, Meiqi Guo, Harsh Lara,
+  Yunxuan Li, Lei Shu, Yun Zhu, Lei Meng, Jiao Sun, and Abhinav Rastogi.
+\newblock Improve mathematical reasoning in language models by automated
+  process supervision.
+\newblock \emph{arXiv preprint arXiv:2406.06592}, 2024.
+\newblock URL \url{https://arxiv.org/abs/2406.06592}.
+
+\bibitem[Muennighoff et~al.(2025)Muennighoff, Yang, Shi, Li, Fei-Fei,
+  Hajishirzi, Zettlemoyer, Liang, Cand{\`e}s, and Hashimoto]{muennighoff2025s1}
+Niklas Muennighoff, Zitong Yang, Weijia Shi, Xiang~Lisa Li, Li~Fei-Fei,
+  Hannaneh Hajishirzi, Luke Zettlemoyer, Percy Liang, Emmanuel Cand{\`e}s, and
+  Tatsunori~B Hashimoto.
+\newblock s1: Simple test-time scaling.
+\newblock In \emph{Proceedings of the 2025 Conference on Empirical Methods in
+  Natural Language Processing}, pp.\  20275--20321, 2025.
+\newblock \doi{10.18653/v1/2025.emnlp-main.1025}.
+\newblock URL \url{https://aclanthology.org/2025.emnlp-main.1025/}.
+
+\bibitem[Mukherjee et~al.(2025)Mukherjee, Chinta, Kim, Sharma, and
+  Hakkani-T{\"u}r]{mukherjee2025parc}
+Sagnik Mukherjee, Abhinav Chinta, Takyoung Kim, Tarun~Anoop Sharma, and Dilek
+  Hakkani-T{\"u}r.
+\newblock Premise-augmented reasoning chains improve error identification in
+  math reasoning with {LLM}s.
+\newblock In \emph{Proceedings of the 42nd International Conference on Machine
+  Learning}, volume 267 of \emph{Proceedings of Machine Learning Research},
+  pp.\  45109--45128, 2025.
+\newblock URL \url{https://proceedings.mlr.press/v267/mukherjee25a.html}.
+
+\bibitem[Ouyang et~al.(2022)Ouyang, Wu, Jiang, Almeida, Wainwright, Mishkin,
+  Zhang, Agarwal, Slama, Ray, Schulman, Hilton, Kelton, Miller, Simens, Askell,
+  Welinder, Christiano, Leike, and Lowe]{ouyang2022training}
+Long Ouyang, Jeffrey Wu, Xu~Jiang, Diogo Almeida, Carroll~L Wainwright, Pamela
+  Mishkin, Chong Zhang, Sandhini Agarwal, Katarina Slama, Alex Ray, John
+  Schulman, Jacob Hilton, Fraser Kelton, Luke Miller, Maddie Simens, Amanda
+  Askell, Peter Welinder, Paul Christiano, Jan Leike, and Ryan Lowe.
+\newblock Training language models to follow instructions with human feedback.
+\newblock \emph{Advances in Neural Information Processing Systems},
+  35:\penalty0 27730--27744, 2022.
+
+\bibitem[Peng et~al.(2025)Peng, Chen, Suo, and Li]{peng2025graphprm}
+Miao Peng, Nuo Chen, Zongrui Suo, and Jia Li.
+\newblock Rewarding graph reasoning process makes {LLM}s more generalized
+  reasoners.
+\newblock \emph{arXiv preprint arXiv:2503.00845}, 2025.
+\newblock URL \url{https://arxiv.org/abs/2503.00845}.
+
+\bibitem[{Qwen Team}(2026{\natexlab{a}})]{qwen35team2026}
+{Qwen Team}.
+\newblock {Qwen3.5-9B} model card.
+\newblock Hugging Face model release, 2026{\natexlab{a}}.
+\newblock URL \url{https://huggingface.co/Qwen/Qwen3.5-9B}.
+
+\bibitem[{Qwen Team}(2026{\natexlab{b}})]{qwen35team2026_2b}
+{Qwen Team}.
+\newblock {Qwen3.5-2B} model card.
+\newblock Hugging Face model release, 2026{\natexlab{b}}.
+\newblock URL \url{https://huggingface.co/Qwen/Qwen3.5-2B}.
+
+\bibitem[{Qwen Team}(2026{\natexlab{c}})]{qwen35team2026_4b}
+{Qwen Team}.
+\newblock {Qwen3.5-4B} model card.
+\newblock Hugging Face model release, 2026{\natexlab{c}}.
+\newblock URL \url{https://huggingface.co/Qwen/Qwen3.5-4B}.
+
+\bibitem[Rein et~al.(2023)Rein, Hou, Stickland, Petty, Pang, Dirani, Michael,
+  and Bowman]{rein2023gpqa}
+David Rein, Betty~Li Hou, Asa~Cooper Stickland, Jackson Petty, Richard~Yuanzhe
+  Pang, Julien Dirani, Julian Michael, and Samuel~R. Bowman.
+\newblock {GPQA}: A graduate-level google-proof {Q\&A} benchmark.
+\newblock \emph{arXiv preprint arXiv:2311.12022}, 2023.
+\newblock URL \url{https://arxiv.org/abs/2311.12022}.
+
+\bibitem[Sessa et~al.(2024)Sessa, Dadashi, Hussenot, Ferret, Vieillard,
+  Ram{\'e}, Shahriari, Shariari, Perrin, Friesen, Cideron, Girgin, Stanczyk,
+  Michi, Sinopalnikov, Ramos, Riviere, Lin, Hadfield-Menell, Munos, Pietquin,
+  and Bachem]{sessa2024bond}
+Pier~Giuseppe Sessa, Robert Dadashi, L{\'e}onard Hussenot, Johan Ferret, Nino
+  Vieillard, Alexandre Ram{\'e}, Bobak Shahriari, Sarah Shariari, Sertan
+  Perrin, Abe Friesen, Geoffrey Cideron, Sertan Girgin, Piotr Stanczyk, Andrea
+  Michi, Danila Sinopalnikov, Sabela Ramos, Morgane Riviere, Joaquin Lin, Dylan
+  Hadfield-Menell, R{\'e}mi Munos, Olivier Pietquin, and Olivier Bachem.
+\newblock {BOND}: Aligning {LLM}s with best-of-{N} distillation.
+\newblock \emph{arXiv preprint arXiv:2407.14622}, 2024.
+
+\bibitem[Shao et~al.(2024)Shao, Wang, Zhu, Xu, Song, Bi, Zhang, Zhang, Li, Wu,
+  and Guo]{shao2024deepseekmath}
+Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao Song, Xiao Bi, Haowei
+  Zhang, Mingchuan Zhang, Y~K Li, Y~Wu, and Daya Guo.
+\newblock {DeepSeekMath}: Pushing the limits of mathematical reasoning in open
+  language models.
+\newblock \emph{arXiv preprint arXiv:2402.03300}, 2024.
+
+\bibitem[She et~al.(2025)She, Liu, Liu, Chen, Huang, and Huang]{she2025rprm}
+Shuaijie She, Junxiao Liu, Yifeng Liu, Jiajun Chen, Xin Huang, and Shujian
+  Huang.
+\newblock {R-PRM}: Reasoning-driven process reward modeling.
+\newblock In \emph{Proceedings of the 2025 Conference on Empirical Methods in
+  Natural Language Processing}, pp.\  13438--13451, 2025.
+\newblock URL \url{https://aclanthology.org/2025.emnlp-main.679/}.
+
+\bibitem[Skalse et~al.(2022)Skalse, Howe, Krasheninnikov, and
+  Krueger]{skalse2022defining}
+Joar Skalse, Nikolaus Howe, Dmitrii Krasheninnikov, and David Krueger.
+\newblock Defining and characterizing reward gaming.
+\newblock \emph{Advances in Neural Information Processing Systems},
+  35:\penalty0 9460--9471, 2022.
+
+\bibitem[Snell et~al.(2024)Snell, Lee, Xu, and Kumar]{snell2024com}
+Charlie Snell, Jaehoon Lee, Kelvin Xu, and Aviral Kumar.
+\newblock Scaling llm test-time compute optimally can be more effective than
+  scaling model parameters, 2024.
+\newblock URL \url{https://arxiv.org/abs/2408.03314}.
+
+\bibitem[Song et~al.(2025)Song, Su, Qu, Zhou, and Cheng]{song2025prmbench}
+Mingyang Song, Zhaochen Su, Xiaoye Qu, Jiawei Zhou, and Yu~Cheng.
+\newblock {PRMBench}: A fine-grained and challenging benchmark for
+  process-level reward models.
+\newblock In \emph{Proceedings of the 63rd Annual Meeting of the Association
+  for Computational Linguistics}, 2025.
+
+\bibitem[Uesato et~al.(2022)Uesato, Kushman, Kumar, Song, Siegel, Wang,
+  Creswell, Irving, and Higgins]{uesato2022solving}
+Jonathan Uesato, Nate Kushman, Ramana Kumar, Francis Song, Noah Siegel, Lisa
+  Wang, Antonia Creswell, Geoffrey Irving, and Irina Higgins.
+\newblock Solving math word problems with process-and outcome-based feedback.
+\newblock \emph{arXiv preprint arXiv:2211.14275}, 2022.
+
+\bibitem[Wang et~al.(2025)Wang, Cai, Zhong, Huang, Pan, Liu, and
+  Wong]{wang2025com}
+Hongru Wang, Deng Cai, Wanjun Zhong, Shijue Huang, Jeff~Z. Pan, Zeming Liu, and
+  Kam-Fai Wong.
+\newblock Self-reasoning language models: Unfold hidden reasoning chains with
+  few reasoning catalyst, 2025.
+\newblock URL \url{https://arxiv.org/abs/2505.14116}.
+
+\bibitem[Wang et~al.(2024)Wang, Li, Shao, Xu, Dai, Li, Chen, Wu, and
+  Sui]{wang2024math}
+Peiyi Wang, Lei Li, Zhihong Shao, Runxin Xu, Damai Dai, Yifei Li, Deli Chen,
+  Yu~Wu, and Zhifang Sui.
+\newblock Math-shepherd: Verify and reinforce llms step-by-step without human
+  annotations.
+\newblock In \emph{Proceedings of the 62nd Annual Meeting of the Association
+  for Computational Linguistics (Volume 1: Long Papers)}, pp.\  9426--9439,
+  2024.
+\newblock \doi{10.18653/v1/2024.acl-long.510}.
+\newblock URL \url{https://aclanthology.org/2024.acl-long.510/}.
+
+\bibitem[Wei et~al.(2022)Wei, Wang, Schuurmans, Bosma, Ichter, Xia, Chi, Le,
+  and Zhou]{wei2022chain}
+Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Brian Ichter, Fei Xia,
+  Ed~H Chi, Quoc~V Le, and Denny Zhou.
+\newblock Chain-of-thought prompting elicits reasoning in large language
+  models.
+\newblock \emph{Advances in Neural Information Processing Systems},
+  35:\penalty0 24824--24837, 2022.
+
+\bibitem[Wen et~al.(2026)Wen, Huang, Li, Li, Zhong, Xu, Yuan, Huang, and
+  Xu]{wen2026scaffolding}
+Xiangyu Wen, Junhua Huang, Zeju Li, Min Li, Jianyuan Zhong, Zhijian Xu,
+  Mingxuan Yuan, Yongxiang Huang, and Qiang Xu.
+\newblock Reasoning scaffolding: Distilling the flow of thought from {LLM}s.
+\newblock In \emph{International Conference on Learning Representations}, pp.\
+  80433--80459, 2026.
+\newblock URL
+  \url{https://proceedings.iclr.cc/paper_files/paper/2026/file/8248b1ded388fcdbbd121bcdfea3068c-Paper-Conference.pdf}.
+
+\bibitem[Xia et~al.(2025)Xia, Leong, Wang, Li, and Li]{xia2025tokenskip}
+Heming Xia, Chak~Tou Leong, Wenjie Wang, Yongqi Li, and Wenjie Li.
+\newblock Tokenskip: Controllable chain-of-thought compression in llms.
+\newblock In \emph{Proceedings of the 2025 Conference on Empirical Methods in
+  Natural Language Processing}, pp.\  3351--3363, 2025.
+\newblock \doi{10.18653/v1/2025.emnlp-main.165}.
+\newblock URL \url{https://aclanthology.org/2025.emnlp-main.165/}.
+
+\bibitem[Xu et~al.(2025)Xu, Zhu, Deng, Li, Hou, Wang, Shang, Xu, and
+  Mi]{xu2025kdrl}
+Hongling Xu, Qi~Zhu, Heyuan Deng, Jinpeng Li, Lu~Hou, Yasheng Wang, Lifeng
+  Shang, Ruifeng Xu, and Fei Mi.
+\newblock {KDRL}: Post-training reasoning {LLM}s via unified knowledge
+  distillation and reinforcement learning.
+\newblock \emph{arXiv preprint arXiv:2506.02208}, 2025.
+\newblock URL \url{https://arxiv.org/abs/2506.02208}.
+
+\bibitem[Yang et~al.(2024{\natexlab{a}})Yang, Yang, Zhang, Hui, Zheng, Yu, Li,
+  Liu, Huang, Wei, et~al.]{yang2024qwen2_5}
+An~Yang, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo~Zheng, Bowen Yu,
+  Chengyuan Li, Dayiheng Liu, Fei Huang, Haoran Wei, et~al.
+\newblock Qwen2.5 technical report.
+\newblock \emph{arXiv preprint arXiv:2412.15115}, 2024{\natexlab{a}}.
+
+\bibitem[Yang et~al.(2024{\natexlab{b}})Yang, Zhang, Hui, Gao, Yu, Li, Liu, Tu,
+  Zhou, Lin, et~al.]{yang2024qwen2}
+An~Yang, Beichen Zhang, Binyuan Hui, Bofei Gao, Bowen Yu, Chengpeng Li,
+  Dayiheng Liu, Jianhong Tu, Jingren Zhou, Junyang Lin, et~al.
+\newblock Qwen2. 5-math technical report: Toward mathematical expert model via
+  self-improvement.
+\newblock \emph{arXiv preprint arXiv:2409.12122}, 2024{\natexlab{b}}.
+
+\bibitem[Yang et~al.(2026)Yang, Liu, Xie, Yang, Yang, and Lin]{yang2026exopd}
+Wenkai Yang, Weijie Liu, Ruobing Xie, Kai Yang, Saiyong Yang, and Yankai Lin.
+\newblock Learning beyond teacher: Generalized on-policy distillation with
+  reward extrapolation.
+\newblock \emph{arXiv preprint arXiv:2602.12125}, 2026.
+
+\bibitem[Yao et~al.(2023)Yao, Yu, Zhao, Shafran, Griffiths, Cao, and
+  Narasimhan]{yao2023tree}
+Shunyu Yao, Dian Yu, Jeffrey Zhao, Izhak Shafran, Tom Griffiths, Yuan Cao, and
+  Karthik Narasimhan.
+\newblock Tree of thoughts: Deliberate problem solving with large language
+  models.
+\newblock \emph{Advances in neural information processing systems},
+  36:\penalty0 11809--11822, 2023.
+
+\bibitem[Ye et~al.(2025)Ye, Dong, Chi, Wu, Huang, and Wei]{ye2025gad}
+Tianzhu Ye, Li~Dong, Zewen Chi, Xun Wu, Shaohan Huang, and Furu Wei.
+\newblock Black-box on-policy distillation of large language models.
+\newblock \emph{arXiv preprint arXiv:2511.10643}, 2025.
+
+\bibitem[Yeo et~al.(2025)Yeo, Tong, Niu, Neubig, and Yue]{yeo2025demystify}
+Edward Yeo, Yuxuan Tong, Xinyao Niu, Graham Neubig, and Xiang Yue.
+\newblock Demystifying long chain-of-thought reasoning in {LLM}s.
+\newblock \emph{arXiv preprint arXiv:2502.03373}, 2025.
+
+\bibitem[Yu et~al.(2025)Yu, Zhang, Zhu, Yuan, Zuo, Yue, Fan, Liu, Liu, Liu,
+  Lin, Lin, Ma, Sheng, Tong, Zhang, Zhang, Zhang, Zhu, Zhu, Chen, Chen, Wang,
+  Yu, Dai, Song, Wei, Zhou, Liu, Ma, Zhang, Yan, Qiao, Wu, and
+  Wang]{yu2025dapo}
+Qiying Yu, Zheng Zhang, Ruofei Zhu, Yufeng Yuan, Xiaochen Zuo, Yu~Yue, Tiantian
+  Fan, Gaohong Liu, Lingjun Liu, Xin Liu, Haibin Lin, Zhiqi Lin, Bole Ma,
+  Guangming Sheng, Yuxuan Tong, Chi Zhang, Mofan Zhang, Wang Zhang, Hang Zhu,
+  Jinhua Zhu, Jiaze Chen, Jiangjie Chen, Chengyi Wang, Hongli Yu, Weinan Dai,
+  Yuxuan Song, Xiangpeng Wei, Hao Zhou, Jingjing Liu, Wei-Ying Ma, Ya-Qin
+  Zhang, Lin Yan, Mu~Qiao, Yonghui Wu, and Mingxuan Wang.
+\newblock {DAPO}: An open-source {LLM} reinforcement learning system at scale.
+\newblock \emph{arXiv preprint arXiv:2503.14476}, 2025.
+
+\bibitem[Yuan et~al.(2026)Yuan, He, Shao, He, Xue, Chen, Pan, Wang, and
+  Li]{yuan2026graphpruning}
+Hongyuan Yuan, Xinran He, Run Shao, Bolei He, Xianwei Xue, Mengke Chen, Qiutong
+  Pan, Haiwei Wang, and Haifeng Li.
+\newblock Graph-based chain-of-thought pruning for reducing redundant
+  reflections in reasoning {LLM}s.
+\newblock \emph{Findings of the Association for Computational Linguistics: ACL
+  2026}, 2026.
+\newblock URL \url{https://arxiv.org/abs/2604.05643}.
+
+\bibitem[Yuan et~al.(2025)Yuan, Li, Chen, Cui, Ding, Zhang, Zhou, Liu, and
+  Peng]{yuan2024implicitprm}
+Lifan Yuan, Wendi Li, Huayu Chen, Ganqu Cui, Ning Ding, Kaiyan Zhang, Bowen
+  Zhou, Zhiyuan Liu, and Hao Peng.
+\newblock Free process rewards without process labels.
+\newblock In \emph{Proceedings of the 42nd International Conference on Machine
+  Learning}, volume 267 of \emph{Proceedings of Machine Learning Research},
+  pp.\  73511--73525, 2025.
+\newblock URL \url{https://proceedings.mlr.press/v267/yuan25c.html}.
+
+\bibitem[Zeng et~al.(2025)Zeng, Huang, Liu, Liu, He, Ma, and
+  He]{zeng2025simplerlzoo}
+Weihao Zeng, Yuzhen Huang, Qian Liu, Wei Liu, Keqing He, Zejun Ma, and Junxian
+  He.
+\newblock {SimpleRL-Zoo}: Investigating and taming zero reinforcement learning
+  for open base models in the wild, 2025.
+\newblock URL \url{https://arxiv.org/abs/2503.18892}.
+
+\bibitem[Zhang et~al.(2024)Zhang, Zhoubian, Hu, Yue, Dong, and
+  Tang]{zhang2024rest}
+Dan Zhang, Sining Zhoubian, Ziniu Hu, Yisong Yue, Yuxiao Dong, and Jie Tang.
+\newblock Rest-mcts*: Llm self-training via process reward guided tree search.
+\newblock \emph{Advances in Neural Information Processing Systems},
+  37:\penalty0 64735--64772, 2024.
+
+\bibitem[Zhang et~al.(2026)Zhang, Kuzborskij, Lee, Leng, and
+  Liu]{zhang2026dagmath}
+Yuanhe Zhang, Ilja Kuzborskij, Jason Lee, Chenlei Leng, and Fanghui Liu.
+\newblock {DAG-Math}: Graph-of-thought guided mathematical reasoning in {LLM}s.
+\newblock In \emph{International Conference on Learning Representations}, pp.\
+  74347--74389, 2026.
+\newblock URL
+  \url{https://proceedings.iclr.cc/paper_files/paper/2026/file/79179a9c80561608fa85f925cc88aaa9-Paper-Conference.pdf}.
+
+\bibitem[Zhang et~al.(2025)Zhang, Zheng, Wu, Zhang, Lin, Yu, Liu, Zhou, and
+  Lin]{zhang2025qwen25mathprm}
+Zhenru Zhang, Chujie Zheng, Yangzhen Wu, Beichen Zhang, Runji Lin, Bowen Yu,
+  Dayiheng Liu, Jingren Zhou, and Junyang Lin.
+\newblock The lessons of developing process reward models in mathematical
+  reasoning.
+\newblock \emph{arXiv preprint arXiv:2501.07301}, 2025.
+
+\bibitem[Zhao et~al.(2026)Zhao, Liu, Zhang, Zhou, Gao, Li, Lyu, Qian, Qi, Li,
+  and Zhou]{genprm2026}
+Jian Zhao, Runze Liu, Kaiyan Zhang, Zhimu Zhou, Junqi Gao, Dong Li, Jiafei Lyu,
+  Zhouyi Qian, Biqing Qi, Xiu Li, and Bowen Zhou.
+\newblock {GenPRM}: Scaling test-time compute of process reward models via
+  generative reasoning.
+\newblock In \emph{Proceedings of the AAAI Conference on Artificial
+  Intelligence}, volume~40, pp.\  34932--34940, 2026.
+\newblock \doi{10.1609/aaai.v40i41.40797}.
+\newblock URL \url{https://ojs.aaai.org/index.php/AAAI/article/view/40797}.
+
+\bibitem[Zheng et~al.(2024)Zheng, Zhang, Zhang, Lin, Lu, Yu, Liu, Zhou, and
+  Lin]{zheng2024processbench}
+Chujie Zheng, Zhenru Zhang, Beichen Zhang, Runji Lin, Keming Lu, Bowen Yu,
+  Dayiheng Liu, Jingren Zhou, and Junyang Lin.
+\newblock {ProcessBench}: Identifying process errors in mathematical reasoning,
+  2024.
+\newblock URL \url{https://arxiv.org/abs/2412.06559}.
+
+\bibitem[Zhong et~al.(2026)Zhong, He, Li, and Mesgarani]{zhong2026chainsdag}
+Tianjun Zhong, Linyang He, Ziyang Li, and Nima Mesgarani.
+\newblock From chains to dags: Probing the graph structure of reasoning in
+  llms.
+\newblock \emph{arXiv preprint arXiv:2601.17593}, 2026.
+\newblock URL \url{https://arxiv.org/abs/2601.17593}.
+
+\end{thebibliography}

@@ -162,6 +162,68 @@ class TestCycleDetection:
         assert dag.has_cycles() is True
         assert dag.is_valid_dag() is False
 
+    def test_projection_diagnostics_measure_raw_violations(self):
+        dag = ReasoningDAG("raw")
+        for i in range(3):
+            dag.add_node(Node(step_id=i, raw_text=f"step {i}"))
+        dag.add_dependency_edge(0, 1)
+        dag.add_dependency_edge(1, 2)
+        dag.add_dependency_edge(2, 0)
+
+        diagnostics = dag.topology_projection_diagnostics()
+        assert diagnostics["direction_consistency"] == pytest.approx(2 / 3)
+        assert diagnostics["dependency_coverage"] == pytest.approx(1.0)
+        assert diagnostics["direction_score"] == pytest.approx(2 / 3)
+        assert diagnostics["backward_edge_mass"] == pytest.approx(1 / 3)
+        assert diagnostics["cycle_edge_mass"] == pytest.approx(1.0)
+        assert diagnostics["acyclicity_score"] == pytest.approx(0.0)
+        assert diagnostics["projection_cost"] == pytest.approx(1 / 3)
+
+    def test_projection_diagnostics_use_confidence_weighted_edge_mass(self):
+        dag = ReasoningDAG("weighted-raw")
+        for i in range(3):
+            dag.add_node(Node(step_id=i, raw_text=f"step {i}"))
+        dag.add_dependency_edge(0, 1, weight=1.0)
+        dag.add_dependency_edge(2, 1, weight=0.5)
+
+        diagnostics = dag.topology_projection_diagnostics()
+        assert diagnostics["direction_consistency"] == pytest.approx(2 / 3)
+        assert diagnostics["backward_edge_mass"] == pytest.approx(1 / 3)
+        assert diagnostics["cycle_edge_mass"] == pytest.approx(0.0)
+
+    def test_projection_diagnostics_treat_missing_edges_as_uncertain(self):
+        dag = ReasoningDAG("empty-raw")
+        for i in range(4):
+            dag.add_node(Node(step_id=i, raw_text=f"step {i}"))
+
+        diagnostics = dag.topology_projection_diagnostics()
+        assert diagnostics["dependency_coverage"] == pytest.approx(0.0)
+        assert diagnostics["direction_consistency"] == pytest.approx(1.0)
+        assert diagnostics["direction_score"] == pytest.approx(0.5)
+        assert diagnostics["acyclicity_score"] == pytest.approx(0.5)
+
+    def test_direction_and_acyclicity_separate_local_and_global_violations(self):
+        acyclic = ReasoningDAG("same-backward-mass-acyclic")
+        cyclic = ReasoningDAG("same-backward-mass-cyclic")
+        for dag in (acyclic, cyclic):
+            for i in range(4):
+                dag.add_node(Node(step_id=i, raw_text=f"step {i}"))
+
+        for source, target in ((0, 1), (2, 1), (2, 3), (0, 3)):
+            acyclic.add_dependency_edge(source, target)
+        for source, target in ((0, 1), (1, 2), (2, 0), (2, 3)):
+            cyclic.add_dependency_edge(source, target)
+
+        acyclic_diag = acyclic.topology_projection_diagnostics()
+        cyclic_diag = cyclic.topology_projection_diagnostics()
+        assert acyclic_diag["dependency_coverage"] == cyclic_diag["dependency_coverage"] == 1.0
+        assert acyclic_diag["backward_edge_mass"] == cyclic_diag["backward_edge_mass"] == 0.25
+        assert acyclic_diag["direction_score"] == cyclic_diag["direction_score"] == 0.75
+        assert acyclic_diag["cycle_edge_mass"] == 0.0
+        assert cyclic_diag["cycle_edge_mass"] == 0.75
+        assert acyclic_diag["acyclicity_score"] == 1.0
+        assert cyclic_diag["acyclicity_score"] == 0.25
+
 
 # ---------------------------------------------------------------------------
 # Topological order
@@ -218,10 +280,16 @@ class TestSerialisation:
 
     def test_from_dict_roundtrip(self):
         dag = _make_three_node_dag()
+        dag.graph.graph["raw_topology"] = {"projection_cost": 0.25}
+        dag.graph.graph["raw_dependency_edges"] = [
+            {"source": 2, "target": 0, "edge_type": "virtual_edge", "dep_type": "role_ref"}
+        ]
         d = dag.to_dict()
         restored = ReasoningDAG.from_dict(d)
         assert restored.num_nodes == dag.num_nodes
         assert restored.num_edges == dag.num_edges
+        assert restored.graph.graph["raw_topology"]["projection_cost"] == 0.25
+        assert restored.graph.graph["raw_dependency_edges"][0]["source"] == 2
 
 
 # ---------------------------------------------------------------------------

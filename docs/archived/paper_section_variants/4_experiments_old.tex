@@ -1,0 +1,201 @@
+\section{Experiments}
+\label{sec:experiments}
+
+We evaluate four aspects of \method. RQ1 tests whether its gains persist across model families and improve the accuracy--length frontier. RQ2 measures checkpoint sensitivity to removing topology or continuity rewards. RQ3 audits the extracted support edges against independent references. RQ4 provides a narrowly scoped boundary test against a learned semantic PRM. Appendix~\ref{app:stress_tests} reports matched-decoding, cross-backbone, structure--correctness, and extractor stress tests. 
+%我们从四个方面对\method进行评估。研究问题1（RQ1）验证其带来的性能提升是否能在不同模型系列中保持，并能否提升准确率-长度前沿。研究问题2（RQ2）衡量移除拓扑或连续性奖励对检查点的影响程度。研究问题3对照独立参考对提取出的支撑边进行审核。研究问题4（RQ4）针对经过学习的语义PRM开展范围限定严格的边界测试。附录~\ref{app:stress_tests}中报告了匹配解码、跨骨干网络、结构-正确性以及提取器压力测试的结果。
+
+\input{tabs/main_results}
+
+\begin{figure}[!t]
+\centering
+\input{figs/pareto_frontier}
+\caption{Accuracy--length trade-off for the shared-initialization reward checkpoints in Table~\ref{tab:main_ablation}. \method (Full, $\star$) is the only run on the observed Pareto frontier of all four benchmarks. Axes are cropped per panel; response length is measured in thousands of tokens.}
+\label{fig:pareto_frontier}
+\end{figure}
+
+\subsection{Evaluation Setup}
+\label{sec:setup}
+
+\paragraph{Training.}
+All controlled reward variants start from the same Qwen3.5-9B Stage-I checkpoint~\citep{qwen35team2026}. Both stages use rank-64 LoRA adapters~\citep{hu2022lora}; Stage~II applies GRPO with two completions per prompt and a learning rate of $5\times10^{-6}$. The graph extractor remains frozen, and reference-solution graphs are not used because their step indices do not align with generated traces. Every structural reward is therefore computed from the rollout's own $\mathcal{G}_y$. Appendix~\ref{app:details} gives the complete configuration.
+% 所有受控奖励变体均基于同一 Qwen3.5-9B 第一阶段检查点初始化。两个阶段均采用秩为 64 的 LoRA 适配器；第二阶段使用 GRPO 算法，每个提示对应两个生成结果，学习率设置为 $5\times10^{-6}$。图提取器保持冻结状态，且不使用参考解图，原因是其步骤索引与生成轨迹无法对齐。因此所有结构奖励均基于采样轨迹自身的 $\mathcal{G}_y$ 计算得出。完整配置详见附录~\ref{app:details}。
+
+\paragraph{Benchmarks and metrics.}
+The broad evaluation in Table~\ref{tab:main_results} reports pass@5 on GSM8K~\citep{cobbe2021gsm8k}, MATH~\citep{hendrycks2021math}, OlympiadBench~\citep{he2024olympiadbench}, Omni-MATH~\citep{gao2024omnimath}, AIME~2024/2025, CNMO~2024, MMLU~\citep{hendrycks2020mmlu}, and GPQA-Diamond~\citep{rein2023gpqa}. It spans elementary, olympiad, competition, and general reasoning; Avg. is the reported nine-task macro-average from the archived ledger. A separate controlled study uses pass@1 and mean visible response tokens on GSM8K, MATH-500~\citep{lightman2023lets}, a 134-item English text-only OlympiadBench subset, and the 30 AIME~2024 problems. Acc/kTok is the descriptive ratio $\mathrm{pass@1}/(\overline{\mathrm{tokens}}/1000)$ and is not optimized directly. Appendix~\ref{app:result_ledger} reports the complete pass@1 checkpoint table and keeps the two protocols separate.
+% 主表中的综合评估报告了模型在 GSM8K、MATH、OlympiadBench、Omni-MATH、2024/2025年AIME、2024年CNMO、MMLU 以及 GPQA-Diamond上的 pass@5 指标。该评估覆盖基础、奥赛、竞赛及通用推理场景；Avg. 为存档台账中给出的九项任务宏平均结果。另一项对照研究则采用 pass@1 指标及平均可见响应 token 数，测试集包含 GSM8K、MATH-500、含134道纯英文试题的 OlympiadBench 子集，以及2024年AIME的30道题目。Acc/kTok 为描述性比值 $\mathrm{pass@1}/(\overline{\mathrm{tokens}}/1000)$，并非直接优化目标。附录~\ref{app:result_ledger} 给出了完整的 pass@1 检查点表格，并将两类评估协议分开呈现。
+
+% We evaluate on GSM8K, MATH-500, the official 675-item English text-only OlympiadBench subset, and AIME~2024. Pass@1 and mean visible tokens are co-primary, their ratio is Acc/kTok, and pass@5 and maj@5 are secondary. Correctness comes only from the last non-empty box, so truncated traces earn nothing. Method $A$ Pareto-dominates $B$ when it is no less accurate and no longer, with one strict inequality. The canonical protocol fixes one seed-0 response per item, a 4,096-token cap, and one verifier (Appendix~\ref{app:eval_details}).
+% 基准与指标：GSM8K、MATH-500、OlympiadBench 官方 675 题英文纯文本子集、AIME 2024。pass@1 与平均可见回答 token 数为并列主指标，二者比值记作 Acc/kTok，pass@5 与 maj@5 为辅助诊断。判分只读最后一个非空 box 或显式标注的终答，被截断的轨迹不得分。支配关系定义为：A 支配 B 当且仅当 A 不更差且不更长，且至少一项严格更优。规范协议固定每题 1 个 seed-0 采样、4,096 token 上限、单一判分器与官方 chat template（附录~\ref{app:eval_details}）。
+
+\paragraph{Baselines and controls.}
+Table~\ref{tab:main_results} separates complete open checkpoints from within-family post-training comparisons. The references cover Qwen3.5~\citep{qwen35team2026_2b,qwen35team2026_4b}, Qwen2.5-Math~\citep{yang2024qwen2}, Llama~3.1~\citep{grattafiori2024llama}, and DeepSeek-R1-Distill~\citep{deepseekr1}; the lower blocks include SFT, GRPO~\citep{shao2024deepseekmath}, SimpleRL-Zoo~\citep{zeng2025simplerlzoo}, and Open-Reasoner-Zero~\citep{hu2026open} where available. Bolding is local to each model family rather than pooled across parameterizations. In the controlled pass@1 suite, \emph{Base} is the shared Stage-I checkpoint and \emph{Outcome Only} isolates final-answer GRPO. The \emph{w/o Topology} and \emph{w/o Continuity} controls remove the named source and redistribute its reward mass to retained components; Appendix~\ref{app:reward_config} gives the exact weights. Each control is one archived training run. A run is Pareto-dominated when another matched run is no less accurate and no longer, with at least one strict improvement.
+% 主表将完整公开检查点与同系列模型的训练后对比结果区分开。参考文献涵盖 Qwen3.5、Qwen2.5-Math、Llama~3.1以及 DeepSeek-R1-Distill；下方区块包含了现有可获取的 SFT、GRPO、SimpleRL-Zoo以及 Open-Reasoner-Zero~\citep{hu2026open}。加粗格式仅针对各模型系列内部，而非跨不同参数量级统一设置。在受控的 pass@1 测试套件中，Base 指共用的第一阶段检查点，仅结果 则是仅针对最终答案的 GRPO 对照设置。拓扑结构 与 无连续性 对照项会移除对应命名模块，并将其奖励权重重新分配至保留的组件中；附录~\ref{app:reward_config} 给出了具体权重数值。每一项对照均对应一次已归档的训练运行。当存在另一项匹配的训练运行，在准确率不更低、长度不更长的前提下，至少有一项指标严格更优时，则称当前训练运行被帕累托占优。
+
+% \subsection{Accuracy--Length Frontier (RQ1)}
+% \label{sec:rq1}
+
+% Table~\ref{tab:main_results} places the same method in three post-training families. \method reaches macro-averages of 55.3 on Qwen2.5-7B, 58.3 on DeepSeek-R1-Distill-Qwen-7B, and 60.9 on Qwen3.5-9B. These exceed the strongest alternative in the corresponding block by 8.9, 2.4, and 5.4 points, respectively. In every family, \method is best or tied-best on five of nine tasks; the winning tasks vary, so the aggregate gain is not driven by a single benchmark. The 60.9 average is also the highest among all displayed systems, 10.2 points above the strongest complete-checkpoint reference.
+% % 表~\ref{tab:main_results} 将同一方法归入三个不同的训练后方法族。本方法在 Qwen2.5-7B 上达到宏平均值 55.3，在 DeepSeek-R1-Distill-Qwen-7B 上达到 58.3，在 Qwen3.5-9B 上达到 60.9。这三项成绩分别超出对应组别中最强替代方案 8.9、2.4 和 5.4 个百分点。在每个方法族中，本方法在九项任务中的五项上表现最佳或并列最佳；且胜出的任务各有不同，因此整体增益并非由单一基准测试主导。60.9 的平均得分也是所有展示系统中的最高值，比最强的完整检查点基准高出 10.2 个百分点。
+
+% The controlled pass@1 results provide a complementary efficiency view (Figure~\ref{fig:pareto_frontier} and Appendix Table~\ref{tab:controlled_checkpoint_results}). Among the five matched Qwen3.5-9B runs, the complete reward is the only run on the observed accuracy--length frontier of all four benchmarks. Relative to outcome-only GRPO, it reduces mean response length by 251 tokens on GSM8K, 57 on MATH-500, 275 on OlympiadBench, and 115 on AIME~2024. The corresponding pass@1 changes are $+0.8$, $+0.2$, $+1.5$, and $+13.3$ points. GSM8K and MATH-500 mainly show shorter responses, whereas the smaller and harder OlympiadBench and AIME sets show larger accuracy differences. 
+% % 受控的 pass@1 结果从效率维度提供了补充视角（见图~\ref{fig:pareto_frontier} 及附录表~\ref{tab:controlled_checkpoint_results}）。在五组匹配的 Qwen3.5-9B 运行结果中，采用完整奖励的运行是唯一落在全部四个基准测试的“准确率-长度”观测前沿上的结果。相较于仅基于结果的 GRPO 方法，该方法在 GSM8K 上将平均响应长度减少了 251 个 token，在 MATH-500 上减少 57 个，在 OlympiadBench 上减少 275 个，在 2024 年 AIME 上减少 115 个；对应的 pass@1 变化分别为 +0.8、+0.2、+1.5 和 +13.3 个百分点。GSM8K 和 MATH-500 主要体现为响应更短，而规模更小、难度更高的 OlympiadBench 和 AIME 数据集则呈现出更显著的准确率差异。
+
+% The relative length reductions are 24.0\% on GSM8K, 3.8\% on MATH-500, 13.5\% on OlympiadBench, and 4.5\% on AIME~2024. Thus the frontier is not produced by a uniform compression ratio. GSM8K supplies the clearest efficiency change, while AIME supplies the clearest accuracy change. Acc/kTok rises from 89.1 to 118.2 on GSM8K and from 6.6 to 12.3 on AIME; on MATH-500 and OlympiadBench it rises from 33.6 to 35.1 and from 15.3 to 18.6. The complete reward therefore improves the descriptive accuracy-per-token ratio on every task even when the accuracy difference itself is small. 【check】这一段意思跟上面有点重复了，可以看一下怎么合并。
+% % 在GSM8K数据集上，相对长度缩减幅度为24.0%，在MATH-500上为3.8%，在OlympiadBench上为13.5%，在2024年AIME竞赛数据集上为4.5%。由此可见，前沿模型并非采用统一的压缩比。GSM8K上的效率变化最为显著，而AIME上的准确率变化最为突出；每千token对应的准确率（Acc/kTok）在GSM8K上从89.1提升至118.2，在AIME上从6.6提升至12.3，在MATH-500上从33.6提升至35.1，在OlympiadBench上则从15.3提升至18.6。因此，即便不同任务间的准确率差异本身较小，这套完整的奖励机制仍能提升所有任务上“单token描述准确率”的比值。
+
+\input{tabs/main_ablation}
+
+\begin{figure*}[!t]
+\centering
+\begin{subfigure}[t]{0.40\textwidth}
+  \centering
+  \parbox[c][4.62cm][c]{\linewidth}{\centering
+    \includegraphics[width=0.72\linewidth]{figs/fig3_training_curve.pdf}}
+  \caption{Training reward, length, and Acc/kTok.}
+  \label{fig:training_dynamics}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.57\textwidth}
+  \centering
+  \parbox[c][4.62cm][c]{\linewidth}{\centering
+    \includegraphics[width=0.90\linewidth]{figs/fig4_efficiency_barplot.pdf}}
+  \caption{Post-training length and Acc/kTok.}
+  \label{fig:efficiency}
+\end{subfigure}
+\caption{Archived Qwen3.5-9B within-suite diagnostics. TGSD denotes the complete configuration; SCAE and DAG Score denote its continuity and topology components. This suite follows a different aggregation protocol from Table~\ref{tab:main_ablation} and is analyzed separately.}
+% \textbf{\caption{Training and efficiency diagnostics retained from the original run suite. The earlier figures use \emph{TGD} for the full configuration built around the TopoPRM reward, \emph{SCAE} for continuity supervision, and \emph{DAG Score} for topology supervision. These panels describe that archived suite and are not pooled with Table~\ref{tab:main_results} or the controlled pass@1 study.}}
+\label{fig:optimization_diagnostics}
+\end{figure*}
+
+\subsection{Main Results: Accuracy and Efficiency (RQ1)}
+\label{sec:rq1}
+
+\paragraph{Observation 1: The archived ledger records the highest displayed average in three post-training families.}
+Table~\ref{tab:main_results} reports macro-averages of 55.3, 58.3, and 60.9 for \method, respectively 8.9, 2.4, and 5.4 points above the strongest alternative in each family. \method is best or tied-best on five of nine tasks in every block, although the leading tasks vary across backbones. The 60.9 result is the highest displayed macro-average and is 10.2 points above the strongest complete-checkpoint reference. These are provisional within-ledger comparisons, not a cross-protocol SOTA claim, until the row-level provenance audit marked in the table is complete.
+
+\paragraph{Observation 2: The complete reward improves both coordinates of the observed frontier.}
+In the controlled pass@1 study, the complete reward is the only run on the observed accuracy--length frontier of every benchmark (Figure~\ref{fig:pareto_frontier} and Table~\ref{tab:main_ablation}). Relative to outcome-only GRPO, it shortens responses by 24.0\%, 3.8\%, 13.5\%, and 4.5\% on GSM8K, MATH-500, OlympiadBench, and AIME~2024, while changing pass@1 by $+0.8$, $+0.2$, $+1.5$, and $+13.3$ points. GSM8K and MATH-500 exhibit primarily length reductions, whereas AIME exhibits the largest accuracy difference; Acc/kTok rises from 89.1 to 118.2 on GSM8K and from 6.6 to 12.3 on AIME, with smaller gains on the other two tasks. Since each variant is trained once, this is an observed checkpoint comparison rather than an estimate of training-seed uncertainty. The two ledgers are not pooled: one records provisional cross-family macro-averages, whereas the controlled suite compares checkpoint-level accuracy and length.
+
+\subsection{Ablation Study (RQ2)}
+\label{sec:rq2}
+
+\paragraph{Observation 3: Checkpoint sensitivity differs by removed reward source.}
+Removing topology changes GSM8K and MATH-500 by $-1.1$ and $0.0$ points, but changes OlympiadBench and AIME~2024 by $-3.0$ and $-10.0$ points while adding 700 and 129 tokens, respectively (Table~\ref{tab:main_ablation}). Removing continuity produces the larger observed degradation: pass@1 falls by 23.3--43.1 points, mean length rises from 1{,}612 to 2{,}046 tokens, and accuracy returns to or below Stage~I on three tasks. These differences are consistent with continuity and topology contributing distinct constraints, but they do not isolate either component causally: reward mass is redistributed, the no-continuity cap differs, and every configuration has one training run. Constructed reversals and cycle closures independently verify that the direction and acyclicity diagnostics respond to their intended graph violations (Appendix Table~\ref{tab:topology_counterfactuals}). The archived traces in Figure~\ref{fig:optimization_diagnostics} supply a separate within-suite view of optimization and compression; they are not pooled with Table~\ref{tab:main_ablation}.
+
+\subsection{Auditing Recoverable Support (RQ3)}
+\label{sec:rq3}
+
+\input{tabs/edge_audit_main}
+
+\paragraph{Observation 4: Two model references provide stable diagnostic labels, not proof certificates.}
+Across 119 independently annotated traces, Qwen3-32B and Qwen2.5-32B agree on 89.8\% of 1{,}770 candidate pairs, with Cohen's $\kappa=0.734$ (Table~\ref{tab:edge_audit_main}). The annotators jointly label 368 pairs as support and dispute 181; their respective positive rates are 24.6\% and 27.2\%. Against Qwen3-32B, the released extractor obtains precision 0.478, recall 0.589, and F1 0.528; its F1 is 0.510 against Qwen2.5-32B, 0.508 against annotator consensus, and 0.528 against their union. This narrow range indicates stability across the two model references for diagnostic auditing. It does not justify interpreting the graph as a proof-level dependency parse, and model-generated references do not replace human adjudication.
+
+The separate 120-trace typed ledger makes this boundary actionable. Its false positives include 145 variable-reference edges, compared with 34 expression-reference, 11 expression-overlap, 9 implicit-block, and 82 order-fallback edges. The dominant observed failure is therefore entity-role ambiguity rather than normalized expression reuse. This localization supports targeted calibration of ambiguous edges while retaining deterministic expression and claim matches with explicit provenance; Appendix~\ref{app:edge_cases} reports representative cases and the post-hoc rule sensitivity analysis.
+
+That analysis illustrates the benefit and the limit of an auditable reward. A guarded revision raises precision from 0.480 to 0.580 on the same labels by tightening variable-only and fallback edges, but it also alters several extraction paths. Because the revision was designed after inspecting the audit sample, the increase is a post-hoc sensitivity result, not held-out evidence. A valid policy-level improvement requires fresh edge labels and retraining with the revised extractor.
+
+\subsection{Boundary Analysis with a Semantic PRM (RQ4)}
+\label{sec:rq4}
+
+\input{tabs/prm_complementarity}
+
+\paragraph{Observation 5: The hybrid yields a net gain of one correct MATH-500 item in the shared-pool test.}
+On a common Best-of-8 candidate pool, multiplying the Qwen2.5-Math-PRM-7B score~\citep{zhang2025qwen25mathprm} by $1+q_{\mathrm{topo}}$ preserves 95.00\% GSM8K accuracy and changes MATH-500 from 70.00\% to 71.25\% (Table~\ref{tab:prm_complementarity}), increasing the number of correct selections by one at $n=80$. The full ledger in Appendix~\ref{app:stress_tests} gives the relevant boundary: topology-only selection is below the semantic PRM on both tasks, and the hybrid recovers only 1.25 of the 7.50 points between the PRM and pool oracle on MATH-500. Thus, the two scores can change aggregate accuracy under this fusion rule, but two 80-item pools cannot establish general complementarity. Larger pools, uncertainty intervals, and a prespecified fusion rule are required for a general Best-of-$N$ claim.
+
+\subsection{Evidence Synthesis and Scope}
+
+\paragraph{Evidence synthesis.}
+The reported results connect downstream behavior to diagnostic consistency rather than to a verified causal mechanism. The archived ledger provisionally records the highest within-family macro-average in three post-training blocks, and the controlled suite places the complete reward on each observed accuracy--length frontier. Source-removal controls identify unequal checkpoint sensitivity consistent with the reward design, while constructed graph interventions and the edge audit show that the intermediate signal is inspectable and responds to targeted violations. The semantic-PRM comparison sets a further boundary: topology-only selection does not replace semantic scoring, and the hybrid produces a net gain of one correct MATH-500 item. Outcome, continuity, and topology therefore remain separately interpretable training signals, but the present experiments do not establish that any one signal is an interchangeable estimator of correctness or a proof certificate.
+
+\paragraph{What auditability changes.}
+The structural reward is useful here not because it certifies a derivation, but because every score can be decomposed into inspectable step pairs and evidence types. This changes the failure-analysis workflow. A low learned-verifier score identifies a suspicious trace but need not reveal which premise relation failed; the present ledger instead separates expression reuse, claim reuse, variable overlap, local transitions, and fallback order. The edge audit therefore points to a specific calibration target---ambiguous variable roles---while leaving stronger expression matches intact. The guarded extractor experiment demonstrates how that diagnosis can be translated into a candidate rule revision, and its post-hoc status makes the next validation step explicit: annotate fresh traces, freeze the revision, and retrain shared-initialization policies before claiming a downstream gain.
+
+\paragraph{Where structural evidence should be bounded.}
+Recoverable surface support is most credible when mathematical objects have stable symbolic anchors and intermediate claims are stated explicitly. It is less reliable for diagram-dependent geometry, paraphrase-heavy proofs, or traces that reuse a symbol for several semantic roles. In those settings, a sparse and well-formed graph may still encode an invalid deduction, while a correct solution may appear weakly connected because its premises are implicit. Outcome verification must therefore remain the correctness anchor. A learned edge scorer, semantic PRM, or formal checker can complement the deterministic ledger, but each changes the supervision contract: learned scorers trade provenance for coverage, and formal systems require a representation that ordinary free-form traces do not supply. The appropriate interpretation of \method is thus an auditable training interface between scalar outcome rewards and fully semantic verification.
+
+\paragraph{Operational implication.}
+This interface is confined to training. Graph construction and pair scoring shape the policy update, but the deployed model generates ordinary text without invoking the extractor or a separate verifier. The distinction matters for both efficiency and evaluation: inference cost is unchanged, whereas training cost and extractor quality must be assessed separately. It also makes revisions modular. Improvements to segmentation or ambiguous-edge handling can be audited before they enter policy training, while the outcome term and decoding interface remain fixed. The present experiments validate this workflow at the diagnostic level; they do not yet show that every successful extractor revision transfers to a better policy.
+
+\paragraph{Stress tests delimit the claim.}
+The appendix reports three additional checks under their complete protocols. A matched DR1-Qwen-7B rerun yields no stable accuracy ordering among outcome-only, outcome-plus-length, and \method under repeated stochastic decoding. On Llama-3.1-8B-Instruct, \method shortens GSM8K and MATH-500 responses but preserves accuracy only on GSM8K. Higher topology-score strata are also more accurate, yet outcome-only training exhibits a comparable stratification gap. These results bound the evidence to the displayed cross-family comparison, the observed Qwen3.5-9B frontier, audited recoverable support, and the shared-pool hybrid observation. They do not establish backbone-independent gains, semantic verification, or formal proof recovery. A mechanism-focused follow-up should stratify examples by dependency depth and selector disagreement, and combine multi-seed training with human-adjudicated edges and larger candidate pools.
+
+%-------------------------------------------------------
+% \paragraph{Training dynamics and efficiency.}
+% The retained training traces in Figure~\ref{fig:emnlp_training_dynamics} show the earlier full configuration maintaining a high normalized reward while generating substantially shorter responses than standard GRPO. The companion aggregate in Figure~\ref{fig:emnlp_efficiency} places the same configuration at the favorable end of that suite's accuracy--length trade-off. We treat both panels as within-suite diagnostics rather than additional points in either benchmark table.
+
+% \subsection{Reward-Source Sensitivity (RQ2)} % 【check】我觉得RQ2改成Ablation Study是不是更好一点
+% \label{sec:rq2}
+
+% % \input{tabs/component_sensitivity} % 【check】效果上不如用下面那个表
+% \input{tabs/main_emnlp_promoted} %【check】这个表格应该是做消融实验才对的。你需要根据原来的素材重写消融的文段。另外把这个表格的caption改成符合最终提交版本的形式吧。
+
+% % The checkpoint differences are asymmetric (Table~\ref{tab:component_sensitivity}). Full differs from the no-topology checkpoint by at most 1.1 points on GSM8K and MATH-500, but by 3.0 points on OlympiadBench and 10.0 points on AIME~2024; the no-topology checkpoint also produces 700 additional OlympiadBench tokens. The largest observed topology sensitivity therefore occurs on the two harder evaluation sets. %【check】这段似乎跟消融对不上
+% % 不同检查点的差异呈非对称分布（见表~\ref{tab:component_sensitivity}）。Full 检查点与无拓扑结构检查点在 GSM8K 和 MATH-500 上的分差最多为 1.1 分，但在 OlympiadBench 上的分差达 3.0 分，在 2024 年 AIME 上的分差更是达到 10.0 分；此外无拓扑结构检查点在 OlympiadBench 上还会额外生成 700 个 token。由此可见，观测到的最大拓扑结构敏感度出现在两个难度更高的评估数据集上。
+
+% Removing continuity produces a qualitatively different failure: Full gains 23.3--43.1 pass@1 points across the four tasks and remains shorter, while the no-continuity checkpoint approaches the Stage-I base despite retaining topology. This ordering is compatible with continuity enforcing local traceability and topology refining non-local reuse; a sparse graph alone need not preserve a readable derivation. It is not an isolated treatment effect because removed reward mass is reassigned and the no-continuity completion cap differs. 
+% % 移除连续性约束会引发性质截然不同的失效：在四项任务中，完整方案的 pass@1 得分提升了 23.3 至 43.1 分，且输出长度更短；而无连续性的检查点即便保留了拓扑结构，表现也仍接近第一阶段基线。这一排序符合以下逻辑：连续性约束保障了局部可追溯性，拓扑结构则优化了非局部复用；仅靠稀疏图并不一定能保留可读的推导过程。这并非孤立的处理效应，因为被移除的奖励量会被重新分配，且无连续性场景下的完成度上限也存在差异。
+
+%---------------------------------------------------------------------
+
+% \method{}(Full) Pareto-dominates all five comparison rows on all four benchmarks: in Table~\ref{tab:main_emnlp_promoted} it holds the highest or tied-highest pass@1 and the lowest mean token count everywhere, so nothing dominates it (Figure~\ref{fig:pareto_frontier}). Each variant has a single training run, and we report no interval for these rows.
+% RQ1 主结论：\method（完整版）在四个基准上 Pareto 支配全部五个对比行——pass@1 取到最高或并列最高，同时平均 token 数最低，因此按 \ref{sec:setup} 的支配定义没有任何行能支配它（图~\ref{fig:pareto_frontier}）。每个变体只有一次训练运行，我们不为这些行报告置信区间。
+
+% The gain is length on easy benchmarks and accuracy on hard ones. GSM8K accuracy is nearly flat (94.1 vs 93.3 for Outcome Only) while efficiency jumps: 796 tokens against 1{,}047, i.e. 118.2 vs 89.1 Acc/kTok, $+32.7\%$ relative. MATH-500 is saturated across all topology-aware variants (50.8--51.0) and supports no accuracy claim; only length separates there (1{,}454 vs 1{,}506--1{,}515). Accuracy separates where headroom remains: 30.0 pass@1 on AIME~2024 against 16.7 and 20.0, at fewer tokens than both (2{,}431 vs 2{,}546 and 2{,}560).
+% 收益的来源随难度切换：简单基准上几乎全是长度收益，困难基准上才是准确率收益。GSM8K 准确率几乎持平（94.1 vs Outcome Only 93.3），但长度大幅下降（796 vs 1,047 token），每千 token 准确率 118.2 vs 89.1，相对提升 32.7%。MATH-500 在所有含拓扑的变体上已饱和（50.8--51.0），因此不支持任何准确率结论，唯一的区分是长度（1,454 vs 1,506--1,515）。只有在还有提升空间的地方准确率才分开：AIME 2024 上 \method 达到 30.0，而 Outcome Only 为 16.7、w/o Topology 为 20.0，且 token 更少（2,431 vs 2,546 / 2,560）。
+
+% w/o Topology is the tightest control and costs most where the task is hardest: $-10.0$ pass@1 on AIME~2024 (30.0 to 20.0) and $-3.0$ on OlympiadBench (32.8 to 29.8), both with \emph{more} tokens (2{,}560 vs 2{,}431; 2{,}468 vs 1{,}768). A length shortcut cannot make output worse and longer at once, so this is our strongest causal evidence for the topology sources (Proposition~\ref{prop:projection_split}).
+% 去掉拓扑来源是最贴近的对照，而且在最难的任务上代价最大：w/o Topology 在 AIME 2024 上掉 10.0 个点（30.0→20.0），OlympiadBench 上掉 3.0 个点（32.8→29.8），并且两处的 token 反而更多（2,560 vs 2,431；2,468 vs 1,768）。仅靠截断回答的捷径不可能产生"更差且更长"的组合，因此这是支持把 $q_{\mathrm{dir}}$ 与 $q_{\mathrm{acyc}}$ 作为两个独立奖励源的最强单项因果证据（命题~\ref{prop:projection_split}）。
+
+Continuity is a prerequisite, not an additive bonus. w/o Continuity falls to or below Base on GSM8K (51.0 vs 55.2), OlympiadBench (8.2 vs 11.2), and AIME~2024 (6.7 vs 16.7), sits 1.8 points above Base on MATH-500, and returns to Base-range lengths. Without continuity, traces are not segmentable enough for the topology scores to be measurable, so the signals are jointly required (Remark~\ref{rem:choquet_sep}).
+% 连续性是前提而非可加的额外增益：w/o Continuity 在三个基准上落到 Base 水平或更低（GSM8K 51.0 vs 55.2；OlympiadBench 8.2 vs 11.2；AIME 2024 6.7 vs 16.7），MATH-500 上仅比 Base 高 1.8 个点，且 token 数回到 Base 量级。没有连续性信号，轨迹的可切分性不足以让拓扑分数可测，因此二者共同必要而非彼此可加（注记~\ref{rem:choquet_sep}）。
+
+% 【check】下面声明已经过期，不再在文章表明，如果有你内容需要写入必须经过同意。
+% \noindent\textit{Matched ICLR-protocol comparisons.} The Stage-I, LASER-D, and Shapley-matched additive rows live in Table~\ref{tab:iclr_matched}, not the body table. Our LASER-D adaptation preserves the released mechanism, where length coverage sets a per-difficulty target and only correct responses inside it earn the step reward~\citep{liu2026laser}; Appendix~\ref{app:choquet} gives the thresholds. Its Stage-I row has macro accuracy 42.1\% ($[40.2,44.4]$) and 526 tokens ($[423,647]$). \tbd{Pending: canonical-protocol LASER-D and matched-additive rows.}
+% 匹配的 ICLR 协议对比：Stage-I、LASER-D 与 Shapley 匹配可加三行位于表~\ref{tab:iclr_matched} 而非正文主表。我们的 LASER-D 复现保留原机制：长度覆盖为每个 rollout 难度档设定目标，只有落在目标内的正确回答获得步骤奖励；预算缩放阈值见附录~\ref{app:choquet}。其中 Stage-I 行宏平均准确率 42.1%（$[40.2,44.4]$），可见 token 526（$[423,647]$）。仍待补：规范协议下的 LASER-D 与匹配可加行，及其与 \method 的成对 bootstrap 差值。
+% \noindent\textit{External bars.} We claim no SOTA. Published graph-reward and efficient-reasoning systems differ in base model, budget, decoder, and verifier, and our body table adds one further incompatibility by using the EMNLP protocol, so Appendix~\ref{app:external_bars} records them as external bars rather than rows on our axis.
+% 外部参考线：我们不作 SOTA 声明。已发表的图奖励与高效推理系统在基座模型、预算、解码器与判分器上都与我们不同，而正文主表还多一层不兼容——它来自 EMNLP 协议运行，因此我们把这些工作作为"外部参考线"记入附录~\ref{app:external_bars}，绝不把其数字放到我们的坐标轴上。
+
+% 【check】下面为原版的RQ2，建议精简成一段纳入上面的RQ2中
+\subsection{Where the Gain Comes From (RQ2)}
+\label{sec:rq2}
+
+
+\paragraph{Raw direction and acyclicity.}
+Appendix Table~\ref{tab:ablation_compact} pairs policy ablations with matched counterfactuals. Reversal moves $(q_{\mathrm{dir}},q_{\mathrm{acyc}})$ by $(-0.715,+0.064)$, paired intervals $[0.657,0.771]$ and $[0.040,0.091]$: order changed, no cycle added. Across 57 matched pairs, cycle closure moves only $q_{\mathrm{acyc}}$, by $-0.328$. Direction-flip and false-edge controls reduce them by 0.180 and 0.190 (Appendix Table~\ref{tab:edge_noise}; Figure~\ref{fig:topology_falsification}).
+% 原始方向与无环性：表~\ref{tab:ablation_compact} 把策略消融与匹配反事实放在一起。顺序反转使 $(q_{dir},q_{acyc})$ 变化 $(-0.715,+0.064)$，成对 95% 区间分别为 $[0.657,0.771]$ 与 $[0.040,0.091]$，说明顺序被改变但没有引入新的环。在 57 组边数、后向质量与覆盖率匹配的样本对上，闭环操作只让 $q_{acyc}$ 变化 $-0.328$（$[0.292,0.366]$）。方向翻转与假边扰动分别选择性地把 $q_{dir}$ 降低 0.180、$q_{acyc}$ 降低 0.190。
+
+On reversed controls the scores are anticorrelated ($r=-0.907$): averaging shrinks cross-trace standard deviation from $0.110$ to $0.023$ (ratio $0.213$) and 39.2\% of traces move oppositely. Keeping the two separate preserves order and self-support information that averaging cancels.
+% 在反转对照上两个分数强负相关（$r=-0.907$，$[-0.976,-0.779]$）：先平均会把跨轨迹标准差从 0.110 压到 0.023（比值 0.213，$[0.110,0.320]$），且 39.2% 的轨迹移动方向相反。因此把二者分开保留，能保住被过早平均抹掉的文本顺序信息与全局自支持信息。
+
+\paragraph{Non-additive aggregation.}
+Appendix Table~\ref{tab:aggregation_ablation} isolates scalar aggregation over the same four Stage-I candidates, covering frozen selection only. The body table gives the trained counterpart: w/o ACE swaps the Choquet interactions for matched additive weighting, ties \method{} on the three easier benchmarks but spends 1{,}006, 1{,}515, and 2{,}491 tokens against 796, 1{,}454, and 1{,}768, and loses 10.0 points on AIME~2024. Interactions buy length at moderate difficulty, accuracy at high difficulty.
+% 非可加聚合：表~\ref{tab:aggregation_ablation} 通过对同样四个 Stage-I 候选排序来隔离标量聚合，只覆盖冻结选择。正文主表给出训练后的对应结果：w/o ACE 把 Choquet 交互换成匹配可加权重后，在 GSM8K、MATH-500、OlympiadBench 上准确率与 \method 持平，但 token 分别为 1,006 / 1,515 / 2,491 对 796 / 1,454 / 1,768，且在 AIME 2024 上掉 10.0 个点。可见交互项在中等难度换来长度、在高难度换来准确率。
+
+\subsection{Auditing Recoverable Support (RQ3)}
+\label{sec:rq3}
+
+\input{tabs/edge_audit_main}
+
+The released extractor is evaluated without exposing its decisions or edge types to the annotators. Across 119 jointly annotated traces, Qwen3-32B and Qwen2.5-32B agree on 89.8\% of 1{,}770 candidate pairs, with Cohen's $\kappa=0.734$ (Table~\ref{tab:edge_audit_main}). Both mark 368 pairs as support and dispute 181; their positive rates are 24.6\% and 27.2\%. The references therefore provide a stable, though model-generated, diagnostic basis.
+% 在对发布的抽取器进行评估时，不会将其决策结果或边类型暴露给标注人员。在119条联合标注的轨迹中，Qwen3-32B与Qwen2.5-32B在1770组候选对上的一致率达89.8%，Cohen's kappa系数为0.734（见表~\ref{tab:edge_audit_main}）。二者共同标记为支持的配对共368组，存在分歧的配对共181组；二者的正例率分别为24.6%和27.2%。因此，这些参考数据虽由模型生成，却为诊断提供了稳定的基础。
+
+Against Qwen3-32B, the extractor obtains precision 0.478, recall 0.589, and F1 0.528; its F1 against Qwen2.5-32B is 0.510. Consensus and union references yield F1 scores of 0.508 and 0.528. This narrow range supports the intended interpretation: the deterministic rules recover a repeatable subset of surface-evidenced dependencies, not a proof-level dependency parse.
+% 在针对 Qwen3-32B 模型的测试中，该提取器的精确率为 0.478，召回率为 0.589，F1 值为 0.528；其在针对 Qwen2.5-32B 模型测试时的 F1 值为 0.510。共识参考与联合参考对应的 F1 值分别为 0.508 和 0.528。该结果的数值区间较窄，恰好印证了预设的解读：确定性规则仅能还原出可复现的、有表层依据的依赖关系子集，而非达到证明级别的依赖句法分析结果。
+
+The primary 120-trace ledger localizes 145 false positives to variable-reference edges, compared with 34 for expression reference, 11 for expression overlap, 9 for implicit blocks, and 82 for order fallback. Entity-role ambiguity, rather than normalized expression reuse, is therefore the main observed limitation. Appendix~\ref{app:edge_cases} provides representative cases and the complete post-hoc rule ledger.
+% 主120条追踪分类账将145例假正例定位到变量引用边，而表达式引用的假正例为34例，表达式重叠为11例，隐式块为9例，顺序回退为82例。因此，观察到的主要局限在于实体-角色歧义，而非标准化表达式复用。附录~\ref{app:edge_cases} 提供了典型案例及完整的事后规则分类账。
+
+\subsection{Hybrid Selection with a Semantic PRM (RQ4)}
+\label{sec:rq4}
+
+\input{tabs/prm_complementarity}
+
+On a shared Best-of-8 candidate pool, multiplying the Qwen2.5-Math-PRM-7B score~\citep{zhang2025qwen25mathprm} by $1+q_{\mathrm{topo}}$ preserves the PRM's 95.00\% GSM8K accuracy and changes MATH-500 from 70.00\% to 71.25\% (Table~\ref{tab:prm_complementarity}). At $n=80$, this difference corresponds to one additional correct MATH-500 selection. The observation is compatible with, but does not establish, complementary ranking information.
+% 在共享的 Best-of-8 候选池中，将 Qwen2.5-Math-PRM-7B 的得分~\citep{zhang2025qwen25mathprm}乘以 $1+q_{\mathrm{topo}}$，可使 PRM 保持 95.00% 的 GSM8K 准确率，并将 MATH-500 的准确率从 70.00% 提升至 71.25%（见表~\ref{tab:prm_complementarity}）。当 $n=80$ 时，该差异对应 MATH-500 测试中多选出一道正确题目。上述观测结果与排序信息互补的假设相符，但无法证实该假设。
+
+The full ledger in Appendix~\ref{app:stress_tests} supplies the boundary: topology-only selection is below the PRM on both tasks, and the hybrid observation covers only two 80-item pools. The MATH-500 gain recovers 1.25 of the 7.50 points between the PRM and pool oracle; on GSM8K, the PRM is already within 1.25 points of the oracle and the hybrid remains tied. Larger pools, uncertainty intervals, and a prespecified fusion rule are required before making a general Best-of-$N$ claim.
+% 附录~\ref{app:stress_tests}中的完整统计结果给出了明确边界：仅基于拓扑的选择方法在两项任务上的表现均低于PRM，而混合观测仅覆盖了两个包含80个样本的池。在MATH-500任务上，该方法的收益填补了PRM与池神谕之间7.50分差距中的1.25分；在GSM8K任务上，PRM与神谕的差距本就仅有1.25分，混合观测的表现则与两者持平。若要得出具有普适性的Best-of-$N$结论，还需要更大的样本池、不确定性区间以及预先指定的融合规则作为支撑。
+    
+\subsection{Stress Tests and Scope}
+
+The appendix reports three additional checks under their full protocols. In a matched DR1-Qwen-7B rerun, repeated stochastic decoding gives no stable accuracy ordering among outcome-only, outcome-plus-length, and \method. On Llama-3.1-8B-Instruct, \method shortens responses on GSM8K and MATH-500 while preserving accuracy only on GSM8K. Finally, higher topology-score strata are associated with higher correctness, but a comparable stratification gap also appears for outcome-only training. These checks restrict the claim to the displayed cross-family benchmark result, the observed Qwen3.5-9B frontier, audited recoverable support, and the reported hybrid-selection observation. They do not establish universal backbone gains, semantic verification, or formal proof recovery.
+% 附录按照完整实验流程补充报告了三项验证结果。在匹配的DR1-Qwen-7B重跑实验中，重复随机解码在仅基于结果、结果加长度、以及\method三者之间未得到稳定的准确率排序。在Llama-3.1-8B-Instruct模型上，\method缩短了GSM8K和MATH-500数据集上的响应长度，但仅在GSM8K上保持了准确率。最后，拓扑得分层级越高，正确率也越高，但仅基于结果的训练也存在类似的层级差距。上述验证将结论限定于已展示的跨模型族基准测试结果、观测到的Qwen3.5-9B前沿性能、经审核可复现的支撑依据，以及报告的混合选择观测结果。这些验证并未证明该方法能在所有骨干模型上通用增益、实现语义验证，或是完成形式化证明复现。

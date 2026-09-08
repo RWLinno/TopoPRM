@@ -7,7 +7,7 @@
 #
 # Provides:
 #   gpu_preflight         — verify GPUs are clean before training
-#   shm_cleanup           — remove stale IPC handles
+#   shm_cleanup           — report SHM usage; remove stale handles only when opted in
 #   start_shm_watchdog    — background monitor, kills $GUARDED_PID on SHM overflow
 #   start_gpu_watchdog    — background monitor, warns on near-full GPU memory
 #   register_cleanup      — install EXIT/INT/TERM trap for graceful shutdown
@@ -19,6 +19,7 @@ GUARD_SHM_LIMIT_GB="${GUARD_SHM_LIMIT_GB:-400}"
 GUARD_GPU_LEAK_MB="${GUARD_GPU_LEAK_MB:-1000}"
 GUARD_POLL_INTERVAL="${GUARD_POLL_INTERVAL:-30}"
 GUARD_PID_DIR="${GUARD_PID_DIR:-/tmp/topoprm_pids}"
+GUARD_CLEAN_STALE_SHM="${GUARD_CLEAN_STALE_SHM:-0}"
 GUARDED_PID=""
 _WATCHDOG_PIDS=()
 
@@ -62,6 +63,12 @@ gpu_preflight() {
 }
 
 shm_cleanup() {
+    if [ "$GUARD_CLEAN_STALE_SHM" != "1" ]; then
+        echo "[gpu_guard] Shared-memory cleanup disabled (set GUARD_CLEAN_STALE_SHM=1 to opt in)."
+        df -h /dev/shm 2>/dev/null | tail -1 || true
+        return 0
+    fi
+
     echo "[gpu_guard] Cleaning stale IPC handles in /dev/shm..."
     local count=0
     shopt -s nullglob

@@ -1,0 +1,43 @@
+\begin{center}
+\captionsetup{hypcap=false}
+\captionof{table}{Held-out audit on 1{,}770 candidate pairs from 119 traces. Qwen3-32B and Qwen2.5-32B label pairs independently; manual verification covers the complete set. Reported extractor metrics use the model annotations as references. Consensus/union are their positive-label intersection/union.}
+\label{tab:edge_audit_main}
+\small
+\setlength{\tabcolsep}{4.8pt}
+\renewcommand{\arraystretch}{1.10}
+\begin{minipage}[t]{0.495\textwidth}
+\vspace{0pt}
+\centering
+\textbf{\makecell[c]{Annotator contingency\\Qwen3-32B vs. Qwen2.5-32B}}\\[3pt]
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\rowcolor{tableheader}
+\textbf{Qwen3-32B} & \textbf{Support} & \textbf{No support} & \textbf{Total} \\
+\midrule
+Support    & 368 & 68 & 436 \\
+No support & 113 & 1{,}221 & 1{,}334 \\
+\midrule
+Total      & 481 & 1{,}289 & 1{,}770 \\
+\rowcolor{tablegroup}
+\multicolumn{4}{@{}c@{}}{\textit{Agreement:}\enspace raw $=0.898$;\enspace $\kappa=0.734$} \\
+\bottomrule
+\end{tabular}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.495\textwidth}
+\vspace{0pt}
+\centering
+\textbf{\makecell[c]{Released extractor\\against alternative references}}\\[3pt]
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\rowcolor{tableheader}
+\textbf{Support reference} & \textbf{Prec.} & \textbf{Recall} & \textbf{F1} \\
+\midrule
+Qwen3-32B           & .478 & .589 & .528 \\
+Qwen2.5-32B         & .483 & .541 & .510 \\
+\midrule
+Annotator consensus & .428 & .625 & .508 \\
+Annotator union     & .534 & .523 & .528 \\
+\bottomrule
+\end{tabular}
+\end{minipage}
+\end{center}

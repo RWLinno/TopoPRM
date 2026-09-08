@@ -9,7 +9,11 @@ import os
 import statistics
 
 from src.dag.graph import ReasoningDAG
-from src.data.build_dag import build_dag_from_answer, extract_steps_from_answer
+from src.data.build_dag import (
+    build_dag_from_answer,
+    extract_steps_from_answer,
+    predict_semantic_dependency_edges_batch,
+)
 from src.reward.reward_config import RewardConfig
 from src.reward.utils import completion_to_text, extract_think_block
 
@@ -125,6 +129,7 @@ class TopoReward(ORM):
         super().__init__()
         self._num_calls = 0
         self.last_diagnostics: list[dict[str, float]] = []
+        self.last_dags: list[Optional[ReasoningDAG]] = []
 
     @staticmethod
     def _safe_clip01(v: float) -> float:
@@ -240,9 +245,20 @@ class TopoReward(ORM):
         ref_dag: Optional[ReasoningDAG],
     ) -> TopoVerification:
         valid = 1.0 if dag.is_valid_dag() else 0.0
-        acyclic = 1.0 if dag.validate_dag().get('is_acyclic', False) else 0.0
+        raw_topology = dag.graph.graph.get("raw_topology", {})
+        acyclic = float(
+            raw_topology.get(
+                "acyclicity_score",
+                1.0 if dag.validate_dag().get('is_acyclic', False) else 0.0,
+            )
+        )
         no_orphan = 1.0 - self._orphan_conclusion_ratio(dag)
-        direction = dag.direction_consistency()
+        direction = float(
+            raw_topology.get(
+                "direction_score",
+                raw_topology.get("direction_consistency", dag.direction_consistency()),
+            )
+        )
         step_align = self._step_alignment(dag, num_steps)
         p, r, f1 = self._ref_edge_prf(dag, ref_dag)
 
@@ -264,7 +280,7 @@ class TopoReward(ORM):
         has_ref: bool,
     ) -> TopoFormulaTerms:
         i_non_empty = 1.0 if dag.num_nodes > 0 else 0.0
-        i_acyclic = 1.0 if v.acyclic >= 1.0 else 0.0
+        i_acyclic = self._safe_clip01(v.acyclic)
         rho_orphan = self._safe_clip01(1.0 - v.no_orphan)
         i_no_orphan = 1.0 if rho_orphan <= 1e-12 else 0.0
         delta = self._safe_clip01(v.direction_consistency)
@@ -399,6 +415,66 @@ class TopoReward(ORM):
             return None
         return None
 
+    def _empty_diagnostics(self, *, has_ref: bool) -> dict[str, float]:
+        """Return a position-preserving diagnostic row for an empty trace."""
+        row = TopoVerification(
+            valid_dag=0.0,
+            acyclic=0.0,
+            no_orphan=0.0,
+            direction_consistency=0.0,
+            step_alignment=0.0,
+            ref_edge_precision=0.0,
+            ref_edge_recall=0.0,
+            ref_edge_f1=0.0,
+        ).as_dict()
+        row.update({
+            "lambda_base": self.LAMBDA_BASE,
+            "lambda_acyclic": self.LAMBDA_ACYCLIC,
+            "lambda_orphan": self.LAMBDA_ORPHAN,
+            "lambda_delta": self.LAMBDA_DELTA,
+            "lambda_kappa": self.LAMBDA_KAPPA if has_ref else 0.0,
+            "indicator_non_empty": 0.0,
+            "indicator_acyclic": 0.0,
+            "indicator_no_orphan": 0.0,
+            "rho_orphan": 1.0,
+            "delta": 0.0,
+            "kappa": 0.0,
+            "term_base": 0.0,
+            "term_acyclic": 0.0,
+            "term_orphan": 0.0,
+            "term_delta": 0.0,
+            "term_kappa": 0.0,
+            "denom": (
+                self.LAMBDA_BASE
+                + self.LAMBDA_ACYCLIC
+                + self.LAMBDA_ORPHAN
+                + self.LAMBDA_DELTA
+                + (self.LAMBDA_KAPPA if has_ref else 0.0)
+            ),
+            "r_topo": 0.0,
+            "empty_trace": 1.0,
+        })
+        return row
+
+    def last_source_scores(self) -> dict[str, list[float]]:
+        """Expose independent raw-graph sources from the most recent call.
+
+        The lists preserve completion order and reuse the graph extraction that
+        produced the scalar compatibility reward.  This lets a downstream
+        aggregator consume direction and acyclicity separately without running
+        the edge encoder twice.
+        """
+        return {
+            "q_dir": [
+                self._safe_clip01(row.get("direction_consistency", 0.0))
+                for row in self.last_diagnostics
+            ],
+            "q_acyc": [
+                self._safe_clip01(row.get("acyclic", 0.0))
+                for row in self.last_diagnostics
+            ],
+        }
+
     def __call__(
         self,
         completions: list,
@@ -410,8 +486,14 @@ class TopoReward(ORM):
         rewards: list[float] = []
         diag_rows: list[dict[str, float]] = []
         self.last_diagnostics = []
-        no_think_fallback = os.environ.get("TOPO_TOPO_NO_THINK_FALLBACK", "0") not in {"0", "false", "False", ""}
-        for idx, completion in enumerate(completions):
+        self.last_dags = []
+        fallback_flag = os.environ.get(
+            "TOPO_NO_THINK_FALLBACK",
+            os.environ.get("TOPO_TOPO_NO_THINK_FALLBACK", "0"),
+        )
+        no_think_fallback = fallback_flag not in {"0", "false", "False", ""}
+        prepared: list[tuple[str, list[dict[str, Any]]]] = []
+        for completion in completions:
             text = completion_to_text(completion)
             think_text = extract_think_block(text)
             if not think_text and no_think_fallback:
@@ -425,12 +507,31 @@ class TopoReward(ORM):
                 import re as _re
                 think_text = _re.sub(r"<answer>.*?</answer>", " ", text, flags=_re.DOTALL).strip() or text
             steps = extract_steps_from_answer(think_text)
+            prepared.append((think_text, steps))
+
+        use_edge_encoder = bool(os.environ.get("TOPO_DAG_EDGE_CHECKPOINT", "").strip())
+        semantic_batches = (
+            predict_semantic_dependency_edges_batch([steps for _, steps in prepared])
+            if use_edge_encoder
+            else [None] * len(prepared)
+        )
+        for idx, (think_text, steps) in enumerate(prepared):
             if not steps:
                 rewards.append(0.0)
+                self.last_dags.append(None)
+                ref = self._parse_ref(refs[idx] if idx < len(refs) else None)
+                row = self._empty_diagnostics(has_ref=ref is not None)
+                diag_rows.append(row)
+                self.last_diagnostics.append(row)
                 continue
 
             ref = self._parse_ref(refs[idx] if idx < len(refs) else None)
-            dag = build_dag_from_answer(think_text, reference_dag=ref)
+            dag = build_dag_from_answer(
+                think_text,
+                reference_dag=ref,
+                semantic_edges=semantic_batches[idx],
+            )
+            self.last_dags.append(dag)
             verification = self._compute_verification(dag, len(steps), ref)
             has_ref = ref is not None
             terms = self._compute_formula_terms(dag, verification, has_ref=has_ref)
@@ -441,6 +542,7 @@ class TopoReward(ORM):
 
             row = verification.as_dict()
             row['r_topo'] = reward
+            row['empty_trace'] = 0.0
             row.update(terms.as_dict())
             diag_rows.append(row)
             self.last_diagnostics.append(row)

@@ -1,0 +1,125 @@
+\input{tables/main_accuracy}
+
+\section{Experiments}
+\label{sec:experiments}
+
+\subsection{Setup}
+\label{sec:setup}
+We conduct extensive experiments to evaluate our methods on nine benchmarks spanning mathematical reasoning and general tasks: \texttt{GSM8K}, \texttt{MATH-500}, \texttt{Olympiad}, \texttt{Omni-MATH}, \texttt{AIME 2024}, \texttt{AIME 2025}, \texttt{CNMO 2024}, \texttt{MMLU}, \texttt{GPQA-D}, comparing against more than ten baselines including reference open-source models.
+Among them, we adopt Qwen3.5-9B, Qwen2.5-7B~\citep{yang2024qwen2_5}, and DeepSeek-R1-Distill-Qwen-7B~\citep{deepseekr1} as the primary base models. 
+Training variants use: (i) LoRA SFT~\citep{vonwerra2022trl,hu2022lora} on $\sim$19.5K DAG-annotated math traces, with 3 epochs, 64 rank, learning rate $5{\times}10^{-6}$ and $\alpha{=}128$.
+GRPO is run for 300 steps, 4 generations/prompt with learning rate $5{\times}10^{-6}$, $\beta{=}0.04$, equipped with outcome-only reward or the hierarchical TopoPRM reward (Eq.~\ref{eq:r_total}).
+The hybrid topology extractor combines rule templates with batched LLM dependency inference and is invoked asynchronously alongside rollout generation (cost analysis in §\ref{sec:rq3}).
+The primary metric is accuracy, while pass@k / maj@5 / token-efficiency are recorded for completeness~\citep{wang2023com}. Full setting and implementation details are reported in Appendix~\ref{app:details}.
+
+% \paragraph{Research questions.}
+% The remainder of this section answers four questions:
+% \textbf{RQ1}~(\S\ref{sec:rq1}) Does topology-aware post-training improve structural reliability over outcome-only GRPO and SFT under a unified protocol?
+% \textbf{RQ2}~(\S\ref{sec:rq2}) Which components of TopoPRM (topology, continuity, hierarchical aggregation) drive the gains, and is the reward robust against collapse?
+% \textbf{RQ3}~(\S\ref{sec:rq3}) Does structural supervision deliver a real accuracy--length trade-off, and at what training-time cost given the hybrid extractor?
+% \textbf{RQ4}~(\S\ref{sec:rq4_main}) How do the gains transfer across model scales, and does topology-conditioned compression preserve them at shorter budgets?
+
+%% ─────────────────────────────────────────────────────────────
+%% RQ1: Main results on public benchmarks
+%% ─────────────────────────────────────────────────────────────
+
+\input{tables/main_detailed}
+
+\subsection{Main Results (RQ1)}
+\label{sec:rq1}
+
+\paragraph{Unified Accuracy Evaluation.}
+Table~\ref{tab:main_accuracy} reports pass@5 accuracy across nine benchmarks for three backbone families. TopoPRM achieves the highest average accuracy (55.3\%, 58.3\%, and 60.9\%) among all training variants on the three base models, respectively.
+% On Qwen3.5-9B, The gains concentrate on elementary 
+% and general benchmarks (GSM8K: 97.9 vs.\ 93.3; MMLU: 86.4 vs.\ 63.0).
+On Qwen2.5-7B, TopoPRM exceeds the GRPO baseline on 7 of 9 benchmarks and improves MMLU by $+$20.2 points (82.7 vs.\ 62.5), indicating that topology supervision transfers to general reasoning without task-specific tuning. TopoPRM also surpasses the strong SimpleRL-Zoo baseline on 5 of 9 benchmarks (Olympiad: 47.8 vs.\ 38.6; Omni: 57.2 vs.\ 40.4; MMLU: 82.7 vs.\ 62.5) while remaining competitive elsewhere.
+
+\paragraph{Shorter Chains, but Higher Efficiency.}
+Table~\ref{tab:main_detailed} further decomposes performance by token cost.
+TopoPRM (Full) achieves the highest Acc/kTok on all four primary benchmarks (GSM8K: 118.2, MATH-500: 35.1, OlympiadBench: 18.6, Omni-MATH: 26.6), generating up to 24\% fewer tokens on GSM8K and about 13\% fewer on the four-primary-benchmark mean than outcome-only GRPO while maintaining equal or higher accuracy.
+This pattern---higher accuracy at lower token cost---is the signature of structurally tighter reasoning chains, where topology supervision prunes redundant derivation branches.
+
+%% ─────────────────────────────────────────────────────────────
+%% RQ2: Ablation studies
+%% ─────────────────────────────────────────────────────────────
+\subsection{Ablation Studies (RQ2)}
+\label{sec:rq2}
+
+\input{tables/ablation_compact}
+
+\paragraph{Reward Component Contribution.}
+Table~\ref{tab:ablation_compact} isolates the contribution of each reward component on Qwen3.5-9B across 8 public benchmarks.
+Removing continuity causes the largest degradation ($\Delta{=}{-}29.3$ points), with Collapse\% rising from 37.9\% to 68.8\%, indicating that local step-traceability provides the primary gradient signal for GRPO.
+Removing topology or ACE each causes a moderate drop ($\Delta{\approx}{-}3.8$, Collapse\% at 42--45\%), while outcome-only GRPO shows a $-$4.7 point deficit with 57.8\% collapse.
+The full model also achieves the shortest generation (1,692 tokens) and highest token-efficiency (26.9 Acc/kTok), suggesting that topology-aware supervision prunes structurally redundant branches rather than merely penalising length.
+At larger capacity (a pre-experiment used Qwen-32B in Appendix~\ref{appx:pre_exp}), the dominant signal shifts from continuity to topology.
+% A detailed analysis of reward aggregation strategies and the accuracy-length trade-off on our in-domain validation set is provided in Appendix~\ref{appx:pre_exp}.
+
+% \paragraph{Hierarchical Aggregation.}
+% The multiplicative formulation (Eq.~\ref{eq:r_total}) halves reward collapse relative to linear summation (37.9\% vs.\ 75.1\%) while preserving accuracy; details are in Appendix~\ref{appx:pre_exp}, Table~\ref{tab:aggregation_ablation}.
+
+%\input{tables/aggregation_ablation}
+
+% \paragraph{Hierarchical Aggregation Prevents Reward Collapse.}
+% Table~\ref{tab:aggregation_ablation} compares three strategies for combining the five reward signals.
+% Linear weighted summation achieves identical accuracy to the hierarchical formulation (Mid: 37.2, High: 22.3) but suffers 75.1\% reward collapse---nearly twice the hierarchical rate (37.9\%).
+% Clipped linear reduces collapse to 67.7\% but sacrifices 8.2 accuracy points on Mid, indicating that hard clipping destroys informative reward variance.
+% The hierarchical multiplicative formulation (Eq.~\ref{eq:r_total}) preserves accuracy while halving collapse, because it maintains a correctness-dominant base reward and injects topology/continuity as multiplicative gain that can only re-rank within correctness strata.
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=0.98\linewidth]{figures/Fig4.Training_Curve.pdf}
+    \caption{GRPO training dynamics over 300 gradient steps. Top: normalized reward trajectory. Middle: mean thinking trace length. Bottom: accuracy per  thousand generated tokens, indicating effective of reasoning budget. \method converges with shorter completions and attains higher Acc/kTok, while the w/o-continuity variant inflates trace length with degraded token efficiency despite higher nominal reward.}
+    \label{fig:training_dynamics}
+\end{figure}
+
+\paragraph{Training Dynamics.}
+Figure~\ref{fig:training_dynamics} visualizes the training metrics trajectory over 300 steps. Standard GRPO gradually compresses mean completion length from 3,700 to 1,200 tokens, whereas TopoPRM remains below 500 tokens throughout training---over $2.4\times$ shorter at convergence---while sitting on a high reward plateau from step~0 with strictly positive reward std. The w/o-continuity variant converges to a higher nominal reward but with near-zero reward std (bottom panel), indicating mode collapse: the model produces a single output pattern that scores well on the remaining reward components but lacks diversity for continued learning.
+
+%% ─────────────────────────────────────────────────────────────
+%% RQ3: Efficiency analysis
+%% ─────────────────────────────────────────────────────────────
+\subsection{Efficiency Analysis (RQ3)}
+\label{sec:rq3}
+
+% \input{tables/ablation_length}
+
+% \paragraph{Topology Supervision Improves the Accuracy--Length Pareto Front.}
+% Table~\ref{tab:ablation_length} reports the accuracy--length trade-off on the in-domain critique set (Qwen3-32B).
+% TopoPRM achieves 75.5 Acc/kTok, more than double the outcome-only rate (36.8) and 8$\times$ the zero-shot baseline (9.4).
+% The improvement is not merely from shorter outputs: TopoPRM improves Mid accuracy by $+$17.7 points over outcome-only while simultaneously reducing length by 12.6\%.
+% Each ablation degrades the Pareto front monotonically---removing continuity costs 17.1 Acc/kTok, removing topology costs a further 12.2---confirming that both signals contribute to the efficiency gain through complementary mechanisms (local coherence vs.\ global structure).
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=0.98\linewidth]{figures/Fig5.Efficiency_Barplot.pdf}
+    \caption{Token efficiency across reward configurations (Qwen3.5-9B, 4-benchmark average). Bars: mean generation tokens (left axis).
+    Diamonds: Acc/kTok (right axis). TopoPRM (Full) achieves the best accuracy-per-token ratio with the shortest outputs.}
+    \label{fig:efficiency}
+\end{figure}
+
+\paragraph{Accuracy per Token.}
+Figure~\ref{fig:efficiency} summarizes the token-efficiency trade-off on four public benchmarks.
+TopoPRM (Full) achieves 48.1 Acc/kTok at 1,568 tokens, while outcome-only GRPO reaches 37.9 at 1,737 tokens, and the w/o-continuity variant collapses to 14.0 at 2,046 tokens.
+The monotonic degradation confirms that topology and continuity contribute complementary efficiency gains: global structure prevents redundant branching, while local continuity prevents unsupported transitions that inflate length.
+A detailed analysis on our in-domain critique set is in Appendix~\ref{appx:pre_exp}, Table~\ref{tab:ablation_length}.
+
+
+\paragraph{Training Cost.}
+Full TopoPRM post-training on 8$\times$A100-80GB GPUs completes in ${\sim}$30 GPU-hours, including SFT takes ${\sim}$3h, GRPO ${\sim}$15h, and TGSD ${\sim}$12h. DAG extraction runs on rule-based and LLM generation mixedly in parallel, adding negligible wall-clock overhead. %By contrast, learned PRM baselines such as Math-Shepherd require 50+ GPU-hours to train the verifier alone before it can be used as a reward signal.
+
+%% ─────────────────────────────────────────────────────────────
+%% RQ4: Scale and compression
+%% ─────────────────────────────────────────────────────────────
+\subsection{Cross-Scale Distillation (RQ4)}
+\label{sec:rq4_main}
+
+\input{tables/compression}
+
+\paragraph{Topology-Guided Cross-Scale Distillation.}
+Table~\ref{tab:compression} evaluates the \framework stage, which uses the 9B TopoPRM teacher (Stage-II output) to distil cross-scale students via topology-guided on-policy distillation.
+The 4B student retains 98.2\% of the teacher's GSM8K accuracy (82.8 vs.\ 84.3) and 92.3\% on MATH-500 (61.5 vs.\ 66.6) while reducing token usage to 0.56$\times$ and preserving 93\% structural retention (acyclicity, edge coverage).
+Scaling down to 2B and 0.8B yields graceful degradation: accuracy drops 5--11 points per halving of parameters, while structural retention remains above 81\%.
+The SFT-distill baseline at 4B achieves lower accuracy (79.4 GSM8K) with worse structural retention (0.86$\times$) despite generating longer outputs (438 vs.\ 382 tokens), confirming that topology-guided on-policy sampling produces a higher-quality training signal than static teacher traces.
+The off-policy KL baseline is generated at the token cap (4096) with only 0.41$\times$ structural retention, leaving the student with near-zero usable supervision (details in Appendix~\ref{appx:tgsd_details}).
+Cross-scale ablation results on our in-domain validation set (Appendix~\ref{appx:pre_exp}) further show that topology rewards are most effective at larger model scales (32B: $\Delta{=}{-}13.0$ for outcome-only), where the model has sufficient capacity to produce structurally coherent DAGs.

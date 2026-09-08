@@ -1,0 +1,110 @@
+\section{Method}
+\label{sec:method}
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.98\linewidth]{figs/fig2_topoprm_framework.pdf}
+\caption{Overview of \method and \framework. An order-agnostic encoder recovers a raw directed support graph; its acyclic projection provides the training DAG while discarded backward and cyclic edges remain reward signals. A topology-conditioned Choquet reward aggregates multiple sources, and the projected graph guides dependency-preserving distillation.} %阶次无关编码器还原出原始有向支撑图，其无环投影得到训练用 DAG，而被舍弃的反向边与环边则作为奖励信号；经拓扑条件约束的 Choquet 奖励会聚合多源信号，最终由投影所得的图引导保依赖蒸馏过程。
+\label{fig:overview}
+\end{figure*}
+
+\method (Figure~\ref{fig:overview}) is a topology-aware post-training framework whose three stages share one graph encoder $\mathcal{E}_{\phi}$ and one acyclic projection $\Pi$: Stage~I produces parsable traces, Stage~II applies GRPO to a topology-conditioned multi-source reward, and Stage~III runs \framework, where the Stage-II teacher revises student rollouts from defects localized on the projected graph.
+% \method 是一个拓扑感知的后训练框架，三个阶段共享同一个图编码器 $\mathcal{E}_{\phi}$ 与同一个无环投影 $\Pi$：阶段一产出可解析的推理轨迹；阶段二用 GRPO 优化拓扑条件化的多源奖励；阶段三执行拓扑引导蒸馏，由阶段二的教师依据投影图上定位到的缺陷修订学生轨迹。
+
+\paragraph{Problem Setup.}
+Let $x=(q,c)$ pair a mathematical problem $q$ with optional context $c$, and let $\pi_\theta$ generate a trace $y=(s_1,\dots,s_T)$. The frozen encoder produces a raw directed support graph $\mathcal{H}_y=\mathcal{E}_{\phi}(y)=(\mathcal{V},\mathcal{A}_{H})$, where $i\!\to\!j$ means step $s_i$ supplies a result, claim, sub-goal, or assumption used by $s_j$. Unlike a DAG built only from pairs $i<j$, $\mathcal{H}_y$ may contain backward edges and cycles. We retain those violations and separately form $\mathcal{G}_y=\Pi(\mathcal{H}_y)$ from the order-consistent support edges. So $\mathcal{G}_y$ admits DAG operations while the projection cost of $\mathcal{H}_y$ exposes structural failures that construction would otherwise erase.
+% 问题设定：$x=(q,c)$ 是数学问题与可选上下文，$\pi_\theta$ 生成轨迹 $y=(s_1,\dots,s_T)$。冻结编码器产出原始有向支持图 $\mathcal{H}_y$，其中 $i\to j$ 表示步骤 $s_i$ 提供了 $s_j$ 所用的结果、断言、子目标或假设。与只由 $i<j$ 构造的 DAG 不同，$\mathcal{H}_y$ 可以含后向边与环。我们保留这些违规，另行由顺序一致的支持边构造 $\mathcal{G}_y$。于是 $\mathcal{G}_y$ 支持 DAG 运算，而 $\mathcal{H}_y$ 的投影代价恰好暴露出"按构造方式本会被抹去"的结构缺陷。
+Acyclicity is normative only for the semantic support relation in the committed trace: a cycle in $\mathcal{H}_y$ means a written claim ultimately supports itself. %It does not forbid exploratory computation, rechecking, or revision, which may revisit a latent state while still yielding an acyclic final justification (Appendix~\ref{app:acyclicity_scope}).
+% 无环性只对"已提交轨迹中的语义支持关系"是规范性要求：$\mathcal{H}_y$ 中的环意味着某个写下的断言最终支持自身。它并不禁止探索性计算、复核或修订——这些行为可能重访某个隐状态，但最终的论证依然是无环的。
+
+\subsection{Topology-Aware Data Processing}
+\label{sec:data_processing}
+
+\paragraph{Raw-Graph Extraction and Projection.}
+Given a rollout $y$, $\mathcal{E}_{\phi}$ runs three stages. \textbf{(i)~Segmentation and parsing} splits $y$ into steps and sub-questions and extracts normalized expressions, claim keys, variables, and step types. \textbf{(ii)~Order-agnostic support encoding} combines auditable high-precision symbolic rules with a lightweight pair encoder that predicts one of $\{i\!\to\!j,j\!\to\!i,\varnothing\}$ per unordered intra-component pair. The encoder is trained offline from semantic-teacher edges and frozen during policy optimization, with a separately annotated set calibrating edge precision and direction; its retained edges carry calibrated confidence while rule edges use unit weight. When both judge the same pair the semantic prediction wins, which prevents artificial two-cycles from conflicting extractors. \textbf{(iii)~Acyclic projection} keeps all predicted edges in $\mathcal{H}_y$, sets $\mathcal{G}_y=\Pi(\mathcal{H}_y)$ by removing $i\!\to\!j$ with $i\ge j$, and adds a weak sequential edge only where a node is still unsupported (Appendix~\ref{app:dag}).
+% 原始图抽取与投影：$\mathcal{E}_{\phi}$ 分三步。(i) 分割与解析：把轨迹切成步骤与子问题，抽取归一化表达式、断言键、变量与步骤类型。(ii) 顺序无关的支持编码：高精度可审计符号规则与轻量 pair encoder 结合，后者对每个组件内无序步骤对预测 $\{i\to j, j\to i, \varnothing\}$ 之一；该编码器由语义教师边离线训练、策略优化期间冻结，并用另一组标注集校准边精确率与方向。编码器边带校准置信度，规则边取单位权重；两者判定同一对时以语义预测为准，避免抽取器冲突造成人为二元环。(iii) 无环投影：$\mathcal{H}_y$ 保留全部预测边，删除 $i\ge j$ 的边得到 $\mathcal{G}_y$，仅在节点仍无支持时补一条弱顺序边。
+
+\paragraph{Topology and Continuity Diagnostics.}
+\label{sec:diagnostics}
+Let $\mathcal{A}_H^{\mathrm{dep}}$ be the dependency edges of $\mathcal{H}_y$ with confidence weights $w_{ij}\geq0$ and total mass $W_H$, let $\mathcal{A}_{\mathrm{cyc}}$ hold those whose endpoints share a cyclic strongly connected component (size $>1$, or a self-loop), and let $c_H$ be the fraction of nodes incident to at least one dependency edge. The raw statistics are the forward-edge mass $d_H$ and cycle-edge mass $u_H$. Both are ratios over the covered subgraph alone, so a barely covered trace would otherwise earn a confident score from almost no evidence. We therefore report a \emph{shrinkage estimate} pulling each statistic toward the uninformative value $1/2$ with weight $1-c_H$:
+\begin{align}
+q_{\mathrm{dir}}(\mathcal{H}_y)
+&=c_H d_H+(1-c_H)/2, \quad
+d_H=\frac{\sum_{(i,j)\in\mathcal{A}_H^{\mathrm{dep}}}w_{ij}\mathbb{1}[i<j]}
+{W_H}, \label{eq:qdir}\\
+q_{\mathrm{acyc}}(\mathcal{H}_y)
+&=c_H(1-u_H)+(1-c_H)/2, \quad
+u_H=\frac{\sum_{(i,j)\in\mathcal{A}_{\mathrm{cyc}}}w_{ij}}
+{W_H}. \label{eq:qacyc}
+\end{align}
+Equivalently $q_{\mathrm{dir}}=\tfrac12+c_H(d_H-\tfrac12)$ and $q_{\mathrm{acyc}}=\tfrac12+c_H(\tfrac12-u_H)$: coverage is the shrinkage weight, so evidence moves a score away from $1/2$ only in proportion to how much of the trace it covers. This bounds what an extraction failure can earn --- an empty graph cannot be rewarded for vacuous structural perfection --- while keeping both scores in $[0,1]$ and monotone in their raw statistic. When $W_H=0$ we set $d_H=1,u_H=0$, but $c_H=0$ for a multi-step empty graph, so both collapse to exactly $0.5$. A singleton trace admits no cross-step violation and uses $c_H=1$.
+% 覆盖度收缩：把 $q_{dir}$、$q_{acyc}$ 写成"以边覆盖率 $c_H$ 为权重、向无信息先验 0.5 收缩"的收缩估计。统计动机是：证据只在其真实覆盖的比例上把分数推离 0.5，因此低覆盖不会换来自信的高分——空图轨迹恰好得 0.5 而非满分，从而堵住"抽取失败反被奖励"的漏洞。这不是工程调参，而是显式的估计量设计。
+
+The continuity score $q_{\mathrm{cont}}$ measures whether each step traces back to the question or a supported prefix of $\mathcal{G}_y$. Direction and acyclicity stay separate rather than averaged into one topology score or checked tautologically after projection, because their relationship is asymmetric: every directed cycle must contain a backward edge under the textual order, yet a backward edge need not close a cycle. Proposition~\ref{prop:projection_split} formalizes this and states when the two are separately identifiable.
+% 连续性分数衡量每一步能否追溯到问题或 $\mathcal{G}_y$ 的已支持前缀。方向性与无环性保持分离，不被平均成单一拓扑分数，也不在投影后做同义检查。二者关系是非对称的：每条有向环必然含一条（文本序下的）后向边，但后向边不必成环，因此后向边质量相同的原始图仍可有不同的环边质量。命题~\ref{prop:projection_split} 将其形式化并给出可识别条件。
+
+\begin{proposition}[Projection residual splits, and the split is one-sided]
+\label{prop:projection_split}
+Let $\mathcal{H}$ have dependency edges $\mathcal{A}^{\mathrm{dep}}$ with weights $w_{ij}>0$ and $W_H>0$, let $B=\{(i,j)\in\mathcal{A}^{\mathrm{dep}}:i\ge j\}$ be the backward edges, and let $C=\mathcal{A}_{\mathrm{cyc}}$ be the cycle-participating edges. Then:
+\begin{enumerate}[leftmargin=*,itemsep=1pt,topsep=2pt]
+\item[(i)] $\Pi$ deletes exactly $B$, so the projection residual has mass $W_H(1-d_H)$ and splits as $\sum_{B\cap C}w_{ij}+\sum_{B\setminus C}w_{ij}$: support lost to circular justification, and support lost to non-circular order violation.
+\item[(ii)] $C\neq\varnothing\implies B\cap C\neq\varnothing$, hence $u_H>0\implies d_H<1$. The converse fails.
+\item[(iii)] Neither $q_{\mathrm{dir}}$ nor $q_{\mathrm{acyc}}$ is a function of the other: both are needed to identify the residual split.
+\end{enumerate}
+\end{proposition}
+\noindent The proof is short --- around a directed cycle the step indices cannot increase strictly, so at least one edge must be backward --- and is given with explicit counterexample graphs in Appendix~\ref{app:math_details}.
+
+% 命题：投影残差可分解，且分解是单向的。(i) 投影恰好删除后向边集 $B$，残差质量 $W_H(1-d_H)$ 可拆为"环内后向边"与"非环后向边"两部分，分别对应循环论证损失与纯序违反损失。(ii) 有环必有后向边（否则沿环下标严格递增导致 $v_1<v_1$ 矛盾），故 $u_H>0 \Rightarrow d_H<1$；反之不成立（如 $\{3\to2\}$ 后向但无环）。(iii) 两个分数互不决定（可由四个显式反例图证明）。因此必须同时保留二者才能识别残差的构成。证明见附录~\ref{app:math_details}。
+
+We claim identifiability, not orthogonality: the two signals are neither redundant nor statistically independent (Appendix~\ref{app:math_details}).
+% 我们主张的是可识别性而非正交性：两个信号既不冗余也不统计独立，详见附录。
+
+\paragraph{Topology-Conditioned Multi-Source Aggregation.}
+Let $\mathbf{z}=(r_{\mathrm{out}},r_{\mathrm{fmt}},q_{\mathrm{dir}},q_{\mathrm{acyc}},q_{\mathrm{cont}})\in[0,1]^5$. A weighted sum assumes that each source has the same marginal value regardless of the others. Instead, we use a monotone 2-additive Choquet model with M\"obius coefficients~\citep{choquet1954capacities,grabisch1997kadditive}
+\begin{equation}
+\label{eq:r_total}
+r_{\mathrm{total}}(x,y)
+=\sum_i m_i z_i
++\sum_{(i,j)\in\mathcal{I}_{\mathrm{topo}}}m_{ij}\min(z_i,z_j),
+\quad
+\mathcal{I}_{\mathrm{topo}}=\{(o,d),(o,a),(d,c),(a,c),(d,a)\}.
+\end{equation}
+Here $o,d,a,c$ denote outcome, direction, acyclicity, and continuity. All $m_i,m_{ij}\ge0$ and sum to one, so the reward is bounded and monotone. The five interactions assign additional value when each raw-graph diagnostic agrees with outcome or continuity and when direction agrees with acyclicity. This makes topology a constituent of cross-source utility rather than a correctness-first bonus; no length source enters the main reward.
+% 这里 $o,d,a,c$ 分别代表 outcome、direction、acyclicity、continuity。所有 Möbius 系数非负且和为一，故奖励有界且单调。五个交互项在两个原始图诊断与 outcome/continuity 一致、以及方向性与无环性彼此一致时给出额外价值。这让拓扑成为跨源效用的构成成分，而不是"先看正确性再加分"的附赠项；主奖励中不含任何长度源。
+
+\begin{remark}[The interaction term is a disagreement penalty, unreachable by reweighting]
+\label{rem:choquet_sep}
+A $2$-additive capacity has Shapley source importance $\varphi_i=m_i+\tfrac12\sum_j m_{ij}$, giving the matched additive control $r_{\mathrm{add}}(\mathbf{z})=\sum_i\varphi_i z_i$. Substituting $\min(u,v)=\tfrac{u+v}{2}-\tfrac{|u-v|}{2}$ into Eq.~\ref{eq:r_total} yields the exact decomposition
+\begin{equation}
+\label{eq:choquet_split}
+r_{\mathrm{total}}(\mathbf{z})=r_{\mathrm{add}}(\mathbf{z})-\tfrac12\!\!\sum_{(i,j)\in\mathcal{I}_{\mathrm{topo}}}\!\! m_{ij}\,|z_i-z_j|.
+\end{equation}
+The Choquet reward is therefore its own matched additive control minus a weighted disagreement penalty. Two rollouts that agree on $r_{\mathrm{add}}$ but differ in disagreement mass are ranked strictly by Eq.~\ref{eq:choquet_split} and tied exactly by every reweighting of the sources.
+\end{remark}
+
+\noindent\textit{Counterexample.} Let the capacity treat the graph diagnostics symmetrically ($m_{od}+m_{dc}=m_{oa}+m_{ac}=\kappa$, $m_{da}>0$) and compare two correct, well-formed, fully continuous rollouts with $(q_{\mathrm{dir}},q_{\mathrm{acyc}})=(0.9,0.5)$ and $(0.7,0.7)$. Their coordinates sum equally, so every additive aggregator with these Shapley weights scores them identically; their Eq.~\ref{eq:choquet_split} penalties are $\tfrac12[0.6\kappa+0.4m_{da}]$ and $\tfrac12[0.6\kappa]$, so the balanced rollout wins by $0.2\,m_{da}>0$. The reward prefers order consistency and non-circularity holding \emph{jointly} over a high direction score bought by conceding half the acyclicity mass. This is mechanical, not cosmetic: GRPO normalizes advantages within a group, so an additive tie contributes no gradient. Setting $m_{da}=0$ while redistributing its mass to preserve every $\varphi_i$ removes exactly this penalty and nothing else, which is the isolated control the aggregation ablation runs.
+% 反例：设容量对两个图诊断对称（$m_{od}+m_{dc}=m_{oa}+m_{ac}=\kappa$，$m_{da}>0$），比较两个都正确、格式合法、完全连续的 rollout：$(q_{dir},q_{acyc})$ 分别为 $(0.9,0.5)$ 与 $(0.7,0.7)$。因两坐标之和相等，任何用该 Shapley 权重的加性聚合都给出完全相同的分数；而式~\ref{eq:choquet_split} 的分歧惩罚使更均衡的那条以 $0.2 m_{da}>0$ 胜出。即奖励偏好"序一致性与非循环性同时成立"，而非用一半无环性质量换取高方向分。这在机制上重要而非表面：GRPO 在组内归一化优势，加性下的打平根本不产生梯度。令 $m_{da}=0$ 并重新分配其质量以保持所有 $\varphi_i$ 不变，恰好只移除这一项惩罚——这正是聚合消融所做的隔离对照。
+
+\subsection{Topology-Guided Post-Training}
+\label{sec:post_training}
+
+\paragraph{Stages I and II.}
+Stage~I fine-tunes the policy on structured mathematical solutions so its traces are parsable by $\mathcal{E}_{\phi}$; topology diagnostics are meaningful only when steps are recoverable, so this warm start suppresses invalid rollouts later. Stage~II then optimizes the policy with GRPO: $\mathcal{E}_{\phi}$ builds $\mathcal{H}_y$ and $\mathcal{G}_y$ for each completion and Eq.~\ref{eq:r_total} scores it. Group normalization acts on the complete Choquet reward, so topology reorders rollouts instead of only breaking ties inside an outcome stratum. Reward-hacking tests separately check whether structurally plausible but answer-incorrect traces are over-ranked.
+% 阶段一与阶段二：阶段一在结构化数学解答上做 SFT，使轨迹可被 $\mathcal{E}_{\phi}$ 解析——只有步骤可恢复时拓扑诊断才有意义，因此这一热启动能减少后续的无效 rollout。阶段二用 GRPO 优化策略：对每条完成，$\mathcal{E}_{\phi}$ 构造 $\mathcal{H}_y$ 与 $\mathcal{G}_y$，再由式~\ref{eq:r_total} 打分。组内归一化作用于完整的 Choquet 奖励，因此拓扑是在重排 rollout 顺序，而不只是在同一 outcome 层内打破平局。奖励攻击测试另行检验"结构合理但答案错误"的轨迹是否被高估。
+
+\paragraph{Stage~III: Topology-Guided Distillation.}
+\label{sec:distillation}
+The Stage-II model becomes the teacher $\pi_T$ and a smaller pretrained checkpoint initializes the student $\pi_S$. For each prompt the student rolls out $y_{\mathrm{init}}\!\sim\!\pi_S(\cdot\!\mid\!x)$, $\mathcal{E}_{\phi}$ produces its raw and projected graphs, and a dispatcher $\psi$ issues a revision instruction targeting one localized defect: a backward edge, a cyclic component, an orphan conclusion, or a continuity break. The teacher then writes the revised target. Topology therefore decides where supervision is requested and which revisions survive, rather than acting as a post-hoc score.
+% 阶段三（拓扑引导蒸馏）：阶段二模型作为教师 $\pi_T$，更小的预训练 checkpoint 初始化学生 $\pi_S$。对每个 prompt，学生先自行生成 $y_{init}$，$\mathcal{E}_{\phi}$ 产出其原始图与投影图，调度器 $\psi$ 针对一个被定位的缺陷（后向边、环状分量、孤立结论或连续性断裂）发出修订指令，教师据此写出修订目标。因此拓扑决定了"在哪里索取监督"以及"哪些修订被保留"，而非仅充当事后分数。
+
+\paragraph{Distillation objective.}
+Let $A(y_{\mathrm{init}},y_{\mathrm{rev}})$ indicate that the revised trace answers correctly in valid format, clears the thresholds $q_{\mathrm{dir}}^{\mathrm{rev}}\!\ge\!\tau_d$, $q_{\mathrm{acyc}}^{\mathrm{rev}}\!\ge\!\tau_a$, $q_{\mathrm{cont}}^{\mathrm{rev}}\!\ge\!\tau_c$, reduces neither raw-graph diagnostic relative to $y_{\mathrm{init}}$, and fits the token budget. With $\mathcal{D}_{\mathrm{distill}}=\{(x,y_{\mathrm{rev}}):A=1\}$, the student minimizes the teacher-forced loss
+% 蒸馏目标：接受指示函数 $A$ 要求修订后的轨迹答案正确、格式合法，越过三个阈值，且相对初始轨迹不降低任何一个原始图诊断，并满足 token 预算。学生在被保留的数据集上最小化教师强制的标准蒸馏损失。
+\begin{equation}
+\label{eq:distillation}
+\mathcal{L}_{\mathrm{distill}}(\theta)=
+-\mathbb{E}_{(x,y)\sim\mathcal{D}_{\mathrm{distill}}}
+\sum_{t=1}^{|y|}\log \pi_S(y_t\mid x,y_{<t}).
+\end{equation}
+Unlike static trace distillation, the target distribution concentrates on revisions elicited by the current student's own structural failures. The explicit direction and acyclicity constraints stop apparent compression from being bought by deleting necessary support or introducing circular justification (Appendix Algorithm~\ref{alg:topoprm}).
+% 与静态轨迹蒸馏不同，目标分布集中在由当前学生自身结构缺陷所引出的修订上。显式的方向性与无环性约束阻止了"通过删除必要支持或引入循环论证来换取表面压缩"的捷径。

@@ -1,0 +1,66 @@
+% =============================================================================
+% Efficiency Table: Token generation cost and throughput for the 9B family.
+% Shows avg tokens, total wall-clock time, throughput, and Acc/kTok.
+% =============================================================================
+\begin{table*}[!htb]
+\centering
+\caption{Generation efficiency of Qwen3.5-9B variants. All runs use 5 samples
+per item on the same hardware. \textbf{Tok} = mean generation tokens per sample;
+\textbf{Time} = total wall-clock seconds for the benchmark;
+\textbf{Tok/s} = throughput (total tokens / time);
+\textbf{Acc/kTok} = pass@1 per 1\,000 tokens (higher = more token-efficient).
+Best in \textbf{bold}.}
+\label{tab:efficiency}
+\vspace{2pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l cccc c cccc c cccc c cccc@{}}
+\toprule
+& \multicolumn{4}{c}{\textbf{GSM8K (1,319 items)}}
+& & \multicolumn{4}{c}{\textbf{MATH-500}}
+& & \multicolumn{4}{c}{\textbf{AIME'24 (30 items)}}
+& & \multicolumn{4}{c}{\textbf{Omni-MATH (262 items)}} \\
+\cmidrule(lr){2-5} \cmidrule(lr){7-10} \cmidrule(lr){12-15} \cmidrule(lr){17-20}
+\textbf{Model}
+  & Tok & Time & Tok/s & Acc/kTok
+  && Tok & Time & Tok/s & Acc/kTok
+  && Tok & Time & Tok/s & Acc/kTok
+  && Tok & Time & Tok/s & Acc/kTok \\
+\midrule
+\textbf{TopoPRM (Full)}
+  & \textbf{796}  & \textbf{19.7k} & \textbf{266} & \textbf{118.2}
+  && \textbf{1454} & \textbf{16.6k} & \textbf{220} & \textbf{34.9}
+  && \textbf{2431} & 5.4k           & 67           & \underline{12.3}
+  && \textbf{1592} & \textbf{31.7k} & \textbf{66}  & \textbf{26.6} \\
+Outcome Only GRPO
+  & 1047          & 34.2k          & 202          & 89.1
+  && 1511          & 18.9k          & 200          & 33.6
+  && 2546          & 5.6k           & 68           & 6.5
+  && 1845          & 35.2k          & \underline{69} & 22.5 \\
+w/o Topology
+  & \underline{946} & \underline{25.0k} & \underline{250} & \underline{98.3}
+  && 1506          & 16.2k          & \underline{232} & 33.9
+  && 2560          & \textbf{2.1k}  & \textbf{186} & 7.8
+  && 2430          & 17.8k          & \textbf{179} & 17.4 \\
+w/o Continuity
+  & 1528          & 48.3k          & 209          & 33.4
+  && 1536          & 19.1k          & 201          & 14.1
+  && 2560          & 2.3k           & 165          & 2.6
+  && 2560          & 18.5k          & 181          & 5.8 \\
+w/o ACE
+  & 1006          & 28.3k          & 234          & 93.2
+  && 1515          & 18.2k          & 208          & 33.5
+  && 2560          & 2.6k           & 147          & 7.8
+  && 2463          & 19.4k          & 167          & 17.0 \\
+% TODO(author-confirm): this row's GSM8K (1026/91.1) matches no row in tab:main_detailed
+% (any benchmark). It is neither Base nor any existing ablation. Confirm whether this is a
+% stale/redundant variant to be removed, or a distinct config missing from main_detailed.
+\rowcolor{blue!5}
+TopoPRM (Hier.)
+  & 1026          & 33.4k          & 203          & 91.1
+  && 1506          & 18.0k          & 209          & 33.1
+  && 2560          & 2.6k           & 149          & \textbf{10.4}
+  && 2465          & 19.0k          & 170          & \underline{17.3} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}

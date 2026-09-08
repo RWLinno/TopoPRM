@@ -43,9 +43,9 @@ metrics：#accuracy (error/correct/F1/pass@1(唯一必需)/pass@k/maj@k/prm@k) #
 baseline越多越好，目前我的base model为deepseek-r1-7b和qwen35-9b，变体为SFT、GRPO、（可选的有DAPO和DPO）
 github/huggingface账号: rwlinno 1264532114@qq.com
 仓库：https://github.com/RWLinno/TopoPRM/
-github token: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
-hf token: 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
-wandb API KEY: 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
+github token:<redacted>
+hf token: <redacted>
+wandb API KEY: <redacted>_EBhzyR2Xgjj7Hjgn15I1AzfbFXbqHiuMEegl7tyC3Ef1mVXQn
 
 ### 实验内容
 1. 主表1全benchmark的pass@k accuracy,对比我们方法以及各种variants

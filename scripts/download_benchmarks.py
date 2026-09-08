@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import random
+import os
 import re
 import sys
 from pathlib import Path
@@ -19,7 +19,7 @@ from pathlib import Path
 from datasets import load_dataset
 
 
-CACHE_DIR = "/root/.cache/huggingface/datasets"
+CACHE_DIR = os.environ.get("HF_DATASETS_CACHE", "/root/.cache/huggingface/datasets")
 
 
 def write_jsonl(path: Path, rows: list[dict]) -> int:
@@ -60,19 +60,11 @@ def download_gsm8k(out_dir: Path) -> dict:
 def download_math500(out_dir: Path) -> dict:
     ds = safe_load("HuggingFaceH4/MATH-500", split="test")
     if ds is None:
-        ds = safe_load("lighteval/MATH", split="test")
-        if ds is None:
-            return {"name": "MATH-500", "status": "FAILED", "count": 0}
-        random.seed(42)
-        indices = random.sample(range(len(ds)), min(500, len(ds)))
-        ds = ds.select(indices)
+        return {"name": "MATH-500", "status": "FAILED", "count": 0}
     rows = []
     for r in ds:
         q = r.get("problem", r.get("question", ""))
         gold = r.get("answer", r.get("solution", ""))
-        m = re.search(r"\\boxed\{([^}]+)\}", gold)
-        if m:
-            gold = m.group(1).strip()
         rows.append({"Problem": q, "Answer": gold, "source": "math500"})
     n = write_jsonl(out_dir / "MATH-500" / "test.jsonl", rows)
     return {"name": "MATH-500", "status": "OK", "count": n}
@@ -129,6 +121,38 @@ def download_gpqa_diamond(out_dir: Path) -> dict:
         })
     n = write_jsonl(out_dir / "GPQA_Diamond" / "test.jsonl", rows)
     return {"name": "GPQA_Diamond", "status": "OK", "count": n}
+
+
+def download_olympiadbench(out_dir: Path) -> dict:
+    """Download the official English text-only math subset (675 items)."""
+    ds = safe_load("lmms-lab/OlympiadBench", split="test_en")
+    if ds is None:
+        return {"name": "OlympiadBench", "status": "FAILED", "count": 0}
+    rows = []
+    for r in ds:
+        if r.get("source") != "OE_TO_maths_en_COMP":
+            continue
+        gold = r.get("final_answer")
+        if not isinstance(gold, list) or len(gold) != 1:
+            continue
+        question = str(r.get("question", ""))
+        if not question or not str(gold[0]).strip():
+            continue
+        rows.append({
+            "question_id": str(r.get("question_id", "")),
+            "question": question,
+            "final_answer": [str(gold[0])],
+            "answer_type": str(r.get("answer_type", "")),
+            "source": "OE_TO_maths_en_COMP",
+        })
+    if len(rows) != 675:
+        return {
+            "name": "OlympiadBench",
+            "status": f"FAILED (expected 675, found {len(rows)})",
+            "count": len(rows),
+        }
+    n = write_jsonl(out_dir / "OlympiadBench" / "test_en_oe_to_math.jsonl", rows)
+    return {"name": "OlympiadBench", "status": "OK", "count": n}
 
 
 def download_aime(out_dir: Path, year: str) -> dict:
@@ -222,6 +246,7 @@ def main():
         ("MATH (full)", lambda: download_math_full(out_dir)),
         ("MMLU", lambda: download_mmlu(out_dir)),
         ("GPQA_Diamond", lambda: download_gpqa_diamond(out_dir)),
+        ("OlympiadBench", lambda: download_olympiadbench(out_dir)),
         ("AIME2024", lambda: download_aime(out_dir, "2024")),
         ("AIME2025", lambda: download_aime(out_dir, "2025")),
         ("AIME2026", lambda: download_aime(out_dir, "2026")),
@@ -244,7 +269,7 @@ def main():
         print(f"\n[FrontierMath+AIME2026] Running {frontier_script}...", flush=True)
         import subprocess
         ret = subprocess.run(
-            [sys.executable, str(frontier_script), "--output_dir", str(out_dir)],
+            [sys.executable, str(frontier_script), "--bench_root", str(out_dir)],
             capture_output=True, text=True,
         )
         if ret.returncode == 0:

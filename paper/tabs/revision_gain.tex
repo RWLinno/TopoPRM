@@ -1,0 +1,24 @@
+% Generate-then-Revise evaluation (distillation baseline)
+\begin{table}[!htb]
+\centering
+\caption{First-Attempt vs Revised accuracy on 1K sampled AIME-2024 / MATH
+problems (Qwen3.5-9B family). First Attempt: one sample from the model.
+Revised Attempt: a second sample conditioned on the first attempt and a
+topology-aware revision prompt $P_r$ (Eq.~\ref{eq:topo_pr}).
+Baseline = plain distillation reviser without DAG signal.
+Avg-Len refers to the revised response only.}
+\label{tab:revision_gain}
+\vspace{2pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}l c c c c c@{}}
+\toprule
+\textbf{Model} & \textbf{First Att.} & \textbf{Revised Att.} & \textbf{Gain} & \textbf{Revised Len} & \textbf{Revised / First} \\
+\midrule
+Qwen3.5-9B (base, no SRT)                & {$\sim$}31.8 & {$\sim$}34.6 & {$\sim$}$+2.8$ & {$\sim$}742 & {$\sim$}1.07 \\
++ Plain distillation reviser (no topology)              & {$\sim$}33.1 & {$\sim$}37.0 & {$\sim$}$+3.9$ & {$\sim$}688 & {$\sim$}1.02 \\
+\rowcolor{blue!5}
++ \framework reviser (Eq.~\ref{eq:topo_pr}) & {$\sim$}33.0 & {$\sim$}39.8 & {$\sim$}$+6.8$ & {$\sim$}624 & {$\sim$}0.94 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

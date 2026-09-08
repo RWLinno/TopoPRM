@@ -1,0 +1,215 @@
+\section{Implementation and Evaluation Details}
+\label{app:details}
+\label{app:math_details}
+
+\subsection{Training Configuration}
+Table~\ref{tab:hparam} documents the shared SFT and GRPO configuration for the controlled Qwen3.5-9B suite. All variants use the same Stage-I initialization and frozen edge encoder. Full and \emph{w/o ACE} additionally use the same TGD procedure and fixed same-parameter teacher checkpoint. Source-removal controls redistribute reward mass, and \emph{w/o Continuity} uses a shorter completion cap; these rows are matched at initialization but are not factorial.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Training configuration for the controlled Qwen3.5-9B runs.}
+\label{tab:hparam}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.10}
+\begin{tabular}{@{}p{3.8cm}p{3.1cm}p{3.3cm}@{}}
+\toprule
+\textbf{Parameter} & \textbf{Stage I: SFT} & \textbf{Stage II: GRPO} \\
+\midrule
+Initialization & Qwen3.5-9B & Stage-I checkpoint \\
+Adapter & LoRA $r=64$, $\alpha=128$ & LoRA $r=64$, $\alpha=128$ \\
+Learning rate & $5\times10^{-5}$ & $5\times10^{-6}$ \\
+Schedule / warmup & cosine / 3\% & cosine / 5\% \\
+Training length & 2 epochs & 1 epoch \\
+Microbatch / accumulation & 2 / 8 & 1 / 16 \\
+Completions / prompt & -- & 2 \\
+Sampling / nucleus & -- & 0.8 / 0.95 \\
+Completion cap & -- & \makecell[l]{4{,}096; 1{,}024 for\\w/o continuity} \\
+Maximum sequence & 4{,}096 & \makecell[l]{8{,}192; 4{,}096 for\\w/o continuity} \\
+Precision & bf16 & bf16 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Reward Configuration}
+\label{app:reward_config}
+The released topology score uses $(\lambda_b,\lambda_a,\lambda_o,\lambda_d,\lambda_k)=(0.20,0.15,0.15,0.15,0.25)$; without a reference graph, $\lambda_k$ is omitted and the remaining weights are renormalized. The hierarchical base uses $(w_o,w_f,w_l)=(0.70,0.15,0.15)$, $\alpha=0.60$, and $\epsilon=0.05$. Outcome-only uses $r_{\mathrm{out}}$. The no-topology and no-continuity controls assign $(0.55,0.15,0.20,0.10)$ to outcome, format, the retained structural term, and length. Thus, a removed source is replaced rather than simply set to zero in Eq.~\ref{eq:r_total}. The length score is one through 2{,}000 decoded characters, decreases linearly, and reaches zero at 4{,}000; all benchmarks use the same constants.
+
+A structural component that is constant within a rollout group is mapped to $1/2$ before Eq.~\ref{eq:r_total}. Gaussian variance injection and dynamic reweighting are disabled. The supplementary snapshot contains the exact reward classes and defaults.
+
+\subsection{ACE and TGD}
+\label{app:ace_proof}
+ACE partitions each rollout group by final-answer correctness before centering the auxiliary structural contribution. Equation~\ref{eq:ace} clips the correct stratum to non-negative advantages and the incorrect stratum to non-positive advantages. When a stratum is absent, it contributes no update; a singleton stratum has zero centered auxiliary deviation. The \emph{w/o ACE} row replaces this estimator with standard group-relative advantages while leaving TGD unchanged.
+
+\paragraph{Proof of Proposition~\ref{prop:ace_separation}.}
+The range claims follow directly from the two clipping intervals. For $i\in\mathcal C$, the admitted auxiliary term is $\max(0,\Delta r_{\mathrm{aux}}^{(i)})$; hence it is monotone in a positive deviation and constant over non-positive deviations until clipping saturates. For $i\in\mathcal W$, $\min(0,\Delta r_{\mathrm{aux}}^{(i)})$ is monotone over negative deviations and constant over non-negative deviations. If two rollouts share a stratum and standardized return, subtracting their unsaturated advantages cancels that return and leaves the difference between their admitted auxiliary terms. This proves sign separation, one-sided sensitivity, and within-stratum order preservation.
+
+TGD evaluates the target policy on-policy, selects a graph-localized defect, and asks the fixed teacher for a revision distribution. Accepted revisions must satisfy answer and format checks, improve or preserve the topology and continuity diagnostics, and meet the response budget. Reverse-KL is evaluated on target-policy prefixes. Teacher and target have the same architecture and parameter count but are distinct checkpoints with fixed roles.
+
+\subsection{Evaluation Protocol}
+Public mathematics tasks use boxed-answer extraction and symbolic equivalence checking, without a rubric grader.
+
+\paragraph{Pass@5 suite.}
+For Table~\ref{tab:main_results}, pass@5 is $N^{-1}\sum_{i=1}^{N}\mathds{1}[\max_{j\leq5}c_{ij}=1]$ over five samples at temperature 0.7 and top-$p=0.95$. Completion caps are 1{,}536 tokens for GSM8K and MATH, 2{,}560 for competition and olympiad sets, and 512 for MMLU and GPQA-D. External training budgets are not matched; these rows contextualize end-to-end checkpoints rather than isolate a training treatment.
+% \needcheck{Audit every external row for task version, decoding, verifier, provenance, and training budget before making a global SOTA claim.}
+
+\paragraph{Controlled pass@1 suite.}
+The controlled study decodes once per item and retokenizes visible text without special tokens. Table~\ref{tab:length_control} instead varies decoding seeds for fixed policies. The former compares observed checkpoints; the latter measures decoding variation, not training-seed uncertainty. Neither protocol is pooled with the pass@5 ledger.
+
+\paragraph{Optimization-log suite.}
+Figure~\ref{fig:optimization_diagnostics} retains online-batch Stage-II trajectories and endpoint aggregates on GSM8K, MATH-500, AIME~2024, and Omni-MATH. Its task mixture and aggregation follow the optimization logs and are not pooled with either primary table. The extended p@5/maj@5 cells below likewise retain their contemporaneous controlled-suite subsets and harness.
+
+\section{Extended Results}
+\label{app:result_ledger}
+
+Table~\ref{tab:main_results} reports the nine-task pass@5 comparison at its recorded precision. Appendix tables below expose the checkpoint-level pass@1 and per-benchmark ablation measurements used for the accuracy--length analysis. Accuracy--length claims use only shared-initialization controls.
+% \needcheck{Retain global SOTA wording only after the final external-row protocol audit.}
+
+\subsection{Controlled Pass@1 Checkpoints}
+\input{tabs/controlled_checkpoint_results}
+
+The lower block supplies Figure~\ref{fig:pareto_frontier} and Table~\ref{tab:main_ablation}; its variants share the Stage-I initialization. Full and \emph{w/o ACE} include TGD, while the other controlled variants stop after Stage~II. The upper block reports complete open checkpoints, with $\dagger$ marking checkpoints evaluated using our prompts and answer extractor. Accuracy--length claims use only the controlled lower block.
+
+\subsection{Complete Per-Benchmark Ablation Ledger}
+Tables~\ref{tab:detailed_ablation_easy}--\ref{tab:detailed_ablation_general} report the complete eight-benchmark ablation ledger. The \emph{w/o ACE} checkpoint retains TGD and is the closest control for the estimator; topology and continuity removals stop after Stage~II and measure end-to-end pipeline sensitivity.
+\input{tabs/detailed_ablation_appendix}
+
+\section{Graph Construction and Edge Audit}
+\label{app:dag}
+
+\subsection{Deterministic Construction}
+Algorithm~\ref{alg:dag} summarizes the released deterministic rule path. Optional language-model edge refinement is disabled in all reported policy runs.
+
+\begin{algorithm}[H]
+\small
+\caption{Surface-evidenced support graph construction}
+\label{alg:dag}
+\label{alg:topoprm}
+\begin{algorithmic}[1]
+\Require Reasoning text $y$; optional reference graph $\mathcal{G}^{\star}$
+\Ensure Support DAG $\mathcal{G}_y$ and typed evidence ledger
+\State Extract the reasoning region and segment it into ordered steps $s_1,\ldots,s_T$
+\For{$j=1,\ldots,T$}
+  \State Parse normalized expressions, claim keys, variables, and the step type of $s_j$
+  \For{each earlier step $s_i$, $i<j$}
+    \State Add typed support $i\!\to\!j$ for exact expression or claim reuse
+    \State Add expression-overlap or variable evidence when its guard is satisfied
+  \EndFor
+  \If{$s_j$ is a derivation/conclusion with no structural predecessor}
+    \State Add a guarded local-transition edge from $s_{j-1}$
+  \EndIf
+\EndFor
+\State Compute orphan support, direction validity, optional reference-edge F1, and continuity
+\State \Return $\mathcal{G}_y$ and the evidence ledger
+\end{algorithmic}
+\end{algorithm}
+
+Expression, claim, and guarded variable edges receive unit support weight. Local implicit-block and sequential fallback edges contribute 0.5 and 0.3, respectively; incoming support saturates at one. Since construction permits only forward edges, direction and acyclicity diagnose violations of the construction contract rather than semantic validity.
+
+\subsection{Representation Properties}
+\paragraph{Evidence locality and auditability.}
+Every structural contribution resolves to a parsed step, a typed edge with triggering spans, or a continuity decision. This decomposition matters because identical graph-level scores can encode different evidence profiles: exact expression reuse and sequential fallback may produce the same aggregate support while carrying different error risks. The typed ledger exposes that distinction directly, which enables the rule-level false-positive analysis in Section~\ref{sec:rq3} without fitting a separate explanation model.
+
+\paragraph{Diagnostic non-redundancy.}
+Topology and continuity induce different equivalence classes over traces. Two responses can have the same local grounding rate while differing in whether their conclusions recover non-local premises; conversely, the same supported conclusion can be reached through locally traceable or discontinuous intermediate steps. Keeping both scores explicit preserves these distinctions for reward analysis and defect-conditioned distillation.
+
+\paragraph{Invariances and failure boundary.}
+The representation is invariant to surface changes preserved by normalization, including whitespace, equation delimiters, and several equivalent expression formats. It is not invariant to arbitrary paraphrase, symbol renaming, or mathematically valid step reordering. This asymmetry is intentional: the scorer offers inexpensive, inspectable support evidence rather than semantic equivalence. Continuity can recover local traceability when a non-local edge is missed, while outcome verification remains responsible for mathematically coherent but incorrect traces.
+
+\subsection{Topology Falsification Tests}
+\label{app:acyclicity_scope}
+For this intervention study, $q_{\mathrm{dir}}$ and $q_{\mathrm{acyc}}$ denote the unaggregated direction and acyclicity checks within $q_{\mathrm{topo}}$.
+\input{tabs/topology_counterfactuals}
+These fixed-trace interventions evaluate the diagnostics, not trained policies. For reversal, the paired 95\% intervals are $[0.657,0.771]$ for the direction magnitude and $[0.040,0.091]$ for acyclicity; the two changes correlate at $-0.907$ ($[-0.976,-0.779]$). Matched cycle closure changes acyclicity by a magnitude in $[0.292,0.366]$ while leaving direction unchanged. The tests establish selective response to constructed violations, not semantic correctness of the graph.
+
+\subsection{Audit Sampling and Labels}
+The audit samples 120 traces, stratified by task (GSM8K or MATH) and response length (short, medium, or long). The typed rule ledger covers all 120; 119 traces receive both model annotations and supply the 1{,}770-pair contingency table in Table~\ref{tab:edge_audit_main}. Each evaluation pack contains parsed steps and candidate pairs but hides the extractor's decision and edge type. Qwen3-32B and Qwen2.5-32B independently judge whether an earlier step supplies information used later, after which the complete set is manually checked. Precision, recall, and F1 retain the two model annotations and their consensus/union as explicit diagnostic references; raw agreement and Cohen's $\kappa$ measure cross-model stability.
+
+Manual verification catches obvious annotation and parsing errors across the full pack, but the reported model-reference metrics are not rebranded as a formal human gold graph. This distinction matters because support can remain ambiguous even after inspection. The release package will include pair-level labels, verification records, aggregate counts, and representative false positives.
+
+\subsection{Representative Extraction Failures}
+\label{app:edge_cases}
+\input{tabs/edge_cases}
+
+\paragraph{Post-hoc rule sensitivity.}
+The typed ledger attributes 145 false positives to variable-reference edges, compared with 34 for expression reference, 11 for expression overlap, 9 for implicit blocks, and 82 for order fallback. This concentration motivates a guarded configuration requiring at least two shared variables for variable-only edges and at least 0.06 token overlap for fallback order edges.
+
+\input{tabs/edge_revision_effect}
+
+The guarded configuration reduces variable-reference false positives from 145 to 47 and raises overall precision from 0.480 to 0.580 (Table~\ref{tab:edge_revision_effect}). It also changes implicit-block and fallback extraction, making this a multi-rule revision rather than a single-threshold test. Because the same labels informed both design and evaluation, the result is post-hoc and provides no held-out improvement estimate. All policy results use the released extractor.
+
+\section{Robustness and Boundary Tests}
+\label{app:stress_tests}
+
+The following checks separate decoding stability, score association, cross-backbone behavior, and reranking headroom. They constrain the scope of the main results; none substitutes for multi-seed training.
+
+\subsection{Matched-Decoding Stability}
+\input{tabs/length_control_main}
+
+With greedy decoding, \method reaches 77.0 pass@1 at 438 tokens, versus 75.5/279 for outcome-only and 76.5/278 for outcome-plus-length. Across five stochastic draws, the fixed policies obtain $68.0\pm1.8$, $67.9\pm2.7$, and $67.8\pm1.9$ pass@1, with overlapping mean lengths. The greedy ordering is not stable to decoding variation. This check uses a different backbone and harness from Table~\ref{tab:controlled_checkpoint_results} and says nothing about training-seed variance.
+
+\subsection{Structure--Correctness Association}
+\input{tabs/structural_alignment_appendix}
+
+The complete reward has the highest mean topology score, 0.939. Its high-score stratum exceeds its low-score stratum by 17.15 accuracy points, but outcome-only exhibits a similar 15.04-point gap. The score is associated with correctness in this sample, yet the comparison does not show unique discrimination attributable to topology training.
+
+\subsection{Cross-Backbone Check}
+\input{tabs/cross_backbone_appendix}
+
+On Llama-3.1-8B-Instruct, \method preserves GSM8K pass@1 while reducing mean length from 1{,}008 to 619 tokens. On MATH-500, length falls from 3{,}823 to 3{,}427 tokens while pass@1 changes from 46.5 to 42.5. The checkpoint is shorter on both subsets, but does not establish a transferable effect or uniform accuracy preservation.
+
+\subsection{Full Best-of-8 Ledger}
+\input{tabs/reranking_diagnostic}
+
+Topology-only selection trails the semantic PRM by 3.75 points on GSM8K and 5.00 points on MATH-500. The hybrid ties the PRM on both tasks; both remain below the pool oracle. The fixed fusion therefore yields no aggregate improvement on these pools. Item-level selector disagreements and larger prespecified pools are required to test complementarity.
+
+\section{Additional Analysis and Interpretation}
+\label{app:additional_discussion}
+
+\paragraph{How the evidence fits together.}
+Each result targets a different alternative: cross-lineage recurrence varies initialization, the controlled suite fixes it, fixed-trace interventions remove optimization, the blind audit tests support judgments and error localization, and the PRM pool fixes generation. Training seeds, surface references, and pool size leave distinct uncertainties; no result substitutes for the others.
+
+\paragraph{What auditability changes.}
+Scores decompose into step pairs and evidence types, separating expression or claim reuse from variable overlap and fallback order. The audit concentrates error in variable roles while leaving stronger expression matches intact. Guarded rules make the diagnosis actionable but remain post-hoc; attribution requires fresh labels and matched retraining.
+
+\paragraph{Where structural supervision may help.}
+Full and no-topology separate more on OlympiadBench and AIME~2024 than on GSM8K and MATH-500. This motivates, but does not test, greater value from recoverable support when multi-step alternatives remain unresolved. Confirmation should prespecify dependency-depth strata and selector disagreement.
+
+\paragraph{Operating regime.}
+Surface support is most credible with stable symbolic anchors and explicit claims. It weakens under diagrams, paraphrase, or ambiguous symbols: a well-formed graph can encode an invalid deduction, while a correct trace can leave premises implicit. Outcome verification remains the correctness anchor; \method is more inspectable than a scalar verifier but less complete than formal verification.
+
+\section{Limitations and Artifact Checklist}
+Upon publication, we will release graph and reward snapshots, training configurations, pair-level audit records, matched diagnostics, and the shared-pool PRM ledger, separated by evidence type.
+
+Graph scoring is training-only, but each controlled configuration has one non-factorial run. Manual verification does not turn model-reference agreement into semantic proof, and guarded rules still require fresh labels and matched retraining. Surface evidence weakens for diagrams, paraphrase, and ambiguous entities. Confirmation requires factorial multi-seed training, a held-out audit, and larger prespecified pools.
+
+% \section{Engineering Audit Queue}
+% \label{app:legacy_pending}
+
+% \noindent\textbf{Status and use.}
+% This final section preserves older protocols and unfinished experiment tracks. These entries are excluded from the main evidence chain; pending cells remain marked until both the run and source-level audit are complete.
+
+% \subsection{Archived Secondary Results}
+% The following reward-component, cross-scale distillation, and aggregation results are retained verbatim. Avg. is mean pass@1 over eight benchmarks; Ratio is response length relative to the 9B teacher; Struct. Ret. summarizes the MATH-500 dependency profile. These protocols differ from both primary evaluations and are not pooled with Tables~\ref{tab:main_results} or~\ref{tab:main_ablation}.
+% \input{tabs/retained_secondary_results}
+
+% \subsection{Pending Experiment Register}
+% \begin{center}
+% \scriptsize
+% \noindent\textbf{All rows are unresolved, retained in the source package, and excluded from the evidence chain.}\par\vspace{3pt}
+% \setlength{\tabcolsep}{3pt}
+% \renewcommand{\arraystretch}{0.94}
+% \begin{tabular}{@{}p{0.28\textwidth}p{0.43\textwidth}p{0.22\textwidth}@{}}
+% \toprule
+% \textbf{Experiment track} & \textbf{Missing evidence} & \textbf{Current status} \\
+% \midrule
+% Direction/acyclicity policy ablations & Canonical policy outputs for each isolated reward source & \needcheck{Pending run} \\
+% Frozen aggregation ablation & Prespecified candidate pool and complete ranking ledger & \needcheck{Pending pool} \\
+% 9B-to-4B compression & Matched student checkpoints and verified retention metrics & \needcheck{Pending run} \\
+% Public and matched comparison ledger & Source-level verification for highlighted cells & \needcheck{Pending audit} \\
+% Three-copy edge audit & Independent annotation and adjudication & \needcheck{Pending labels} \\
+% Revision and case-study diagnostics & Source trace verification and fixed evaluation protocol & \needcheck{Pending audit} \\
+% \bottomrule
+% \end{tabular}
+% \end{center}
+

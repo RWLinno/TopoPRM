@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 from typing import Any
 
@@ -32,12 +33,40 @@ class FormatReward(ORM):
         re.IGNORECASE,
     )
 
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__()
+        self.protocol = os.environ.get("TOPO_FORMAT_PROTOCOL", "legacy").strip().lower()
+        if self.protocol not in {"legacy", "prefilled_think", "full_think"}:
+            raise ValueError(
+                "TOPO_FORMAT_PROTOCOL must be legacy, prefilled_think, or full_think"
+            )
+
+    def _strict_score(self, text: str) -> float:
+        opens = list(self._THINK_RE.finditer(text))
+        closes = list(self._THINK_CLOSE_RE.finditer(text))
+        if len(closes) != 1:
+            return 0.0
+        close = closes[0]
+        if self.protocol == "prefilled_think":
+            if opens or not text[:close.start()].strip():
+                return 0.0
+        else:
+            if len(opens) != 1 or opens[0].start() >= close.start():
+                return 0.0
+            if not text[opens[0].end() : close.start()].strip():
+                return 0.0
+        return 1.0 if self._BOXED_RE.search(text, close.end()) else 0.0
+
     def __call__(self, completions: list, **kwargs: Any) -> list[float]:
         rewards: list[float] = []
         for completion in completions:
             text = completion_to_text(completion)
             if not text.strip():
                 rewards.append(0.0)
+                continue
+
+            if self.protocol != "legacy":
+                rewards.append(self._strict_score(text))
                 continue
 
             has_think = bool(self._THINK_RE.search(text))

@@ -3,7 +3,7 @@
 
 Supports:
   - Multiple benchmarks via registry (GSM8K, MATH-500, OlympiadBench, etc.)
-  - Greedy pass@1 + sampled pass@k, maj@k, prm@k (k configurable)
+  - Configurable pass@1 decoding + sampled pass@k, maj@k, prm@k
   - Token counting
   - Error/Correct/F1 computation
   - Standardized metric JSON output
@@ -25,9 +25,9 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import random
 import re
 import time
-from collections import Counter
 from pathlib import Path
 from typing import Any, Callable, Optional
 
@@ -252,14 +252,31 @@ def compute_pass_at_k(n: int, c: int, k: int) -> float:
     return 1.0 - math.comb(n - c, k) / math.comb(n, k)
 
 
-def compute_maj_at_k(predictions: list[Optional[str]], gold: str, k: int) -> float:
-    """Majority voting accuracy with k samples."""
+def compute_maj_at_k(
+    predictions: list[Optional[str]],
+    gold: str,
+    k: int,
+    answer_matcher: Callable[[Optional[str], str], bool] = answers_match,
+) -> float:
+    """Majority voting accuracy with equivalence-aware answer classes."""
     if not predictions or k <= 0:
         return 0.0
     subset = predictions[:k]
-    counter = Counter(normalize_answer(p) if p else "__NONE__" for p in subset)
-    majority = counter.most_common(1)[0][0]
-    return 1.0 if majority == normalize_answer(gold) else 0.0
+    classes: list[tuple[Optional[str], int]] = []
+    for prediction in subset:
+        for class_index, (representative, count) in enumerate(classes):
+            if prediction is None or representative is None:
+                equivalent = prediction is None and representative is None
+            else:
+                equivalent = answer_matcher(prediction, representative)
+            if equivalent:
+                classes[class_index] = (representative, count + 1)
+                break
+        else:
+            classes.append((prediction, 1))
+
+    majority = max(classes, key=lambda item: item[1])[0]
+    return 1.0 if answer_matcher(majority, gold) else 0.0
 
 
 def compute_error_correct_f1(
@@ -294,6 +311,8 @@ def evaluate_predictions(
     answer_extractor: Callable,
     k_values: list[int],
     token_counts: Optional[list[list[int]]] = None,
+    answer_matcher: Callable[[Optional[str], str], bool] = answers_match,
+    raw_answer_matcher: Optional[Callable[[str, str], bool]] = None,
 ) -> dict[str, Any]:
     """Compute unified metrics from pre-generated predictions.
 
@@ -303,6 +322,7 @@ def evaluate_predictions(
         answer_extractor: function to extract answer from model output
         k_values: list of k for pass@k, maj@k
         token_counts: optional [n_items][n_samples] token counts
+        raw_answer_matcher: optional scorer that consumes the complete response
     """
     n_items = len(predictions_per_item)
     assert len(gold_answers) == n_items
@@ -319,7 +339,11 @@ def evaluate_predictions(
         n_samples = len(preds_raw)
 
         extracted = [answer_extractor(p) for p in preds_raw]
-        correct_flags = [answers_match(e, gold) for e in extracted]
+        correct_flags = (
+            [raw_answer_matcher(raw, gold) for raw in preds_raw]
+            if raw_answer_matcher is not None
+            else [answer_matcher(e, gold) for e in extracted]
+        )
         n_correct = sum(correct_flags)
 
         item_result = {
@@ -333,7 +357,12 @@ def evaluate_predictions(
         for k in k_values:
             if k <= n_samples:
                 pass_at_k_accum[k] += compute_pass_at_k(n_samples, n_correct, k)
-                maj_at_k_accum[k] += compute_maj_at_k(extracted, gold, k)
+                if raw_answer_matcher is not None and k == 1:
+                    maj_at_k_accum[k] += float(bool(correct_flags[0]))
+                else:
+                    maj_at_k_accum[k] += compute_maj_at_k(
+                        extracted, gold, k, answer_matcher=answer_matcher
+                    )
 
         if token_counts and i < len(token_counts):
             item_tokens = sum(token_counts[i])
@@ -358,6 +387,134 @@ def evaluate_predictions(
         metrics["avg_tokens"] = round(total_tokens / total_samples, 1)
 
     return metrics
+
+
+def _percentile(values: list[float], probability: float) -> float:
+    if not values:
+        raise ValueError("Cannot compute a percentile of an empty sample")
+    ordered = sorted(values)
+    position = (len(ordered) - 1) * probability
+    lower = math.floor(position)
+    upper = math.ceil(position)
+    if lower == upper:
+        return ordered[lower]
+    weight = position - lower
+    return ordered[lower] * (1 - weight) + ordered[upper] * weight
+
+
+def wilson_accuracy_interval(
+    successes: int,
+    total: int,
+    *,
+    z: float = 1.959963984540054,
+) -> list[float]:
+    """Return a non-degenerate Wilson 95% interval in percentage points."""
+    if total <= 0 or not 0 <= successes <= total:
+        raise ValueError("successes must lie in [0, total] with total positive")
+    proportion = successes / total
+    z_squared = z * z
+    denominator = 1.0 + z_squared / total
+    center = (proportion + z_squared / (2.0 * total)) / denominator
+    margin = (
+        z
+        * math.sqrt(
+            proportion * (1.0 - proportion) / total
+            + z_squared / (4.0 * total * total)
+        )
+        / denominator
+    )
+    return [100.0 * max(0.0, center - margin), 100.0 * min(1.0, center + margin)]
+
+
+def bootstrap_item_metrics(
+    items: list[dict[str, Any]],
+    *,
+    n_resamples: int = 10_000,
+    seed: int = 0,
+) -> dict[str, Any]:
+    """Bootstrap pass@1 accuracy and mean pass@1 completion length."""
+    if not items or n_resamples <= 0:
+        raise ValueError("items and n_resamples must be non-empty and positive")
+    correct = [float(bool(item["correct_pass1"])) for item in items]
+    tokens = [float(item["gen_tokens_pass1"]) for item in items]
+    rng = random.Random(seed)
+    n_items = len(items)
+    accuracy_samples = []
+    token_samples = []
+    for _ in range(n_resamples):
+        indices = [rng.randrange(n_items) for _ in range(n_items)]
+        accuracy_samples.append(sum(correct[i] for i in indices) / n_items)
+        token_samples.append(sum(tokens[i] for i in indices) / n_items)
+    successes = int(sum(correct))
+    return {
+        "n_items": n_items,
+        "n_resamples": n_resamples,
+        "seed": seed,
+        "accuracy_pct": 100 * sum(correct) / n_items,
+        "accuracy_pct_wilson95": wilson_accuracy_interval(successes, n_items),
+        "accuracy_pct_ci95": [
+            100 * _percentile(accuracy_samples, 0.025),
+            100 * _percentile(accuracy_samples, 0.975),
+        ],
+        "mean_tokens": sum(tokens) / n_items,
+        "mean_tokens_ci95": [
+            _percentile(token_samples, 0.025),
+            _percentile(token_samples, 0.975),
+        ],
+    }
+
+
+def paired_bootstrap_difference(
+    candidate_items: list[dict[str, Any]],
+    baseline_items: list[dict[str, Any]],
+    *,
+    n_resamples: int = 10_000,
+    seed: int = 0,
+) -> dict[str, Any]:
+    """Paired bootstrap deltas on shared item IDs (candidate minus baseline)."""
+    if not candidate_items or n_resamples <= 0:
+        raise ValueError("items and n_resamples must be non-empty and positive")
+    candidate = {str(item["item_id"]): item for item in candidate_items}
+    baseline = {str(item["item_id"]): item for item in baseline_items}
+    if len(candidate) != len(candidate_items) or len(baseline) != len(baseline_items):
+        raise ValueError("item_id values must be unique within each evaluation")
+    if set(candidate) != set(baseline):
+        raise ValueError("Paired bootstrap requires identical item_id sets")
+
+    item_ids = sorted(candidate)
+    accuracy_delta = [
+        float(bool(candidate[item_id]["correct_pass1"]))
+        - float(bool(baseline[item_id]["correct_pass1"]))
+        for item_id in item_ids
+    ]
+    token_delta = [
+        float(candidate[item_id]["gen_tokens_pass1"])
+        - float(baseline[item_id]["gen_tokens_pass1"])
+        for item_id in item_ids
+    ]
+    rng = random.Random(seed)
+    n_items = len(item_ids)
+    accuracy_samples = []
+    token_samples = []
+    for _ in range(n_resamples):
+        indices = [rng.randrange(n_items) for _ in range(n_items)]
+        accuracy_samples.append(sum(accuracy_delta[i] for i in indices) / n_items)
+        token_samples.append(sum(token_delta[i] for i in indices) / n_items)
+    return {
+        "n_items": n_items,
+        "n_resamples": n_resamples,
+        "seed": seed,
+        "accuracy_delta_pp": 100 * sum(accuracy_delta) / n_items,
+        "accuracy_delta_pp_ci95": [
+            100 * _percentile(accuracy_samples, 0.025),
+            100 * _percentile(accuracy_samples, 0.975),
+        ],
+        "mean_token_delta": sum(token_delta) / n_items,
+        "mean_token_delta_ci95": [
+            _percentile(token_samples, 0.025),
+            _percentile(token_samples, 0.975),
+        ],
+    }
 
 
 # ---------------------------------------------------------------------------

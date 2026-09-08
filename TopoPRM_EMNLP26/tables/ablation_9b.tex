@@ -1,0 +1,71 @@
+% =============================================================================
+% Ablation Table: Reward component ablation on the Qwen3.5-9B backbone.
+% Shows pass@1, pass@5, Tokens, Acc/kTok on 5 benchmarks + delta vs full.
+% =============================================================================
+\begin{table*}[!htb]
+\centering
+\caption{Ablation of TopoPRM reward components on the Qwen3.5-9B backbone.
+All variants start from the same SFT checkpoint and run identical GRPO steps.
+We report pass@1 / pass@5 (\%), mean generation tokens (Tok), and
+Acc/kTok = pass@1 per 1\,000 tokens. $\Delta$ shows the change in pass@5
+relative to the full TopoPRM (hierarchical). Best in \textbf{bold}.}
+\label{tab:ablation_9b}
+\vspace{2pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l cccc c cccc c cccc c cccc c cccc@{}}
+\toprule
+& \multicolumn{4}{c}{\textbf{GSM8K}}
+& & \multicolumn{4}{c}{\textbf{MATH-500}}
+& & \multicolumn{4}{c}{\textbf{AIME'24}}
+& & \multicolumn{4}{c}{\textbf{Omni-MATH}}
+& & \multicolumn{4}{c}{\textbf{MMLU}} \\
+\cmidrule(lr){2-5} \cmidrule(lr){7-10} \cmidrule(lr){12-15} \cmidrule(lr){17-20} \cmidrule(lr){22-25}
+\textbf{Reward Config}
+  & p@1 & p@5 & Tok & $\Delta$p@5
+  && p@1 & p@5 & Tok & $\Delta$p@5
+  && p@1 & p@5 & Tok & $\Delta$p@5
+  && p@1 & p@5 & Tok & $\Delta$p@5
+  && p@1 & p@5 & Tok & $\Delta$p@5 \\
+\midrule
+\rowcolor{blue!5}
+TopoPRM (full, hier.)
+  & 93.5 & \textbf{97.9} & 1026 & ---
+  && 49.8 & 59.0 & 1506 & ---
+  && \textbf{26.7} & \textbf{43.3} & 2560 & ---
+  && \textbf{42.8} & \textbf{55.7} & 2465 & ---
+  && 61.8 & 81.9 & 508 & --- \\
+TopoPRM (gated)
+  & \underline{93.8} & \underline{97.9} & 1006 & $+$0.1
+  && \textbf{50.8} & \textbf{59.8} & 1515 & $+$0.8
+  && 20.0 & 30.0 & 2560 & $-$13.3
+  && 42.0 & 53.8 & 2463 & $-$1.9
+  && 61.1 & \textbf{83.1} & 508 & $+$1.3 \\
+\quad w/o Topology
+  & 93.0 & 97.7 & 946 & $-$0.2
+  && 51.0 & 59.4 & 1506 & $+$0.4
+  && 20.0 & 40.0 & 2560 & $-$3.3
+  && 42.4 & 54.2 & 2430 & $-$1.5
+  && \textbf{65.8} & \underline{85.0} & 512 & $+$3.1 \\
+\quad w/o Continuity
+  & 51.0 & 86.1 & 1528 & $-$11.8
+  && 21.6 & 39.6 & 1536 & $-$19.4
+  && 6.7  & 13.3 & 2560 & $-$30.0
+  && 14.9 & 30.5 & 2560 & $-$25.2
+  && 20.2 & 34.8 & 512 & $-$47.1 \\
+Outcome Only GRPO
+  & 93.3 & 97.7 & 1047 & $-$0.2
+  && 50.8 & 59.0 & 1511 & $+$0.0
+  && 16.7 & 33.3 & 2546 & $-$10.0
+  && 41.6 & 55.3 & 1845 & $-$0.4
+  && 63.0 & 84.0 & 512 & $+$2.1 \\
+\midrule
+SFT baseline
+  & \textbf{94.1} & 97.7 & \textbf{796} & $-$0.2
+  && 50.8 & \underline{60.4} & \textbf{1454} & $+$1.4
+  && \underline{30.0} & \textbf{43.3} & 2431 & $+$0.0
+  && \underline{42.4} & 53.1 & \textbf{1592} & $-$2.7
+  && \underline{68.2} & \textbf{86.4} & 512 & $+$4.5 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}

@@ -35,7 +35,7 @@ logger = logging.getLogger("preprocess_dag_cache")
 
 
 def _extract_trace(record: Dict[str, Any]) -> str:
-    for key in ("response", "solution", "trace", "answer", "completion"):
+    for key in ("response", "solution", "standard_answer", "trace", "answer", "completion"):
         val = record.get(key)
         if isinstance(val, str) and val.strip():
             return val
@@ -46,6 +46,9 @@ def _extract_trace(record: Dict[str, Any]) -> str:
                 content = msg.get("content")
                 if isinstance(content, str) and content.strip():
                     return content
+    steps = record.get("steps")
+    if isinstance(steps, list) and steps and all(isinstance(step, str) for step in steps):
+        return "\n".join(f"Step {index + 1}: {step}" for index, step in enumerate(steps))
     return ""
 
 
@@ -147,6 +150,25 @@ def main() -> int:
                     ],
                     "summary": debug.get("summary", {}),
                 }
+                raw_edges = dag.graph.graph.get("raw_dependency_edges")
+                if isinstance(raw_edges, list):
+                    evidence_index = {
+                        (e["source"], e["target"], e.get("dep_type", "")): e
+                        for e in debug.get("edges", [])
+                    }
+                    cached["raw_edges"] = [
+                        {
+                            **edge,
+                            "source_kind": (
+                                "llm" if str(edge.get("dep_type", "")).startswith("llm_") else "rule"
+                            ),
+                            "evidence": evidence_index.get(
+                                (edge["source"], edge["target"], edge.get("dep_type", "")),
+                                {},
+                            ).get("evidence", ""),
+                        }
+                        for edge in raw_edges
+                    ]
                 record[args.field] = cached
                 n_cached += 1
             except Exception as exc:

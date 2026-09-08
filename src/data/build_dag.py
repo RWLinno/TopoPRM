@@ -10,7 +10,7 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from src.dag.graph import DOUBLE_BARRIER_EDGE, VIRTUAL_EDGE, ReasoningDAG
 from src.dag.node import LocalVerdict, Node, StepType
@@ -18,6 +18,8 @@ from src.dag.node import LocalVerdict, Node, StepType
 logger = logging.getLogger(__name__)
 _LOCAL_LLM_CLIENT: Any = None
 _LOCAL_LLM_LOAD_ATTEMPTED = False
+_LOCAL_EDGE_ENCODER: Any = None
+_LOCAL_EDGE_ENCODER_LOAD_ATTEMPTED = False
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -36,6 +38,15 @@ def _env_int(name: str, default: int) -> int:
     except ValueError:
         return default
 
+_NUMBERED_STEP_MARKER = (
+    r"(?:"
+    r"[（(]\d+[)）][、.．:]?"  # (1) or （1）
+    r"|"
+    r"\d+[)）][、.．:]?"      # 1)
+    r"|"
+    r"\d+[、.．:]"            # 1. or 1、
+    r")(?=\s+|[\u4e00-\u9fff])"
+)
 _SUB_Q_PATTERNS: List[re.Pattern] = [
     re.compile(r"【小题(\d+)】"),
     re.compile(r"^\s*\((\d+)\)\s*"),
@@ -44,7 +55,7 @@ _SUB_Q_PATTERNS: List[re.Pattern] = [
 ]
 _SUB_Q_STRIP_PATTERNS: List[re.Pattern] = [
     re.compile(r"^\s*【小题\d+】\s*"),
-    re.compile(r"^\s*[（(]?\d+[)）]\s*"),
+    re.compile(r"^\s*" + _NUMBERED_STEP_MARKER),
     re.compile(r"^\s*第\s*\d+\s*[小题问]\s*"),
 ]
 
@@ -52,7 +63,7 @@ _STEP_MARKER_RE = re.compile(
     r"^\s*(?:"
     r"(?:step|步骤)\s*\d+[:：.\-、]?"
     r"|"
-    r"[（(]?\d+[)）][、.．:]?"
+    + _NUMBERED_STEP_MARKER +
     r"|"
     r"(?:第\s*\d+\s*步)[:：]?"
     r"|"
@@ -65,7 +76,18 @@ _STEP_MARKER_RE = re.compile(
     re.IGNORECASE,
 )
 _INLINE_STEP_SPLIT_RE = re.compile(
-    r"(?=(?:^|[\s。；;.])(?:step\s*\d+|步骤\s*\d+|[（(]?\d+[)）][、.．:]?|第\s*\d+\s*步[:：]?))",
+    r"(?=(?:^|[\s。；;.])(?:step\s*\d+|步骤\s*\d+|"
+    + _NUMBERED_STEP_MARKER
+    + r"|第\s*\d+\s*步[:：]?))",
+    re.IGNORECASE,
+)
+_INLINE_STEP_MARKER_AT_RE = re.compile(
+    r"(?:^|[\s。；;.])(?P<marker>"
+    r"(?:step|步骤)\s*\d+[:：.\-、]?"
+    r"|"
+    + _NUMBERED_STEP_MARKER
+    + r"|第\s*\d+\s*步[:：]?"
+    r")",
     re.IGNORECASE,
 )
 # Lines that are pure formatting / delimiters and should not become DAG nodes.
@@ -80,6 +102,8 @@ _FORMATTING_NOISE_RE = re.compile(
     r"|\*+[^*]+\*+\s*[:：]?$"                     # bold-only headings
     r"|[-=*_]{3,}"                                 # markdown rules
     r"|#{1,6}\s+.*"                                # markdown headings
+    r"|(?:solution|case)\s*#?\s*\d+[:.]?"         # branch-only headings
+    r"|(?:or|and)\s*[-:]*"                         # branch separators
     r"|[\\\[\]\{\}\(\)\$]+"                       # symbol-only lines
     r"|\d+\s*\\?\s*\.?\s*\*+\s*[A-Za-z][^*]*\*+\s*[:：]?\s*$"   # "1. **Total Eggs Laid:**"
     r")\s*$",
@@ -87,7 +111,7 @@ _FORMATTING_NOISE_RE = re.compile(
 )
 _EXTRA_STEP_MARKER_RE = re.compile(
     r"^\s*(?:"
-    r"(?:so|next|then|finally|after that|therefore|thus|hence)\s*[:：,\-]?"
+    r"(?:so|next|then|finally|after that|therefore|thus|hence)\b\s*[:：,\-]?"
     r"|"
     r"(?:step)\s*[:：]"
     r"|"
@@ -96,7 +120,39 @@ _EXTRA_STEP_MARKER_RE = re.compile(
     re.IGNORECASE,
 )
 _INLINE_EXTRA_STEP_SPLIT_RE = re.compile(
-    r"(?=(?:\b(?:first|second|third|next|then|so|finally|therefore|thus|hence)\b\s*[:,]?))",
+    r"(?=(?:^|(?<=[\].!?;；。！？]))\s*"
+    r"(?:first|second|third|next|then|so|finally|therefore|thus|hence)\b"
+    r"(?:\s*[:,]|\s+|(?=\s*$)))",
+    re.IGNORECASE,
+)
+_LATEX_DISPLAY_ENV_RE = re.compile(
+    r"\\(?:begin|end)\s*\{(?:align\*?|aligned|equation\*?|gather\*?)\}",
+    re.IGNORECASE,
+)
+_ASYMPTOTE_BLOCK_RE = re.compile(r"\[asy\].*?\[/asy\]", re.IGNORECASE | re.DOTALL)
+_LATEX_TABLE_BLOCK_RE = re.compile(
+    r"\\begin\s*\{(?:array|tabular\*?)\}.*?\\end\s*\{(?:array|tabular\*?)\}",
+    re.IGNORECASE | re.DOTALL,
+)
+_SEMANTIC_LEADING_FRAGMENT_RE = re.compile(
+    r"^(?:"
+    r"note\s+that|we\s+claim\s+that|we\s+can\s+write|"
+    r"we\s+see\s+that|we\s+write|expanding(?:,?\s+we\s+get)?|we\s+get|we\s+have|"
+    r"it\s+follows\s+that|this\s+is\s+equal\s+to|"
+    r"the\s+(?:first|second)\s+line\s+is\s+given\s+by"
+    r")\s*[,.:;]*$",
+    re.IGNORECASE,
+)
+_DANGLING_CONNECTOR_RE = re.compile(
+    r"\b(?:and|or|for|by|then|so|as|is|to\s+be|equal\s+to|is\s+given\s+by|"
+    r"simplifies\s+to|parameteri[sz]ed\s+by|we\s+get|we\s+have|"
+    r"it\s+follows\s+that)\s*[,.:;]*$",
+    re.IGNORECASE,
+)
+_MATH_CONTINUATION_RE = re.compile(r"^(?:\\?&|\\?[}\]])")
+_LATEX_DISPLAY_DELIMITER_RE = re.compile(r"\\(?:\[|\])")
+_DANGLING_LATEX_COMMAND_RE = re.compile(
+    r"\\(?:log|cdot|times|frac|sqrt)(?:_\{[^{}]+\})?\s*$",
     re.IGNORECASE,
 )
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[。！？!?;；])\s+")
@@ -144,6 +200,13 @@ _QUANTITY_NOUN_STOPSET = {
 _EXPR_OPERATOR_RE = re.compile(r"[=\u2260<>\u2264\u2265\u2248+\-*/^]|∥|⊥")
 _VAR_ASSIGN_RE = re.compile(
     r"(?:\u8bbe|\u4ee4|let)\s*([a-zA-Z\u03b1-\u03c9\u0391-\u03a9]\w*)\s*[=\uff1d]\s*(.+?)(?:[,\uff0c;\uff1b\u3002]|$)",
+    re.IGNORECASE,
+)
+_STEP_REFERENCE_RE = re.compile(
+    r"(?:"
+    r"(?:(?:\b(?:from|using|use|by|see)\b)|(?:\bas\s+in\b)|(?:\baccording\s+to\b))\s*(?:the\s+)?step\s*#?\s*(\d+)"
+    r"|(?:由|根据|参见)\s*(?:第\s*)?(\d+)\s*(?:步|步骤)"
+    r")",
     re.IGNORECASE,
 )
 
@@ -228,7 +291,55 @@ def _split_inline_steps(line: str) -> List[str]:
     line = line.strip()
     if not line:
         return []
-    parts = [p.strip(" \t;；") for p in _INLINE_STEP_SPLIT_RE.split(line) if p and p.strip(" \t;；")]
+    boundaries = []
+    for candidate in _INLINE_STEP_SPLIT_RE.finditer(line):
+        match = _INLINE_STEP_MARKER_AT_RE.match(line[candidate.start():])
+        if match is None:
+            continue
+        marker_start = candidate.start() + match.start("marker")
+        marker = match.group("marker")
+        if re.match(r"[（(]?\d", marker):
+            prefix = line[:marker_start]
+            if marker_start > 0:
+                previous = line[marker_start - 1]
+                if not previous.isspace() and previous not in ".!?;；。！？":
+                    continue
+                if (
+                    previous == "."
+                    and marker_start > 1
+                    and line[marker_start - 2].isdigit()
+                ):
+                    # The ``2:`` in ``1.2:`` is part of a decimal, not Step 2.
+                    continue
+            if re.fullmatch(r"\d+[.．:]", marker.strip()):
+                before = prefix.rstrip()
+                if before and before[-1] not in ".!?;；。！？":
+                    # Values such as ``342. The factors`` and ``by 4: 4/20``
+                    # are not inline numbered steps. True inline markers occur
+                    # at the start or after a completed prior sentence.
+                    continue
+            if re.search(r"(?:step|步骤)\s*$", prefix, re.IGNORECASE):
+                continue
+            unescaped_dollars = len(re.findall(r"(?<!\\)\$", prefix))
+            inside_dollar_math = unescaped_dollars % 2 == 1
+            inside_latex_math = (
+                prefix.rfind(r"\(") > prefix.rfind(r"\)")
+                or prefix.rfind(r"\[") > prefix.rfind(r"\]")
+            )
+            inside_parentheses = prefix.count("(") > prefix.count(")")
+            if inside_dollar_math or inside_latex_math or inside_parentheses:
+                continue
+        boundaries.append(marker_start)
+    boundaries = sorted(set(boundaries))
+    parts = []
+    for start, end in zip(boundaries or [0], (boundaries[1:] + [len(line)]) if boundaries else [len(line)]):
+        if start > 0 and (not parts):
+            prefix = line[:start].strip(" \t;；")
+            if prefix:
+                parts.append(prefix)
+        part = line[start:end].strip(" \t;；")
+        if part:
+            parts.append(part)
     if len(parts) == 1 and len(line) > 140 and ("；" in line or ";" in line):
         punct_parts = [p.strip() for p in re.split(r"[；;]+", line) if p.strip()]
         if len(punct_parts) > 1:
@@ -257,7 +368,133 @@ def _looks_incomplete_fragment(text: str) -> bool:
         return True
     if re.match(r"^(solution|proof|approach|strategy|method|answer|note)\s*[:.]?$", t, re.IGNORECASE):
         return True
+    if re.match(r"^we\s+have(?:\s+that)?\s*[:.]?$", t, re.IGNORECASE):
+        return True
     return False
+
+
+def _is_semantic_leading_fragment(text: str) -> bool:
+    stripped = text.strip()
+    if not stripped or re.search(r"[=<>≤≥≈≠+*/^]", stripped):
+        return False
+    return bool(_SEMANTIC_LEADING_FRAGMENT_RE.fullmatch(stripped))
+
+
+def _ends_in_dangling_connector(text: str) -> bool:
+    stripped = text.strip()
+    return bool(
+        _DANGLING_CONNECTOR_RE.search(stripped)
+        or _DANGLING_LATEX_COMMAND_RE.search(stripped)
+    )
+
+
+def _math_delimiters_unbalanced(text: str) -> bool:
+    unescaped_dollars = len(re.findall(r"(?<!\\)\$", text))
+    return (
+        unescaped_dollars % 2 == 1
+        or text.count(r"\[") > text.count(r"\]")
+        or text.count(r"\(") > text.count(r"\)")
+    )
+
+
+def _has_unclosed_math(text: str) -> bool:
+    stripped = text.rstrip()
+    unescaped_dollars = len(re.findall(r"(?<!\\)\$", text))
+    return (
+        (unescaped_dollars % 2 == 1 and stripped.endswith("$"))
+        or text.count(r"\[") > text.count(r"\]")
+        or text.count(r"\(") > text.count(r"\)")
+    )
+
+
+def _coalesce_step_fragments(steps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Join prose prefixes and mathematical continuation lines to their payload."""
+    output: List[Dict[str, Any]] = []
+    pending: List[str] = []
+    for step in steps:
+        text = str(step.get("raw_text", "")).strip()
+        if not text:
+            continue
+        if _MATH_CONTINUATION_RE.match(text):
+            if pending:
+                pending[-1] = f"{pending[-1]} {text}".strip()
+                if not _math_delimiters_unbalanced(pending[-1]):
+                    item = dict(step)
+                    item["raw_text"] = " ".join(pending).strip()
+                    item["step_id"] = len(output)
+                    output.append(item)
+                    pending.clear()
+                continue
+            if output:
+                output[-1]["raw_text"] = f"{output[-1]['raw_text']} {text}".strip()
+                continue
+        if _is_semantic_leading_fragment(text) or _ends_in_dangling_connector(text):
+            pending.append(text)
+            continue
+        pending_was_unclosed_math = bool(
+            pending and _math_delimiters_unbalanced(" ".join(pending))
+        )
+        merged = " ".join([*pending, text]).strip() if pending else text
+        pending.clear()
+        if _has_unclosed_math(merged) or (
+            pending_was_unclosed_math and _math_delimiters_unbalanced(merged)
+        ):
+            pending.append(merged)
+            continue
+        item = dict(step)
+        item["raw_text"] = merged
+        item["step_id"] = len(output)
+        output.append(item)
+    if pending and output:
+        output[-1]["raw_text"] = f"{output[-1]['raw_text']} {' '.join(pending)}".strip()
+    for index, step in enumerate(output):
+        step["step_id"] = index
+    return output
+
+
+def segmentation_issue_reasons(steps: Sequence[str]) -> List[str]:
+    """Return shared hard-failure reasons for sampled or training traces."""
+    issues: set[str] = set()
+    for text in steps:
+        stripped = str(text).strip()
+        lowered = stripped.lower()
+        if lowered in {"step", "步骤"}:
+            issues.add("ghost_step_marker")
+        if stripped.startswith(("^", "_", "}")):
+            issues.add("leading_math_fragment")
+        if stripped.count("{") != stripped.count("}"):
+            issues.add("unbalanced_braces")
+        if _has_unclosed_math(stripped):
+            issues.add("unclosed_math")
+        if lowered in {"[asy]", "[/asy]"} or lowered.startswith(
+            ("draw(", "dot(", "label(", "pair ", "unitsize(", "size(")
+        ):
+            issues.add("diagram_code_fragment")
+        if re.search(r"\\(?:begin|end)\s*\{(?:array|tabular\*?)\}", stripped):
+            issues.add("latex_environment_fragment")
+        words = re.findall(r"[A-Za-z0-9]+", stripped)
+        if (
+            len(words) <= 3
+            and not re.search(r"[=<>≤≥≈≠+*/^]", stripped)
+            and not re.search(
+                r"\\[A-Za-z]+|\d\s*[:)]\s*\d*\s*[A-Za-z]|[A-Za-z]+\s*:\s*\d",
+                stripped,
+            )
+            and lowered
+            not in {
+                "as desired",
+                "as desired.",
+                "as required",
+                "as required.",
+                "(4,3)",
+                "(4,4)",
+                "(4,5)",
+            }
+        ):
+            issues.add("short_text_fragment")
+        if _ends_in_dangling_connector(stripped):
+            issues.add("dangling_clause")
+    return sorted(issues)
 
 
 def _split_sentences(text: str) -> List[str]:
@@ -294,6 +531,11 @@ def _normalize_claim_sentence(text: str) -> str:
 
 def extract_steps_from_answer(standard_answer: str) -> List[Dict[str, Any]]:
     normalized = _normalize_answer_text(standard_answer)
+    if _dag_filter_formatting_enabled():
+        normalized = _ASYMPTOTE_BLOCK_RE.sub("\n", normalized)
+        normalized = _LATEX_TABLE_BLOCK_RE.sub("\n", normalized)
+        normalized = _LATEX_DISPLAY_ENV_RE.sub("\n", normalized)
+        normalized = _LATEX_DISPLAY_DELIMITER_RE.sub(" ", normalized)
     raw_lines = [l.strip() for l in normalized.splitlines() if l.strip()]
     if not raw_lines:
         return []
@@ -328,6 +570,9 @@ def extract_steps_from_answer(standard_answer: str) -> List[Dict[str, Any]]:
             }
         )
 
+    if _dag_filter_formatting_enabled():
+        steps = _coalesce_step_fragments(steps)
+
     # P4: sentence-level fallback when no explicit step markers were found.
     # On natural-language CoT traces (no "Step N:", no bullets, no numbered
     # lists), the above loop often produces 0 or 1 steps because
@@ -335,7 +580,13 @@ def extract_steps_from_answer(standard_answer: str) -> List[Dict[str, Any]]:
     # the original text on sentence boundaries so the DAG extractor can
     # still build a multi-node graph with meaningful q_topo.
     if len(steps) <= 1 and _dag_sentence_fallback_enabled():
-        steps = _sentence_fallback_split(normalized)
+        fallback_steps = _sentence_fallback_split(normalized)
+        if fallback_steps:
+            steps = (
+                _coalesce_step_fragments(fallback_steps)
+                if _dag_filter_formatting_enabled()
+                else fallback_steps
+            )
 
     return steps
 
@@ -363,6 +614,11 @@ def _dag_barrier_strict_enabled() -> bool:
 def _dag_filter_formatting_enabled() -> bool:
     """Filter LaTeX delimiters / </think> / markdown chrome out of step list."""
     return _env_bool("TOPO_DAG_FILTER_FORMATTING", False)
+
+
+def _dag_raw_directed_enabled() -> bool:
+    """Retain order-agnostic support candidates before text-order DAG projection."""
+    return _env_bool("TOPO_DAG_RAW_DIRECTED", False)
 
 
 def _var_ref_require_multi_enabled() -> bool:
@@ -448,14 +704,16 @@ def _is_formatting_noise(line: str) -> bool:
     return False
 
 
-_SENTENCE_SPLIT_RE = re.compile(r'(?<=[。.!?！？\n])\s*')
+_SENTENCE_FALLBACK_SPLIT_RE = re.compile(
+    r"(?:(?<=[。!?！？\n])\s*|(?<!\d)(?<=\.)\s+)"
+)
 
 
 def _sentence_fallback_split(text: str) -> List[Dict[str, Any]]:
     """Split text on sentence boundaries with a minimum length filter."""
     min_len = _env_int("TOPO_DAG_SENTENCE_MIN_LEN", 20)
 
-    raw_sents = _SENTENCE_SPLIT_RE.split(text)
+    raw_sents = _SENTENCE_FALLBACK_SPLIT_RE.split(text)
     steps: List[Dict[str, Any]] = []
     buf = ""
     for sent in raw_sents:
@@ -724,6 +982,91 @@ def build_dependency_edges_by_rules(
     return edges, evidences
 
 
+def _expression_variable_roles(step: ParsedStep) -> tuple[set[str], set[str]]:
+    """Approximate variables established and consumed by one reasoning step."""
+    produced: set[str] = set()
+    consumed: set[str] = set()
+    for expression in step.exprs:
+        normalized = unicodedata.normalize("NFKC", expression)
+        if "=" not in normalized:
+            continue
+        lhs, rhs = normalized.split("=", 1)
+        lhs_vars = {v.lower() for v in _TOKEN_VAR_RE.findall(lhs)} - _VAR_STOPWORDS
+        rhs_vars = {v.lower() for v in _TOKEN_VAR_RE.findall(rhs)} - _VAR_STOPWORDS
+        produced.update(lhs_vars - rhs_vars)
+        consumed.update(rhs_vars)
+    variables = {v.lower() for v in step.variables} - _VAR_STOPWORDS
+    if step.step_type == StepType.DEFINITION and not produced:
+        produced.update(variables)
+    consumed.update(variables - produced)
+    return produced, consumed
+
+
+def build_order_agnostic_dependency_edges(
+    steps: List[ParsedStep],
+) -> Tuple[List[Tuple[int, int, str, str]], List[EdgeEvidence]]:
+    """Build auditable directed candidates without imposing source < target."""
+    edges: List[Tuple[int, int, str, str]] = []
+    evidences: List[EdgeEvidence] = []
+    seen: set[tuple[int, int]] = set()
+    by_id = {step.step_id: step for step in steps}
+
+    for target in steps:
+        for match in _STEP_REFERENCE_RE.finditer(target.normalized_text):
+            source_id = int(match.group(1) or match.group(2)) - 1
+            source = by_id.get(source_id)
+            if (
+                source is None
+                or source_id == target.step_id
+                or not _same_sub_question(source.sub_question_id, target.sub_question_id)
+                or (source_id, target.step_id) in seen
+            ):
+                continue
+            seen.add((source_id, target.step_id))
+            edges.append((source_id, target.step_id, VIRTUAL_EDGE, "explicit_step_ref"))
+            evidences.append(
+                EdgeEvidence(
+                    source_id,
+                    target.step_id,
+                    VIRTUAL_EDGE,
+                    "explicit_step_ref",
+                    f"explicit reference to step {source_id + 1}",
+                )
+            )
+
+    roles = {step.step_id: _expression_variable_roles(step) for step in steps}
+    first_producer: dict[tuple[Optional[int], str], int] = {}
+    for step in sorted(steps, key=lambda item: item.step_id):
+        variables = {variable.lower() for variable in step.variables} - _VAR_STOPWORDS
+        for variable in variables:
+            first_producer.setdefault((step.sub_question_id, variable), step.step_id)
+
+    for target in steps:
+        _, consumed = roles[target.step_id]
+        sources: dict[int, list[str]] = {}
+        for variable in consumed:
+            source_id = first_producer.get((target.sub_question_id, variable))
+            if source_id is None or source_id == target.step_id:
+                continue
+            sources.setdefault(source_id, []).append(variable)
+        for source_id, shared in sources.items():
+            pair = (source_id, target.step_id)
+            if pair in seen:
+                continue
+            seen.add(pair)
+            edges.append((source_id, target.step_id, VIRTUAL_EDGE, "role_ref"))
+            evidences.append(
+                EdgeEvidence(
+                    source_id,
+                    target.step_id,
+                    VIRTUAL_EDGE,
+                    "role_ref",
+                    f"first-producer variables={','.join(sorted(shared)[:4])}",
+                )
+            )
+    return edges, evidences
+
+
 def _should_add_implicit_block_edge(prev: ParsedStep, step: ParsedStep) -> bool:
     """Gate implicit fallback edges to avoid dominating the edge mix."""
     if not _dag_barrier_strict_enabled():
@@ -748,10 +1091,12 @@ def build_dependency_edges_by_llm(
     """Hybrid edge builder: rule bootstrap + LLM semantic refinement.
 
     Rule-derived expression/claim/variable edges remain the auditable base.
-    A local pretrained LLM can add additional forward-only semantic edges for
-    implicit dependencies that do not surface as exact symbolic reuse.  Invalid
-    or unavailable LLM outputs never block DAG construction; they only trigger
-    a warning and return the rule-based graph.
+    In the default forward-only mode, a local pretrained LLM adds implicit
+    dependencies that do not surface as exact symbolic reuse.  In raw-directed
+    mode it infers all direct support relationships and overrides rule direction
+    on node pairs it judged semantically.  Invalid or unavailable LLM outputs
+    never block DAG construction; they only trigger a warning and return the
+    rule-based graph.
     """
     rule_edges, rule_evidences = build_dependency_edges_by_rules(nodes)
     # LLM refinement is deliberately opt-in.  It belongs in offline
@@ -781,6 +1126,19 @@ def build_dependency_edges_by_llm(
         logger.warning("LLM DAG refinement failed (%s); using rule-based dependency edges.", exc)
         return rule_edges, rule_evidences
 
+    if _dag_raw_directed_enabled() and llm_edges:
+        # Rules rely partly on textual order.  When the semantic encoder has
+        # judged a node pair, retaining the opposite rule edge would manufacture
+        # a two-cycle instead of measuring the encoder's inferred direction.
+        llm_pairs = {tuple(sorted((edge[0], edge[1]))) for edge in llm_edges}
+        retained = [
+            (edge, evidence)
+            for edge, evidence in zip(rule_edges, rule_evidences)
+            if tuple(sorted((edge[0], edge[1]))) not in llm_pairs
+        ]
+        rule_edges = [edge for edge, _ in retained]
+        rule_evidences = [evidence for _, evidence in retained]
+
     seen = {(s, t, dep) for s, t, _etype, dep in rule_edges}
     merged_edges = list(rule_edges)
     merged_evidences = list(rule_evidences)
@@ -794,6 +1152,130 @@ def build_dependency_edges_by_llm(
     return merged_edges, merged_evidences
 
 
+def _merge_semantic_edge_predictions(
+    nodes: List[ParsedStep],
+    predictions: Sequence[Dict[str, Any]],
+) -> Tuple[List[Tuple[int, int, str, str]], List[EdgeEvidence]]:
+    """Merge frozen-encoder predictions with auditable rule candidates."""
+    rule_edges, rule_evidences = build_dependency_edges_by_rules(nodes)
+    by_id = {node.step_id: node for node in nodes}
+    semantic_edges: List[Tuple[int, int, str, str]] = []
+    semantic_evidences: List[EdgeEvidence] = []
+    seen_directed: set[Tuple[int, int]] = set()
+    for prediction in predictions:
+        try:
+            source = int(prediction["source"])
+            target = int(prediction["target"])
+            confidence = float(prediction.get("confidence", 0.0))
+        except (KeyError, TypeError, ValueError):
+            continue
+        if source == target or source not in by_id or target not in by_id:
+            continue
+        source_component = by_id[source].sub_question_id
+        target_component = by_id[target].sub_question_id
+        if (
+            source_component is not None
+            and target_component is not None
+            and source_component != target_component
+        ):
+            continue
+        if (source, target) in seen_directed:
+            continue
+        seen_directed.add((source, target))
+        dep_type = str(prediction.get("dep_type", "encoder_semantic"))
+        semantic_edges.append((source, target, VIRTUAL_EDGE, dep_type))
+        semantic_evidences.append(
+            EdgeEvidence(
+                source=source,
+                target=target,
+                edge_type=VIRTUAL_EDGE,
+                dep_type=dep_type,
+                evidence=f"[conf={confidence:.3f}] frozen pair encoder",
+            )
+        )
+
+    if _dag_raw_directed_enabled() and semantic_edges:
+        semantic_pairs = {tuple(sorted((edge[0], edge[1]))) for edge in semantic_edges}
+        retained = [
+            (edge, evidence)
+            for edge, evidence in zip(rule_edges, rule_evidences)
+            if tuple(sorted((edge[0], edge[1]))) not in semantic_pairs
+        ]
+        rule_edges = [edge for edge, _ in retained]
+        rule_evidences = [evidence for _, evidence in retained]
+    return rule_edges + semantic_edges, rule_evidences + semantic_evidences
+
+
+def _get_local_edge_encoder() -> Any:
+    global _LOCAL_EDGE_ENCODER, _LOCAL_EDGE_ENCODER_LOAD_ATTEMPTED
+    if _LOCAL_EDGE_ENCODER is not None:
+        return _LOCAL_EDGE_ENCODER
+    if _LOCAL_EDGE_ENCODER_LOAD_ATTEMPTED:
+        return None
+    _LOCAL_EDGE_ENCODER_LOAD_ATTEMPTED = True
+    checkpoint = os.environ.get("TOPO_DAG_EDGE_CHECKPOINT", "").strip()
+    if not checkpoint:
+        return None
+    try:
+        from src.dag.edge_encoder import load_edge_encoder
+
+        _LOCAL_EDGE_ENCODER = load_edge_encoder(
+            checkpoint_dir=checkpoint,
+            model_path=os.environ.get("TOPO_DAG_EDGE_MODEL") or None,
+            device=os.environ.get("TOPO_DAG_EDGE_DEVICE", "auto"),
+            batch_size=_env_int("TOPO_DAG_EDGE_BATCH_SIZE", 64),
+        )
+    except Exception as exc:
+        if _env_bool("TOPO_DAG_EDGE_REQUIRED", False):
+            raise RuntimeError("Required semantic edge encoder failed to load") from exc
+        logger.warning("Failed to load frozen semantic edge encoder (%s); using rule edges.", exc)
+        _LOCAL_EDGE_ENCODER = None
+    return _LOCAL_EDGE_ENCODER
+
+
+def predict_semantic_dependency_edges_batch(
+    step_batches: Sequence[Sequence[Dict[str, Any]]],
+) -> List[List[Dict[str, Any]]]:
+    """Predict all completion graphs with one batched embedding pass."""
+    encoder = _get_local_edge_encoder()
+    if encoder is None:
+        return [[] for _ in step_batches]
+    max_steps = max(2, _env_int("TOPO_DAG_EDGE_MAX_STEPS", 32))
+    selected_indices: List[List[int]] = []
+    for steps in step_batches:
+        num_steps = len(steps)
+        if num_steps <= max_steps:
+            selected_indices.append(list(range(num_steps)))
+            continue
+        selected = [round(index * (num_steps - 1) / (max_steps - 1)) for index in range(max_steps)]
+        selected_indices.append(sorted(set(selected)))
+    texts = [
+        [str(steps[index].get("raw_text", "")) for index in indices]
+        for steps, indices in zip(step_batches, selected_indices)
+    ]
+    subquestions = [
+        [steps[index].get("sub_question_id") for index in indices]
+        for steps, indices in zip(step_batches, selected_indices)
+    ]
+    try:
+        compressed = encoder.predict_batches(texts, subquestions)
+        outputs: List[List[Dict[str, Any]]] = []
+        for predictions, indices in zip(compressed, selected_indices):
+            remapped = []
+            for prediction in predictions:
+                prediction = dict(prediction)
+                prediction["source"] = indices[int(prediction["source"])]
+                prediction["target"] = indices[int(prediction["target"])]
+                remapped.append(prediction)
+            outputs.append(remapped)
+        return outputs
+    except Exception as exc:
+        if _env_bool("TOPO_DAG_EDGE_REQUIRED", False):
+            raise RuntimeError("Required semantic edge encoder inference failed") from exc
+        logger.warning("Batched semantic edge prediction failed (%s); using rule edges.", exc)
+        return [[] for _ in step_batches]
+
+
 class _LocalHFDependencyClient:
     def __init__(self, model_path: str, device: str, max_new_tokens: int) -> None:
         from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -805,7 +1287,7 @@ class _LocalHFDependencyClient:
             kwargs["device_map"] = "auto"
         else:
             kwargs["device_map"] = {"": device}
-        kwargs["torch_dtype"] = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+        kwargs["dtype"] = torch.bfloat16 if torch.cuda.is_available() else torch.float32
         self.model = AutoModelForCausalLM.from_pretrained(model_path, **kwargs)
         self.max_new_tokens = max_new_tokens
 
@@ -815,7 +1297,18 @@ class _LocalHFDependencyClient:
             {"role": "user", "content": prompt},
         ]
         if hasattr(self.tokenizer, "apply_chat_template"):
-            text = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+            template_kwargs: Dict[str, Any] = {
+                "tokenize": False,
+                "add_generation_prompt": True,
+            }
+            try:
+                text = self.tokenizer.apply_chat_template(
+                    messages,
+                    enable_thinking=False,
+                    **template_kwargs,
+                )
+            except TypeError:
+                text = self.tokenizer.apply_chat_template(messages, **template_kwargs)
         else:
             text = f"{messages[0]['content']}\n\n{messages[1]['content']}\nJSON:"
         inputs = self.tokenizer(text, return_tensors="pt").to(self.model.device)
@@ -870,40 +1363,81 @@ def _dependency_prompt(nodes: List[ParsedStep]) -> str:
                 "variables": n.variables[:8],
             }
         )
+    raw_directed = _dag_raw_directed_enabled()
+    if raw_directed:
+        task_scope = (
+            "Task: identify ALL direct support dependencies between reasoning steps, including exact symbolic "
+            "reuse and implicit semantic support. Add i -> j when step i supplies a result, claim, sub-goal, "
+            "or assumption required by step j. Infer direction from meaning, independent of text order.\n"
+        )
+        dep_types = '["llm_symbolic", "llm_semantic", "llm_subgoal"]'
+        direction_constraint = (
+            "  - source and target must differ; backward edges are allowed\n"
+            "  - do not emit both directions for a pair unless the text contains genuinely circular support\n"
+        )
+        reuse_constraint = (
+            "  - include direct dependencies expressed through shared equations, values, or variables; "
+            "use llm_symbolic for these edges\n"
+        )
+        worked_example = (
+            "Worked out-of-order example.\n"
+            "Input steps (parsed):\n"
+            "[\n"
+            "  {\"id\":0,\"text\":\"Therefore profit is 1075.\",\"type\":\"conclusion\",\"exprs\":[\"profit=1075\"],\"claims\":[],\"variables\":[\"profit\"]},\n"
+            "  {\"id\":1,\"text\":\"Revenue is 1200.\",\"type\":\"computation\",\"exprs\":[\"revenue=1200\"],\"claims\":[],\"variables\":[\"revenue\"]},\n"
+            "  {\"id\":2,\"text\":\"Cost is 125, so profit is 1200-125.\",\"type\":\"computation\",\"exprs\":[\"cost=125\",\"profit=1200-125\"],\"claims\":[],\"variables\":[\"cost\",\"profit\",\"revenue\"]}\n"
+            "]\n"
+            "Expected output:\n"
+            "[\n"
+            "  {\"source\":1,\"target\":2,\"dep_type\":\"llm_symbolic\",\"confidence\":0.95,\"evidence\":\"step 2 uses the revenue computed in step 1\"},\n"
+            "  {\"source\":2,\"target\":0,\"dep_type\":\"llm_symbolic\",\"confidence\":0.95,\"evidence\":\"step 0 states the profit computed in step 2\"}\n"
+            "]\n"
+        )
+    else:
+        task_scope = (
+            "Task: identify implicit semantic dependencies between reasoning steps that are NOT already captured "
+            "by exact symbolic reuse. Add an edge i -> j only if step j semantically depends on an intermediate "
+            "result, latent claim, sub-goal, or assumption introduced in step i.\n"
+        )
+        dep_types = '["llm_semantic", "llm_subgoal"]'
+        direction_constraint = "  - source < target (forward-only, no cycles)\n  - no self edges\n"
+        reuse_constraint = (
+            "  - skip dependencies that are already obvious from shared expressions, variables, or claim keys; "
+            "only output IMPLICIT semantic dependencies\n"
+        )
+        worked_example = (
+            "Worked example.\n"
+            "Input steps (parsed):\n"
+            "[\n"
+            "  {\"id\":0,\"text\":\"Let n be a positive integer.\",\"type\":\"definition\",\"exprs\":[],\"claims\":[],\"variables\":[\"n\"]},\n"
+            "  {\"id\":1,\"text\":\"Assume n is even.\",\"type\":\"definition\",\"exprs\":[],\"claims\":[\"n is even\"],\"variables\":[\"n\"]},\n"
+            "  {\"id\":2,\"text\":\"Then n^2 is even by parity.\",\"type\":\"derivation\",\"exprs\":[],\"claims\":[\"n^2 is even\"],\"variables\":[\"n\"]},\n"
+            "  {\"id\":3,\"text\":\"Compute n^2 - n = n(n-1).\",\"type\":\"computation\",\"exprs\":[\"n^2-n=n(n-1)\"],\"claims\":[],\"variables\":[\"n\"]},\n"
+            "  {\"id\":4,\"text\":\"So n(n-1) is even.\",\"type\":\"conclusion\",\"exprs\":[],\"claims\":[\"n(n-1) is even\"],\"variables\":[\"n\"]}\n"
+            "]\n"
+            "Expected output (only IMPLICIT dependencies, e.g. step 4 reuses the parity argument from step 1):\n"
+            "[\n"
+            "  {\"source\":1,\"target\":4,\"dep_type\":\"llm_semantic\",\"confidence\":0.85,\"evidence\":\"step 4 reuses the parity assumption introduced in step 1\"}\n"
+            "]\n"
+        )
     return (
-        "Task: identify implicit semantic dependencies between reasoning steps that are NOT already captured "
-        "by exact symbolic reuse. Add an edge i -> j only if step j semantically depends on an intermediate "
-        "result, latent claim, sub-goal, or assumption introduced in step i.\n"
+        f"{task_scope}"
         "\n"
         "Output STRICT JSON only. No prose, no markdown, no comments. The output MUST be a JSON array.\n"
         "Each item MUST be an object with exactly these keys:\n"
         "  - source: integer step id\n"
         "  - target: integer step id\n"
-        "  - dep_type: one of [\"llm_semantic\", \"llm_subgoal\"]\n"
+        f"  - dep_type: one of {dep_types}\n"
         "  - confidence: float in [0,1] reflecting how confident you are in this implicit edge\n"
         "  - evidence: a short English phrase (<= 24 words) explaining the semantic link\n"
         "\n"
         "Hard constraints:\n"
         "  - source and target must both be valid step ids from the input\n"
-        "  - source < target (forward-only, no cycles)\n"
-        "  - no self edges\n"
-        "  - skip dependencies that are already obvious from shared expressions, variables, or claim keys; "
-        "    only output IMPLICIT semantic dependencies\n"
+        f"{direction_constraint}"
+        f"{reuse_constraint}"
         "  - if no implicit dependency exists, output []\n"
         "\n"
-        "Worked example.\n"
-        "Input steps (parsed):\n"
-        "[\n"
-        "  {\"id\":0,\"text\":\"Let n be a positive integer.\",\"type\":\"definition\",\"exprs\":[],\"claims\":[],\"variables\":[\"n\"]},\n"
-        "  {\"id\":1,\"text\":\"Assume n is even.\",\"type\":\"definition\",\"exprs\":[],\"claims\":[\"n is even\"],\"variables\":[\"n\"]},\n"
-        "  {\"id\":2,\"text\":\"Then n^2 is even by parity.\",\"type\":\"derivation\",\"exprs\":[],\"claims\":[\"n^2 is even\"],\"variables\":[\"n\"]},\n"
-        "  {\"id\":3,\"text\":\"Compute n^2 - n = n(n-1).\",\"type\":\"computation\",\"exprs\":[\"n^2-n=n(n-1)\"],\"claims\":[],\"variables\":[\"n\"]},\n"
-        "  {\"id\":4,\"text\":\"So n(n-1) is even.\",\"type\":\"conclusion\",\"exprs\":[],\"claims\":[\"n(n-1) is even\"],\"variables\":[\"n\"]}\n"
-        "]\n"
-        "Expected output (only IMPLICIT dependencies, e.g. step 4 reuses the parity argument from step 1):\n"
-        "[\n"
-        "  {\"source\":1,\"target\":4,\"dep_type\":\"llm_semantic\",\"confidence\":0.85,\"evidence\":\"step 4 reuses the parity assumption introduced in step 1\"}\n"
-        "]\n"
+        f"{worked_example}"
         "\n"
         f"Now process the following steps:\nSteps:\n{json.dumps(rows, ensure_ascii=False, indent=2)}"
     )
@@ -933,6 +1467,8 @@ def _infer_dependency_edges_with_llm(
     evidences: List[EdgeEvidence] = []
     seen: set[tuple[int, int]] = set()
     allowed_dep_types = {"llm_semantic", "llm_subgoal"}
+    if _dag_raw_directed_enabled():
+        allowed_dep_types.add("llm_symbolic")
     for item in rows:
         if not isinstance(item, dict):
             continue
@@ -941,7 +1477,8 @@ def _infer_dependency_edges_with_llm(
             tgt = int(item.get("target"))
         except (TypeError, ValueError):
             continue
-        if src not in valid_ids or tgt not in valid_ids or src >= tgt or (src, tgt) in seen:
+        invalid_direction = src == tgt or (not _dag_raw_directed_enabled() and src >= tgt)
+        if src not in valid_ids or tgt not in valid_ids or invalid_direction or (src, tgt) in seen:
             continue
         dep_type = str(item.get("dep_type", "llm_semantic"))
         if dep_type not in allowed_dep_types:
@@ -957,6 +1494,36 @@ def _infer_dependency_edges_with_llm(
             evidence = f"[conf={confidence:.2f}] {evidence}"
         edges.append((src, tgt, VIRTUAL_EDGE, dep_type))
         evidences.append(EdgeEvidence(src, tgt, VIRTUAL_EDGE, dep_type, evidence))
+    reciprocal_margin = max(
+        0.0,
+        float(os.environ.get("TOPO_DAG_RECIPROCAL_MARGIN", "0.15") or 0.15),
+    )
+    confidence_by_edge: dict[tuple[int, int], float] = {}
+    for evidence in evidences:
+        match = re.search(r"\[conf=([0-9.]+)\]", evidence.evidence)
+        if match:
+            confidence_by_edge[(evidence.source, evidence.target)] = float(match.group(1))
+    edge_index = {(edge[0], edge[1]): index for index, edge in enumerate(edges)}
+    drop: set[int] = set()
+    visited_pairs: set[tuple[int, int]] = set()
+    for src, tgt in edge_index:
+        pair = tuple(sorted((src, tgt)))
+        if pair in visited_pairs or (tgt, src) not in edge_index:
+            continue
+        visited_pairs.add(pair)
+        forward_index = edge_index[(src, tgt)]
+        reverse_index = edge_index[(tgt, src)]
+        forward_conf = confidence_by_edge.get((src, tgt), 0.5)
+        reverse_conf = confidence_by_edge.get((tgt, src), 0.5)
+        if abs(forward_conf - reverse_conf) < reciprocal_margin:
+            drop.update((forward_index, reverse_index))
+        elif forward_conf > reverse_conf:
+            drop.add(reverse_index)
+        else:
+            drop.add(forward_index)
+    if drop:
+        edges = [edge for index, edge in enumerate(edges) if index not in drop]
+        evidences = [evidence for index, evidence in enumerate(evidences) if index not in drop]
     return edges, evidences
 
 
@@ -1089,6 +1656,7 @@ def parse_answer_to_dag_debug(
     answer: str,
     problem_id: str = "",
     reference_dag: Optional[Any] = None,
+    semantic_edges: Optional[Sequence[Dict[str, Any]]] = None,
 ) -> Tuple[ReasoningDAG, Dict[str, Any]]:
     dag = ReasoningDAG(problem_id=problem_id)
     debug: Dict[str, Any] = {
@@ -1102,6 +1670,16 @@ def parse_answer_to_dag_debug(
         return dag, debug
 
     parsed_steps: List[ParsedStep] = []
+    semantic_edge_weights: Dict[Tuple[int, int], float] = {}
+    if semantic_edges is not None:
+        for prediction in semantic_edges:
+            try:
+                source = int(prediction["source"])
+                target = int(prediction["target"])
+                confidence = float(prediction.get("confidence", 1.0))
+            except (KeyError, TypeError, ValueError):
+                continue
+            semantic_edge_weights[(source, target)] = min(1.0, max(0.0, confidence))
     parsed_ref_dag = _parse_reference_dag(reference_dag)
     for s in raw_steps:
         text = s["raw_text"]
@@ -1151,10 +1729,67 @@ def parse_answer_to_dag_debug(
             }
         )
 
-    dep_edges, evidences = build_dependency_edges_by_llm(parsed_steps)
+    if semantic_edges is None:
+        dep_edges, evidences = build_dependency_edges_by_llm(parsed_steps)
+    else:
+        dep_edges, evidences = _merge_semantic_edge_predictions(parsed_steps, semantic_edges)
+    if _dag_raw_directed_enabled():
+        role_edges, role_evidences = build_order_agnostic_dependency_edges(parsed_steps)
+        seen_pairs = {(source, target) for source, target, _, _ in dep_edges}
+        semantic_pairs = {
+            tuple(sorted((source, target)))
+            for source, target, _, dep_type in dep_edges
+            if dep_type.startswith("llm_") or dep_type.startswith("encoder_")
+        }
+        for edge, evidence in zip(role_edges, role_evidences):
+            pair = (edge[0], edge[1])
+            if pair in seen_pairs or tuple(sorted(pair)) in semantic_pairs:
+                continue
+            seen_pairs.add(pair)
+            dep_edges.append(edge)
+            evidences.append(evidence)
+
+        raw_dag = ReasoningDAG(problem_id=f"{problem_id}:raw")
+        for node in dag.nodes.values():
+            raw_dag.add_node(node)
+        for src_id, tgt_id, edge_type, dep_type in dep_edges:
+            if edge_type == VIRTUAL_EDGE:
+                raw_dag.add_dependency_edge(
+                    src_id,
+                    tgt_id,
+                    dep_type,
+                    weight=semantic_edge_weights.get((src_id, tgt_id), 1.0),
+                )
+            else:
+                raw_dag.add_implicit_barrier_edge(src_id, tgt_id)
+        raw_topology = raw_dag.topology_projection_diagnostics()
+        raw_dependency_edges = [
+            {
+                "source": source,
+                "target": target,
+                "edge_type": edge_type,
+                "dep_type": dep_type,
+                "weight": (
+                    semantic_edge_weights.get((source, target), 1.0)
+                    if edge_type == VIRTUAL_EDGE
+                    else 0.0
+                ),
+            }
+            for source, target, edge_type, dep_type in dep_edges
+        ]
+        dag.graph.graph["raw_topology"] = raw_topology
+        dag.graph.graph["raw_dependency_edges"] = raw_dependency_edges
+
     for src_id, tgt_id, edge_type, dep_type in dep_edges:
+        if _dag_raw_directed_enabled() and src_id >= tgt_id:
+            continue
         if edge_type == VIRTUAL_EDGE:
-            dag.add_dependency_edge(src_id, tgt_id, dep_type)
+            dag.add_dependency_edge(
+                src_id,
+                tgt_id,
+                dep_type,
+                weight=semantic_edge_weights.get((src_id, tgt_id), 1.0),
+            )
         else:
             dag.add_implicit_barrier_edge(src_id, tgt_id)
 
@@ -1194,6 +1829,10 @@ def parse_answer_to_dag_debug(
         "verdict_stats": verdict_stats,
         "sub_questions": sorted({s.sub_question_id for s in parsed_steps if s.sub_question_id is not None}),
     }
+    if _dag_raw_directed_enabled():
+        debug["summary"]["raw_topology"] = dag.graph.graph["raw_topology"]
+        debug["summary"]["raw_num_edges"] = len(dag.graph.graph["raw_dependency_edges"])
+        debug["summary"]["projected_num_edges"] = dag.num_edges
     return dag, debug
 
 
@@ -1201,11 +1840,13 @@ def build_dag_from_answer(
     answer: str,
     problem_id: str = "",
     reference_dag: Optional[Any] = None,
+    semantic_edges: Optional[Sequence[Dict[str, Any]]] = None,
 ) -> ReasoningDAG:
     dag, _ = parse_answer_to_dag_debug(
         answer=answer,
         problem_id=problem_id,
         reference_dag=reference_dag,
+        semantic_edges=semantic_edges,
     )
     return dag
 

@@ -29,6 +29,7 @@ rebuttal/outputs/hf_dag_quality/
 rebuttal/outputs/hf_eval_results/
 rebuttal/outputs/semantic_gap_pool*.jsonl
 rebuttal/outputs/edge_validation_annotations.jsonl
+rebuttal/outputs/human_edge_annotations/
 rebuttal/outputs/logs/
 rebuttal/outputs/eval_tables/*details*.jsonl
 rebuttal/scripts/env.sh

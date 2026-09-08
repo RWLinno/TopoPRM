@@ -1,0 +1,35 @@
+\begin{table}[!t]
+\centering
+\caption{Matched 9B-to-4B distillation protocol. All student methods use the same teacher, candidate prompts, accepted-target count, token budget, and optimizer budget. Accuracy is pass@1; Dir. and Acyc. are paired with the independent edge audit. \tbd{Cells remain pending until the single canonical run; marginal accuracy uses Wilson intervals and matched differences use paired item-level bootstrap intervals, neither training variance.}}
+\label{tab:compression}
+\vspace{2pt}
+\setlength{\tabcolsep}{3.2pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+\textbf{Method}
+  & \textbf{GSM8K}
+  & \textbf{MATH-500}
+  & \textbf{Avg. Tok}
+  & \textbf{Dir.}
+  & \textbf{Acyc.}
+  & \textbf{Accept\%} \\
+\midrule
+9B teacher
+  & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & -- \\
+\midrule
+4B initialization
+  & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & -- \\
+Static teacher traces
+  & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & -- \\
+Generic revision
+  & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} \\
+Length-only revision
+  & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} \\
+\rowcolor{blue!6}
+\framework
+  & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

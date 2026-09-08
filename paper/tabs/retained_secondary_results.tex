@@ -1,0 +1,62 @@
+% Secondary results preserved from the archived ledger. The panels share one
+% compact block so incomplete evidence remains visually separate from the core.
+\begin{center}
+\captionsetup{hypcap=false}
+\scriptsize
+\captionof{table}{\needcheck{Archived protocols; excluded from the evidence chain.} Reward components (left), cross-scale distillation (right), and reward aggregation (bottom).}
+\label{tab:legacy_ablation_compact}
+\label{tab:legacy_compression}
+\label{tab:legacy_aggregation_ablation}
+\setlength{\tabcolsep}{2.5pt}
+\renewcommand{\arraystretch}{1.02}
+\begin{minipage}[t]{0.49\textwidth}
+\vspace{0pt}
+\centering
+\textbf{Reward-component archive}\par\vspace{2pt}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Reward Config.} & \textbf{Avg.} & $\boldsymbol{\Delta}$ & \textbf{Tok.} & \textbf{Acc/kTok}$\uparrow$ & \textbf{Collapse\%}$\downarrow$ \\
+\midrule
+\rowcolor{blue!6}
+\method (Full) & 45.6 & --- & 1692 & 26.9 & 37.9 \\
+\quad w/o ACE & 41.7 & $-$3.8 & 1958 & 21.3 & 42.1 \\
+\quad w/o Topology & 41.8 & $-$3.8 & 1943 & 21.5 & 44.6 \\
+\quad w/o Continuity & 16.3 & $-$29.3 & 2047 & 8.0 & 68.8 \\
+Outcome Only & 40.8 & $-$4.7 & 1823 & 22.4 & 57.8 \\
+\bottomrule
+\end{tabular}}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\textwidth}
+\vspace{0pt}
+\centering
+\textbf{Cross-scale distillation archive}\par\vspace{2pt}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Scale} & \textbf{GSM8K} & \textbf{MATH} & \textbf{Tok.} & \textbf{Ratio} & \textbf{Struct. Ret.} \\
+\midrule
+9B (Teacher) & 84.3 & 66.6 & 679 & 1.00$\times$ & 1.00$\times$ \\
+\midrule
+\rowcolor{blue!6} 4B & 82.8 & 61.5 & 382 & 0.56$\times$ & 0.93$\times$ \\
+\rowcolor{blue!6} 2B & 78.9 & 57.1 & 305 & 0.45$\times$ & 0.88$\times$ \\
+\rowcolor{blue!6} 0.8B & 73.6 & 52.4 & 244 & 0.36$\times$ & 0.81$\times$ \\
+\midrule
+4B (SFT-distill) & 79.4 & 58.2 & 438 & 0.64$\times$ & 0.86$\times$ \\
+4B (Off-policy KL) & 76.8 & 49.3 & 4096 & $>$1.0$\times$ & 0.41$\times$ \\
+\bottomrule
+\end{tabular}}
+\end{minipage}
+
+\vspace{5pt}
+\textbf{Reward-aggregation archive}\par\vspace{2pt}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Strategy} & \textbf{Mid} & \textbf{High} & \textbf{Fmt\%} & \textbf{Len.} & \textbf{Collapse\%}$\downarrow$ \\
+\midrule
+Linear (weighted sum) & 37.2 & 22.3 & 94.6 & 364 & 75.1 \\
+Clipped linear & 29.0 & 21.5 & 93.0 & 382 & 67.7 \\
+\rowcolor{blue!6} Topology-conditioned aggregation & 37.2 & 22.3 & 94.6 & 364 & 37.9 \\
+\bottomrule
+\end{tabular}
+\end{center}

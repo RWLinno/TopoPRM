@@ -1,0 +1,18 @@
+\begin{table}[!ht]
+\centering
+\caption{Matched counterfactual tests of the topology diagnostics on identical source traces. Step reversal primarily changes direction consistency, whereas cycle closure selectively changes acyclicity. The final row quantifies the information lost by averaging the two signals before aggregation.}
+\label{tab:topology_counterfactuals}
+\small
+\setlength{\tabcolsep}{5.0pt}
+\renewcommand{\arraystretch}{1.10}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X ccc@{}}
+\toprule
+\textbf{Intervention} & \textbf{$n$} & \textbf{Direction response} & \textbf{Acyclicity response} \\
+\midrule
+Reverse step order & 120 & $\Delta q_{\mathrm{dir}}=-0.715$ & $\Delta q_{\mathrm{acyc}}=+0.064$ \\
+Matched cycle closure & 57 & $\Delta q_{\mathrm{dir}}=0.000$ & $\Delta q_{\mathrm{acyc}}=-0.328$ \\
+\midrule
+Premature averaging & 120 & \multicolumn{2}{c}{$\sigma: 0.110 \rightarrow 0.023$; opposite movement: 39.2\%} \\
+\bottomrule
+\end{tabularx}
+\end{table}

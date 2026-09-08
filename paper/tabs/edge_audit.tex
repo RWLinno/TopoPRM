@@ -1,0 +1,27 @@
+\begin{table*}[!t]
+\centering
+\caption{Independent three-copy blind edge audit. \tbd{Cells await annotation.}}
+\label{tab:edge_audit}
+\footnotesize
+\setlength{\tabcolsep}{4.3pt}
+\setlength{\belowcaptionskip}{2pt}
+\renewcommand{\arraystretch}{0.88}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l c ccc ccc ccc c@{}}
+\toprule
+& & \multicolumn{3}{c}{\textbf{Overall edge recovery}} & \multicolumn{3}{c}{\textbf{Topology validity}} & \multicolumn{3}{c}{\textbf{Edge F1 by trace length}} & \textbf{Agreement} \\
+\cmidrule(lr){3-5}\cmidrule(lr){6-8}\cmidrule(lr){9-11}\cmidrule(lr){12-12}
+\textbf{Extractor} & $n$ & Prec. & Rec. & F1 & Dir. & Cyc. & Cov. & Short & Medium & Long & $\kappa$ \\
+\midrule
+Adjacent-step chain & 120 & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & 1.00 & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} \\
+Rules only & 120 & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} \\
+Pair encoder (no abstention) & 120 & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & 1.00 & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} \\
+Frozen pair encoder (calibrated) & 120 & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} \\
+Semantic teacher (audit upper bound) & 120 & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} \\
+Projected DAG only & 120 & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} \\
+\rowcolor{blue!6}
+Hybrid raw-graph encoder & 120 & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}

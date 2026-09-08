@@ -14,25 +14,126 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
+import random
 import re
 import time
 from pathlib import Path
 import shutil
 import tempfile
-from collections import Counter
 
 import torch
 from datasets import load_dataset
 from peft import PeftModel
 from safetensors.torch import load_file as safe_load_file
 from safetensors.torch import save_file as safe_save_file
-from sympy import simplify, sympify
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from src.eval.unified_benchmark import evaluate_predictions
-from src.reward.topo_reward import TopoReward
+from src.eval.unified_benchmark import bootstrap_item_metrics, evaluate_predictions
+from src.reward.outcome_reward import OutcomeReward
+
+
+# ---------------------------------------------------------------------------
+# Provenance
+# ---------------------------------------------------------------------------
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _artifact_fingerprint(root: str, *, include_adapter_weights: bool) -> dict:
+    """Fingerprint small metadata plus the exact LoRA weights when present."""
+    root_path = Path(root).resolve()
+    records: list[dict] = []
+    metadata_names = (
+        "config.json",
+        "tokenizer_config.json",
+        "generation_config.json",
+        "model.safetensors.index.json",
+        "adapter_config.json",
+    )
+    for name in metadata_names:
+        path = root_path / name
+        if path.is_file():
+            records.append({
+                "path": name,
+                "bytes": path.stat().st_size,
+                "sha256": _sha256_file(path),
+            })
+
+    adapter_path = root_path / "adapter_model.safetensors"
+    if include_adapter_weights and adapter_path.is_file():
+        records.append({
+            "path": adapter_path.name,
+            "bytes": adapter_path.stat().st_size,
+            "sha256": _sha256_file(adapter_path),
+        })
+
+    # Hashing every dense-model shard in each evaluation worker would add large
+    # redundant I/O. The index is content-hashed above; shard names and sizes
+    # still make accidental path reuse visible in the manifest.
+    shard_records = [
+        {"path": path.name, "bytes": path.stat().st_size}
+        for path in sorted(root_path.glob("model-*.safetensors"))
+    ]
+    payload = {"files": records, "weight_shards": shard_records}
+    payload["manifest_sha256"] = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    return payload
+
+
+def _evaluator_source_fingerprints() -> dict[str, str]:
+    repo_root = Path(__file__).resolve().parents[1]
+    sources = (
+        Path(__file__).resolve(),
+        repo_root / "src" / "eval" / "unified_benchmark.py",
+        repo_root / "src" / "eval" / "math_scoring.py",
+        repo_root / "src" / "reward" / "outcome_reward.py",
+    )
+    return {
+        str(path.relative_to(repo_root)): _sha256_file(path)
+        for path in sources
+    }
+
+
+_LOCAL_BENCHMARK_FILES = {
+    "gsm8k": "data/benchmarks/GSM8K/test.jsonl",
+    "math500": "data/benchmarks/MATH-500/test.jsonl",
+    "math_500": "data/benchmarks/MATH-500/test.jsonl",
+    "aime2024": "data/benchmarks/AIME2024/train.jsonl",
+    "aime2025": "data/benchmarks/AIME2025/train.jsonl",
+    "aime2026": "data/benchmarks/AIME2026/train.jsonl",
+    "olympiadbench": "data/benchmarks/OlympiadBench/test_en_oe_to_math.jsonl",
+    "gpqa_diamond": "data/benchmarks/GPQA_Diamond/test.jsonl",
+    "mmlu": "data/benchmarks/MMLU/test.jsonl",
+}
+
+
+def _benchmark_source_fingerprint(bench: str) -> dict:
+    """Identify the exact local benchmark artifact consumed by a formal run."""
+    relative = _LOCAL_BENCHMARK_FILES.get(bench)
+    if relative is None:
+        return {"kind": "registered_loader", "benchmark": bench}
+    repo_root = Path(__file__).resolve().parents[1]
+    path = repo_root / relative
+    if not path.is_file():
+        return {"kind": "registered_loader", "benchmark": bench, "local_path": relative}
+    with path.open("rb") as handle:
+        row_count = sum(1 for line in handle if line.strip())
+    return {
+        "kind": "local_jsonl",
+        "path": relative,
+        "rows": row_count,
+        "bytes": path.stat().st_size,
+        "sha256": _sha256_file(path),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -62,10 +163,10 @@ def extract_number(text: str) -> str | None:
     m = re.search(r"####\s*([^\n]+)", text)
     if m:
         candidates.append(m.group(1).strip())
-    # MATH \boxed{...} (handle nested braces best-effort)
-    m = re.search(r"\\boxed\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}", text)
-    if m:
-        candidates.append(m.group(1).strip())
+    # MATH \boxed{...}; use the same balanced-brace extraction as training.
+    boxed = OutcomeReward._extract_last_boxed(text)
+    if boxed is not None:
+        candidates.append(boxed)
     # Phrase patterns ("The answer is 42.", "answer = 42")
     for pat in (
         r"[Tt]he\s+(?:final\s+)?answer\s+is\s*[:=]?\s*([^\n;]+)",
@@ -123,59 +224,17 @@ def normalize_answer(ans: str) -> str:
 def answers_match_numeric(pred: str | None, gold: str) -> bool:
     if pred is None:
         return False
-    pr = str(pred).strip()
-    gr = str(gold).strip()
-
-    def _latex_to_sympy(expr: str) -> str:
-        expr = expr.strip()
-        expr = expr.replace("\\left", "").replace("\\right", "")
-        expr = re.sub(r"\\text\{([^{}]*)\}", r"\1", expr)
-        expr = re.sub(r"\\frac\{([^{}]+)\}\{([^{}]+)\}", r"(\1)/(\2)", expr)
-        expr = expr.replace("^", "**")
-        expr = expr.replace("{", "(").replace("}", ")")
-        expr = expr.replace("$", "").replace("\\,", "")
-        return expr.strip()
-
-    def _parse_seq(expr: str) -> list[str]:
-        s = _latex_to_sympy(expr)
-        if s.startswith("(") and s.endswith(")") and "," in s:
-            inner = s[1:-1]
-            return [x.strip() for x in inner.split(",")]
-        if s.startswith("[") and s.endswith("]") and "," in s:
-            inner = s[1:-1]
-            return [x.strip() for x in inner.split(",")]
-        return []
-
-    def _sym_equal(a: str, b: str) -> bool:
-        try:
-            ea = sympify(_latex_to_sympy(a))
-            eb = sympify(_latex_to_sympy(b))
-            return bool(simplify(ea - eb) == 0)
-        except Exception:
-            return False
-
-    ap = _parse_seq(pr)
-    ag = _parse_seq(gr)
-    if ap or ag:
-        if len(ap) != len(ag) or not ap:
-            return False
-        return all(_sym_equal(x, y) or normalize_answer(x) == normalize_answer(y) for x, y in zip(ap, ag))
-
-    if _sym_equal(pr, gr):
-        return True
-
-    pn = normalize_answer(pred)
-    gn = normalize_answer(gold)
-    if not pn or not gn:
-        return False
-    if pn == gn:
-        return True
     try:
-        return abs(float(pn) - float(gn)) < 1e-4
+        return OutcomeReward._verify_equivalence(str(pred), str(gold))
     except Exception:
-        pass
+        return normalize_answer(pred) == normalize_answer(gold)
 
-    return _sym_equal(pn, gn)
+
+def answers_match_math_response(response: str, gold: str) -> bool:
+    try:
+        return OutcomeReward.verify_math_response(response, gold)
+    except Exception:
+        return False
 
 
 def extract_mcq(text: str) -> str | None:
@@ -266,7 +325,7 @@ def answers_match_text(pred: str | None, gold: str) -> bool:
 
 def answer_extractor_for_benchmark(bench: str):
     if bench in {"gsm8k", "math500", "olympiadbench", "omni_math",
-                 "aime2024", "aime2025", "cnmo2024"}:
+                 "aime2024", "aime2025", "aime2026", "cnmo2024"}:
         return extract_number
     if bench in {"mmlu", "gpqa_diamond"}:
         return extract_mcq
@@ -281,6 +340,15 @@ def matcher_for_benchmark(bench: str):
     if bench == "livecode":
         return answers_match_text
     return answers_match_numeric
+
+
+def raw_matcher_for_benchmark(bench: str):
+    if bench in {
+        "gsm8k", "math500", "math_500", "olympiadbench", "omni_math",
+        "aime2024", "aime2025", "aime2026", "cnmo2024",
+    }:
+        return answers_match_math_response
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -310,6 +378,13 @@ def compute_prm_at_k(correct_flags_per_item: list[list[bool]],
 # ---------------------------------------------------------------------------
 
 def load_gsm8k() -> list[dict]:
+    local = Path("data/benchmarks/GSM8K/test.jsonl")
+    if local.exists():
+        return [{
+            "question": str(r.get("Problem", r.get("question", ""))),
+            "gold": str(r.get("Answer", r.get("answer", ""))),
+            "source": "gsm8k",
+        } for r in _load_jsonl(local)]
     ds = load_dataset(
         "openai/gsm8k", "main", split="test",
         cache_dir="/root/.cache/huggingface/datasets",
@@ -324,27 +399,21 @@ def load_gsm8k() -> list[dict]:
 
 
 def load_math500() -> list[dict]:
-    try:
-        ds = load_dataset(
-            "HuggingFaceH4/MATH-500", split="test",
-            cache_dir="/root/.cache/huggingface/datasets",
-        )
-    except Exception:
-        ds = load_dataset(
-            "lighteval/MATH", split="test",
-            cache_dir="/root/.cache/huggingface/datasets",
-        )
-        import random
-        random.seed(42)
-        indices = random.sample(range(len(ds)), min(500, len(ds)))
-        ds = ds.select(indices)
+    local = Path("data/benchmarks/MATH-500/test.jsonl")
+    if local.exists():
+        return [{
+            "question": str(r.get("Problem", r.get("problem", ""))),
+            "gold": str(r.get("Answer", r.get("answer", ""))),
+            "source": "math500",
+        } for r in _load_jsonl(local)]
+    ds = load_dataset(
+        "HuggingFaceH4/MATH-500", split="test",
+        cache_dir=os.environ.get("HF_DATASETS_CACHE", "/root/.cache/huggingface/datasets"),
+    )
     items = []
     for row in ds:
         q = row.get("problem", row.get("question", ""))
         gold = row.get("answer", row.get("solution", ""))
-        m = re.search(r"\\boxed\{([^}]+)\}", gold)
-        if m:
-            gold = m.group(1).strip()
         items.append({"question": q, "gold": gold, "source": "math500"})
     return items
 
@@ -385,7 +454,7 @@ def _load_jsonl(path: Path) -> list[dict]:
 
 
 def load_aime(year: str) -> list[dict]:
-    """Load AIME 2024 / 2025. Prefers local file; falls back to HF."""
+    """Load an AIME yearly set. Prefers local files and falls back to HF."""
     source_name = f"aime{year}"
     local = Path(f"data/benchmarks/AIME{year}/train.jsonl")
     if local.exists():
@@ -415,8 +484,7 @@ def load_aime(year: str) -> list[dict]:
 
 
 def load_cnmo() -> list[dict]:
-    """CNMO 2024 - Chinese National Math Olympiad. Fall back to AMC23 (competition
-    math at similar difficulty) if CNMO data is not available locally."""
+    """Load CNMO 2024 only when the actual benchmark is available locally."""
     for name in ("CNMO2024", "cnmo2024"):
         for fn in ("train.jsonl", "test.jsonl"):
             p = Path(f"data/benchmarks/{name}/{fn}")
@@ -435,82 +503,48 @@ def load_cnmo() -> list[dict]:
             "gold": str(r.get("answer", "")),
             "source": "cnmo2024",
         } for r in rows]
-    # Fallback to AMC23 as competition-math proxy
-    amc23 = Path("data/benchmarks/AMC23/train.jsonl")
-    if amc23.exists():
-        rows = _load_jsonl(amc23)
-        return [{
-            "question": str(r.get("Problem", "")),
-            "gold": str(r.get("Answer", "")),
-            "source": "cnmo2024",
-        } for r in rows]
     return []
 
 
-def _load_math_by_levels(levels: list[int], source_name: str) -> list[dict]:
-    """Load MATH rows filtered by level; gold from 'answer'/'Answer' field.
+def load_olympiadbench() -> list[dict]:
+    """Load the official 675-item English text-only math subset."""
+    local = Path("data/benchmarks/OlympiadBench/test_en_oe_to_math.jsonl")
+    if local.exists():
+        rows = _load_jsonl(local)
+    else:
+        ds = _safe_load_dataset("lmms-lab/OlympiadBench", split="test_en")
+        rows = [dict(row) for row in ds]
 
-    Accepts both lowercase (`problem`/`answer`) and the capitalized
-    (`Problem`/`Answer`) schema produced by scripts/download_benchmarks.py.
-    Level may be an int ("1".."5") or a string like "Level 5".
-    """
-    local = Path("data/benchmarks/MATH/test.jsonl")
-    if not local.exists():
-        return []
-    rows = _load_jsonl(local)
-
-    def _normalize_level(raw):
-        if raw is None:
-            return None
-        if isinstance(raw, int):
-            return raw
-        s = str(raw)
-        m = re.search(r"(\d+)", s)
-        return int(m.group(1)) if m else None
-
-    levels_set = set(levels)
     items = []
-    for r in rows:
-        lvl = _normalize_level(r.get("level"))
-        if lvl not in levels_set:
+    for row in rows:
+        if row.get("source") != "OE_TO_maths_en_COMP":
             continue
-        q = r.get("Problem", r.get("problem", r.get("question", "")))
-        gold_raw = r.get("Answer", r.get("answer", ""))
-        gold = str(gold_raw)
-        m = re.search(r"\\boxed\{([^}]+)\}", gold)
-        if m:
-            gold = m.group(1).strip()
-        if not gold.strip():
-            continue
-        items.append({"question": str(q), "gold": gold, "source": source_name})
+        gold = row.get("final_answer", row.get("Answer", row.get("answer", "")))
+        if isinstance(gold, list):
+            gold = gold[0] if len(gold) == 1 else ""
+        question = row.get("question", row.get("Problem", row.get("problem", "")))
+        if question and str(gold).strip():
+            items.append({
+                "question": str(question),
+                "gold": str(gold),
+                "source": "olympiadbench",
+            })
+    if len(items) != 675:
+        raise ValueError(
+            f"Expected 675 official OE_TO_maths_en_COMP items, found {len(items)}"
+        )
     return items
 
 
-def load_olympiadbench() -> list[dict]:
-    """OlympiadBench proxy via MATH level-5 (hardest, olympiad-like)."""
-    items = _load_math_by_levels([5], "olympiadbench")
-    if items:
-        return items
-    # HF fallback
-    try:
-        ds = _safe_load_dataset("lmms-lab/OlympiadBench", split="test_en")
-        items = []
-        for row in ds:
-            q = row.get("question", row.get("problem", ""))
-            gold = row.get("final_answer", row.get("answer", ""))
-            if isinstance(gold, list):
-                gold = gold[0] if gold else ""
-            items.append({"question": str(q), "gold": str(gold), "source": "olympiadbench"})
-        return items
-    except Exception:
-        return []
-
-
 def load_omni_math() -> list[dict]:
-    """Omni-MATH proxy via MATH level-4+5 (high-difficulty subset)."""
-    items = _load_math_by_levels([4, 5], "omni_math")
-    if items:
-        return items
+    """Load Omni-MATH itself; never substitute a MATH difficulty slice."""
+    local = Path("data/benchmarks/Omni-MATH/test.jsonl")
+    if local.exists():
+        return [{
+            "question": str(r.get("Problem", r.get("problem", ""))),
+            "gold": str(r.get("Answer", r.get("answer", ""))),
+            "source": "omni_math",
+        } for r in _load_jsonl(local)]
     try:
         ds = _safe_load_dataset("KbsdJames/Omni-MATH", split="test")
         items = []
@@ -674,6 +708,7 @@ def load_benchmark(bench: str) -> list[dict]:
         "math_500": load_math500,
         "aime2024": lambda: load_aime("2024"),
         "aime2025": lambda: load_aime("2025"),
+        "aime2026": lambda: load_aime("2026"),
         "cnmo2024": load_cnmo,
         "olympiadbench": load_olympiadbench,
         "omni_math": load_omni_math,
@@ -758,28 +793,23 @@ def build_chat_messages(
     *,
     sft_style: bool,
     fewshot: bool,
+    system_control: str = "",
+    empty_system_prompt: bool = False,
+    user_suffix: str = "",
 ) -> list[dict]:
-    """Build message list for chat-template prompting.
-
-    sft_style=True: use our <think>/<answer> system prompt (for our SFT/GRPO
-    adapters trained on that format). sft_style=False: vanilla system prompt
-    suitable for base models.
-    """
-    if sft_style:
+    """Build messages with one task instruction across matched checkpoints."""
+    if source in {"mmlu", "gpqa_diamond"}:
         sys_msg = (
-            "You are a math reasoning assistant. Think through the problem "
-            "step by step inside <think>...</think>, then give the final "
-            "answer inside <answer>...</answer>. The answer must be a single "
-            "number or expression."
+            "Answer the multiple choice question and end with "
+            "'The answer is X.' where X is the option letter."
         )
     else:
         sys_msg = (
-            "You are a helpful assistant. Solve problems carefully and provide "
-            "your final answer clearly marked (for math, use \\boxed{}; "
-            "for multiple choice, end with 'The answer is X.')."
+            "Solve the math problem step by step. Put the final answer in \\boxed{}."
         )
 
-    messages = [{"role": "system", "content": sys_msg}]
+    system_content = "" if empty_system_prompt else (system_control or sys_msg)
+    messages = [{"role": "system", "content": system_content}]
 
     # Few-shot demonstrations for GSM8K / MATH
     if fewshot and source == "gsm8k":
@@ -797,7 +827,10 @@ def build_chat_messages(
             messages.append({"role": "user", "content": q})
             messages.append({"role": "assistant", "content": a})
 
-    messages.append({"role": "user", "content": question})
+    move_instruction_to_user = bool(system_control) or empty_system_prompt
+    final_question = f"{sys_msg}\n\n{question}" if move_instruction_to_user else question
+    final_question += user_suffix
+    messages.append({"role": "user", "content": final_question})
     return messages
 
 
@@ -820,6 +853,36 @@ def _fold_system_into_user(messages: list[dict]) -> list[dict]:
     if not injected:  # no user turn at all; prepend as a user message
         folded.insert(0, {"role": "user", "content": sys_content})
     return folded
+
+
+def _prompt_profile(
+    *,
+    use_chat_template: bool,
+    fold_system_into_user: bool,
+    system_control: str,
+    empty_system_prompt: bool,
+    user_suffix: str,
+) -> str:
+    if not use_chat_template:
+        return "bare_text"
+    if fold_system_into_user:
+        return "task_user"
+    if empty_system_prompt:
+        return "empty_system_task_user"
+    if system_control:
+        return "control_system_task_user"
+    if user_suffix:
+        return "task_system_user_suffix"
+    return "task_system"
+
+
+def _response_envelope(rendered_prompt: str, *, force_think_prefix: bool) -> str:
+    """Classify the response exactly as it is saved and token-counted."""
+    if force_think_prefix:
+        return "full_think"
+    if re.search(r"<think>\s*$", rendered_prompt):
+        return "prefilled_think"
+    return "full_think"
 
 
 # ---------------------------------------------------------------------------
@@ -878,8 +941,20 @@ def run_benchmark(
     use_chat_template: bool = False,
     sft_style: bool = False,
     fewshot: bool = False,
-    temperature: float = 0.7,
+    pass1_do_sample: bool = False,
+    temperature: float = 0.6,
     top_p: float = 0.95,
+    top_k: int = 20,
+    min_p: float = 0.0,
+    repetition_penalty: float = 1.0,
+    eval_seed: int = 0,
+    fold_system_into_user: bool = False,
+    force_think_prefix: bool = False,
+    system_control: str = "",
+    empty_system_prompt: bool = False,
+    user_suffix: str = "",
+    use_kv_cache: bool = True,
+    score_topology: bool = False,
     save_solutions: bool = False,
 ) -> tuple[dict, list[dict]]:
     if k_values is None:
@@ -891,7 +966,29 @@ def run_benchmark(
     token_counts_per_item: list[list[int]] = [[] for _ in range(total)]
     extractor = answer_extractor_for_benchmark(bench_name)
     matcher = matcher_for_benchmark(bench_name)
-    topo_reward = TopoReward()
+    raw_matcher = raw_matcher_for_benchmark(bench_name)
+    topo_reward = None
+    if score_topology:
+        from src.reward.topo_reward import TopoReward
+
+        topo_reward = TopoReward()
+    response_prefix = "<think>\n" if force_think_prefix else ""
+    prompt_profile = _prompt_profile(
+        use_chat_template=use_chat_template,
+        fold_system_into_user=fold_system_into_user,
+        system_control=system_control,
+        empty_system_prompt=empty_system_prompt,
+        user_suffix=user_suffix,
+    )
+    observed_response_envelopes: set[str] = set()
+
+    # Sampling is reproducible for a fixed manifest, including batch size and
+    # backend.  We reset once per benchmark rather than once per batch so every
+    # item receives a distinct draw from the same seeded stream.
+    random.seed(eval_seed)
+    torch.manual_seed(eval_seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(eval_seed)
 
     def tokenize_prompts(prompts_text: list[str]) -> dict:
         return tokenizer(
@@ -906,21 +1003,31 @@ def run_benchmark(
                 msgs = build_chat_messages(
                     it["question"], it["source"],
                     sft_style=sft_style, fewshot=fewshot,
+                    system_control=system_control,
+                    empty_system_prompt=empty_system_prompt,
+                    user_suffix=user_suffix,
                 )
+                if fold_system_into_user:
+                    msgs = _fold_system_into_user(msgs)
                 try:
                     t = tokenizer.apply_chat_template(
                         msgs, tokenize=False, add_generation_prompt=True,
                     )
-                except Exception:
-                    # Some chat templates (e.g. Gemma) do not support a system
-                    # role. Fold the system content into the first user turn so
-                    # the same instruction is delivered without breaking.
-                    folded = _fold_system_into_user(msgs)
-                    t = tokenizer.apply_chat_template(
-                        folded, tokenize=False, add_generation_prompt=True,
+                except Exception as exc:
+                    raise RuntimeError(
+                        "Chat template rejected the configured message roles. "
+                        "Use --fold_system_into_user only when the model's "
+                        "official evaluation protocol requires user-only instructions."
+                    ) from exc
+                observed_response_envelopes.add(
+                    _response_envelope(
+                        t, force_think_prefix=force_think_prefix
                     )
+                )
+                t += response_prefix
                 texts.append(t)
             else:
+                observed_response_envelopes.add("plain_text")
                 texts.append(build_text_prompt(
                     it["question"], it["source"], fewshot=fewshot,
                 ))
@@ -932,21 +1039,28 @@ def run_benchmark(
         inputs = tokenize_prompts(prompts)
 
         for sample_idx in range(num_samples_per_item):
-            # sample 0 = greedy (for pass@1), others stochastic
-            do_sample = sample_idx > 0
+            do_sample = pass1_do_sample or sample_idx > 0
             gen_kwargs = {
                 "max_new_tokens": max_new_tokens,
                 "do_sample": do_sample,
-                "pad_token_id": tokenizer.pad_token_id or tokenizer.eos_token_id,
-                # Explicit EOS + light repetition penalty: R1-distilled models can
-                # loop until max_new_tokens on hard problems (degenerate repetition),
-                # which both wastes time and truncates the boxed answer. This is
-                # opt-outable via TOPO_EVAL_REP_PENALTY=1.0.
+                "use_cache": use_kv_cache,
+                "pad_token_id": (
+                    tokenizer.pad_token_id
+                    if tokenizer.pad_token_id is not None
+                    else tokenizer.eos_token_id
+                ),
                 "eos_token_id": tokenizer.eos_token_id,
-                "repetition_penalty": float(os.environ.get("TOPO_EVAL_REP_PENALTY", "1.05")),
+                "repetition_penalty": repetition_penalty,
             }
             if do_sample:
-                gen_kwargs.update({"temperature": temperature, "top_p": top_p})
+                gen_kwargs.update(
+                    {
+                        "temperature": temperature,
+                        "top_p": top_p,
+                        "top_k": top_k,
+                        "min_p": min_p,
+                    }
+                )
 
             try:
                 outputs = model.generate(**inputs, **gen_kwargs)
@@ -964,10 +1078,14 @@ def run_benchmark(
             for j, out_ids in enumerate(outputs):
                 prompt_len = inputs["input_ids"][j].shape[0]
                 gen_ids = out_ids[prompt_len:]
-                gen_text = tokenizer.decode(gen_ids, skip_special_tokens=True)
+                gen_text = response_prefix + tokenizer.decode(
+                    gen_ids, skip_special_tokens=True
+                )
                 global_idx = i + j
                 predictions_per_item[global_idx].append(gen_text)
-                token_counts_per_item[global_idx].append(len(gen_ids))
+                token_counts_per_item[global_idx].append(
+                    len(tokenizer.encode(gen_text, add_special_tokens=False))
+                )
 
         done = min(i + batch_size, total)
         pass1_correct = 0
@@ -976,7 +1094,12 @@ def run_benchmark(
                 pred0 = extractor(predictions_per_item[idx][0])
             else:
                 pred0 = None
-            if matcher(pred0, items[idx]["gold"]):
+            is_correct = (
+                raw_matcher(predictions_per_item[idx][0], items[idx]["gold"])
+                if raw_matcher is not None
+                else matcher(pred0, items[idx]["gold"])
+            )
+            if is_correct:
                 pass1_correct += 1
         acc_so_far = pass1_correct / done * 100 if done else 0.0
         print(f"  [{done}/{total}] acc={acc_so_far:.1f}%", flush=True)
@@ -986,18 +1109,24 @@ def run_benchmark(
     for idx, item in enumerate(items):
         raw_preds = predictions_per_item[idx]
         extracted = [extractor(p) for p in raw_preds]
-        flags = [matcher(p, item["gold"]) for p in extracted]
+        flags = (
+            [raw_matcher(raw, item["gold"]) for raw in raw_preds]
+            if raw_matcher is not None
+            else [matcher(p, item["gold"]) for p in extracted]
+        )
         correct_flags_per_item.append(flags)
 
-        completion_objs = [[{"role": "assistant", "content": p}] for p in raw_preds]
-        try:
+        prm_scores: list[float] = []
+        if topo_reward is not None:
+            completion_objs = [[{"role": "assistant", "content": p}] for p in raw_preds]
             prm_scores = topo_reward(completion_objs) if completion_objs else []
-        except Exception:
-            prm_scores = [0.0] * len(completion_objs)
         prm_scores_per_item.append(prm_scores)
 
         results.append({
-            "question": item["question"][:200],
+            "item_id": hashlib.sha256(
+                f"{item['source']}\n{item['question']}".encode("utf-8")
+            ).hexdigest()[:20],
+            "question": item["question"],
             "gold": item["gold"],
             "pred_pass1": extracted[0] if extracted else None,
             "correct_pass1": flags[0] if flags else False,
@@ -1006,15 +1135,19 @@ def run_benchmark(
             "avg_gen_tokens": round(
                 sum(token_counts_per_item[idx]) / max(len(token_counts_per_item[idx]), 1), 1
             ),
-            "prm_scores": prm_scores,
+            "gen_tokens_pass1": token_counts_per_item[idx][0]
+            if token_counts_per_item[idx] else 0,
+            "response": raw_preds[0] if raw_preds else "",
         })
+        if score_topology:
+            results[-1]["prm_scores"] = prm_scores
         if save_solutions:
-            # Full generated text for DAG extraction / qualitative analysis.
-            # "response" = first sample (used for pass@1); "responses_all" = every
-            # sample when num_samples_per_item > 1.
-            results[-1]["response"] = raw_preds[0] if raw_preds else ""
+            # Retain every sample for pass@k and structural analysis. The
+            # configured pass@1 response is always present above.
             if len(raw_preds) > 1:
                 results[-1]["responses_all"] = list(raw_preds)
+                results[-1]["correct_flags_all"] = list(flags)
+                results[-1]["gen_tokens_all"] = list(token_counts_per_item[idx])
 
     gold_answers = [str(it["gold"]) for it in items]
     metrics = evaluate_predictions(
@@ -1023,12 +1156,22 @@ def run_benchmark(
         answer_extractor=extractor,
         k_values=k_values,
         token_counts=token_counts_per_item,
+        answer_matcher=matcher,
+        raw_answer_matcher=raw_matcher,
     )
 
-    for k in k_values:
-        metrics[f"prm@{k}"] = round(
-            compute_prm_at_k(correct_flags_per_item, prm_scores_per_item, k), 4
-        )
+    dataset_payload = "\n".join(
+        f"{item['source']}\t{item['question']}\t{item['gold']}" for item in items
+    )
+    metrics["dataset_fingerprint"] = hashlib.sha256(
+        dataset_payload.encode("utf-8")
+    ).hexdigest()
+
+    if score_topology:
+        for k in k_values:
+            metrics[f"prm@{k}"] = round(
+                compute_prm_at_k(correct_flags_per_item, prm_scores_per_item, k), 4
+            )
 
     # Override pass@1 with matcher-based computation to handle MCQ correctly
     metrics["pass@1"] = round(
@@ -1041,13 +1184,43 @@ def run_benchmark(
         sum(1 for flags in correct_flags_per_item if flags and flags[0])
     )
     metrics["error"] = int(total - metrics["correct"])
+    metrics["correct_count"] = metrics["correct"]
+    metrics["error_count"] = metrics["error"]
     metrics["num_samples"] = total
     metrics["pass_at_k"] = {str(k): metrics.get(f"pass@{k}", 0.0) for k in k_values}
     metrics["maj_at_k"] = {str(k): metrics.get(f"maj@{k}", 0.0) for k in k_values}
-    metrics["prm_at_k"] = {str(k): metrics.get(f"prm@{k}", 0.0) for k in k_values}
-    # F1: treat pass@1 as both precision and recall (single-answer benchmarks)
+    if score_topology:
+        metrics["prm_at_k"] = {
+            str(k): metrics.get(f"prm@{k}", 0.0) for k in k_values
+        }
+    # Treat pass@1 as precision/recall/F1 for these single-answer benchmarks.
+    # The generic evaluator's error-tag fields are not a separate task here.
     p1 = metrics["pass@1"]
-    metrics["f1"] = round(p1, 4) if p1 else 0.0
+    metrics["precision"] = p1
+    metrics["recall"] = p1
+    metrics["f1"] = p1
+
+    bootstrap = bootstrap_item_metrics(results, n_resamples=10_000, seed=0)
+    metrics["bootstrap_n_resamples"] = bootstrap["n_resamples"]
+    metrics["bootstrap_seed"] = bootstrap["seed"]
+    metrics["accuracy_pct_ci95"] = [
+        round(value, 4) for value in bootstrap["accuracy_pct_ci95"]
+    ]
+    metrics["accuracy_pct_wilson95"] = [
+        round(value, 4) for value in bootstrap["accuracy_pct_wilson95"]
+    ]
+    metrics["mean_tokens_pass1"] = round(bootstrap["mean_tokens"], 4)
+    metrics["mean_tokens_pass1_ci95"] = [
+        round(value, 4) for value in bootstrap["mean_tokens_ci95"]
+    ]
+    metrics["interval_scope"] = "evaluation_items_not_training_variance"
+    if len(observed_response_envelopes) != 1:
+        raise RuntimeError(
+            "Inconsistent response envelopes across rendered prompts: "
+            f"{sorted(observed_response_envelopes)}"
+        )
+    metrics["prompt_profile"] = prompt_profile
+    metrics["response_envelope"] = next(iter(observed_response_envelopes))
 
     return metrics, results
 
@@ -1071,6 +1244,14 @@ def main():
     parser.add_argument("--num_samples_per_item", type=int, default=1)
     parser.add_argument("--k_values", nargs="+", type=int, default=[1, 5])
     parser.add_argument("--max_items", type=int, default=0)
+    parser.add_argument(
+        "--item_sample_size",
+        type=int,
+        default=0,
+        help="Uniformly sample this many benchmark items without replacement. "
+             "Use for frozen diagnostic pools, not canonical full-set evaluation.",
+    )
+    parser.add_argument("--item_sample_seed", type=int, default=27)
     parser.add_argument("--output_dir", default="output/eval")
     parser.add_argument("--use_chat_template", action="store_true",
                         help="Use tokenizer.apply_chat_template for prompting")
@@ -1078,8 +1259,65 @@ def main():
                         help="Use SFT/GRPO-style system prompt with <think>/<answer>")
     parser.add_argument("--fewshot", action="store_true",
                         help="Prepend 1-3 few-shot CoT demonstrations")
-    parser.add_argument("--temperature", type=float, default=0.7)
+    parser.add_argument(
+        "--pass1_do_sample",
+        action="store_true",
+        help="Sample the single pass@1 response. Canonical ICLR evaluation uses "
+             "one seed-0 sample per item, not repeated training or decoding runs.",
+    )
+    parser.add_argument("--temperature", type=float, default=0.6)
     parser.add_argument("--top_p", type=float, default=0.95)
+    parser.add_argument("--top_k", type=int, default=20)
+    parser.add_argument("--min_p", type=float, default=0.0)
+    parser.add_argument("--eval_seed", type=int, default=0)
+    parser.add_argument(
+        "--repetition_penalty",
+        type=float,
+        default=float(os.environ.get("TOPO_EVAL_REP_PENALTY", "1.0")),
+        help="Generation repetition penalty. Canonical pass@1 uses 1.0.",
+    )
+    parser.add_argument(
+        "--fold_system_into_user",
+        action="store_true",
+        help="Move the identical system instruction into the first user turn. "
+             "Use only when required by the model's official protocol.",
+    )
+    parser.add_argument(
+        "--force_think_prefix",
+        action="store_true",
+        help="Prefill <think> for DeepSeek-R1-family evaluation and include the "
+             "prefill in saved responses and completion-token counts.",
+    )
+    parser.add_argument(
+        "--system_control",
+        default="",
+        help="Optional model-native system control such as '/think'. The common "
+             "task instruction is then prepended to the user turn.",
+    )
+    parser.add_argument(
+        "--empty_system_prompt",
+        action="store_true",
+        help="Keep an explicit empty system turn and move the common task "
+             "instruction into the user turn, as required by MiMo-style protocols.",
+    )
+    parser.add_argument(
+        "--user_suffix",
+        default="",
+        help="Exact model-native suffix appended to the final user question, "
+             "for example ' /think' for Nemotron-Cascade.",
+    )
+    parser.add_argument(
+        "--disable_kv_cache",
+        action="store_true",
+        help="Disable the generation KV cache. Canonical evaluation enables it "
+             "explicitly so training-time model configs cannot disable efficient inference.",
+    )
+    parser.add_argument(
+        "--score_topology",
+        action="store_true",
+        help="Compute TopoPRM reranking scores/prm@k. Disabled for canonical "
+             "answer-accuracy evaluation.",
+    )
     parser.add_argument(
         "--save_solutions",
         action="store_true",
@@ -1097,6 +1335,105 @@ def main():
                              "we skip mmlu by default in sft_style runs. See "
                              "docs/2026-05-11-experiment-resync.md for the open TODO.")
     args = parser.parse_args()
+
+    if args.repetition_penalty <= 0:
+        parser.error("--repetition_penalty must be greater than zero")
+    if args.temperature <= 0:
+        parser.error("--temperature must be greater than zero")
+    if not 0 < args.top_p <= 1:
+        parser.error("--top_p must be in (0, 1]")
+    if args.top_k < 0:
+        parser.error("--top_k must be non-negative")
+    if not 0 <= args.min_p <= 1:
+        parser.error("--min_p must be in [0, 1]")
+    if args.eval_seed < 0:
+        parser.error("--eval_seed must be non-negative")
+    if args.item_sample_size < 0 or args.item_sample_seed < 0:
+        parser.error("item sample size and seed must be non-negative")
+    if args.max_items > 0 and args.item_sample_size > 0:
+        parser.error("--max_items and --item_sample_size are mutually exclusive")
+    chat_protocol_flags = (
+        args.fold_system_into_user
+        or args.force_think_prefix
+        or args.system_control
+        or args.empty_system_prompt
+        or args.user_suffix
+    )
+    if chat_protocol_flags and not args.use_chat_template:
+        parser.error(
+            "chat-role and model-native prompt controls require --use_chat_template"
+        )
+    if args.system_control and args.empty_system_prompt:
+        parser.error("--system_control and --empty_system_prompt are mutually exclusive")
+
+    def metrics_match_current_protocol(payload: dict, bench: str) -> bool:
+        expected = {
+            "label": args.label,
+            "num_samples_per_item": args.num_samples_per_item,
+            "k_values": args.k_values,
+            "use_chat_template": args.use_chat_template,
+            "fold_system_into_user": args.fold_system_into_user,
+            "force_think_prefix": args.force_think_prefix,
+            "system_control": args.system_control,
+            "empty_system_prompt": args.empty_system_prompt,
+            "user_suffix": args.user_suffix,
+            "sft_style": args.sft_style,
+            "fewshot": args.fewshot,
+            "model": str(Path(args.model).resolve()),
+            "adapter": str(Path(args.adapter).resolve()) if args.adapter else "",
+            "max_new_tokens": args.max_new_tokens,
+            "batch_size": args.batch_size,
+            "pass1_do_sample": args.pass1_do_sample,
+            "temperature": args.temperature,
+            "top_p": args.top_p,
+            "top_k": args.top_k,
+            "min_p": args.min_p,
+            "repetition_penalty": args.repetition_penalty,
+            "kv_cache_enabled": not args.disable_kv_cache,
+            "eval_seed": args.eval_seed,
+            "score_topology": args.score_topology,
+            "bootstrap_n_resamples": 10_000,
+            "bootstrap_seed": 0,
+            "pass1_decoding": "sampled" if args.pass1_do_sample else "greedy",
+            "provenance_schema_version": 3,
+            "visible_token_counting": "retokenized_decoded_response_no_special_tokens",
+            "prompt_profile": _prompt_profile(
+                use_chat_template=args.use_chat_template,
+                fold_system_into_user=args.fold_system_into_user,
+                system_control=args.system_control,
+                empty_system_prompt=args.empty_system_prompt,
+                user_suffix=args.user_suffix,
+            ),
+        }
+        for key, value in expected.items():
+            if key == "empty_system_prompt":
+                observed = payload.get(key, False)
+            elif key == "user_suffix":
+                observed = payload.get(key, "")
+            else:
+                if key not in payload:
+                    return False
+                observed = payload[key]
+            if observed != value:
+                return False
+        provenance = payload.get("provenance", {})
+        if provenance.get("benchmark_source") != _benchmark_source_fingerprint(bench):
+            return False
+        if not payload.get("response_envelope"):
+            return False
+        if args.item_sample_size > 0:
+            sampling = payload.get("item_sampling", {})
+            if sampling.get("method") != "uniform_without_replacement":
+                return False
+            if sampling.get("sample_items") != args.item_sample_size:
+                return False
+            if sampling.get("seed") != args.item_sample_seed:
+                return False
+        return (
+            provenance.get("prompt_profile") == payload.get("prompt_profile")
+            and provenance.get("response_envelope")
+            == payload.get("response_envelope")
+        )
 
     if args.sft_style and not args.allow_mmlu_sft_style:
         mmlu_in = [b for b in args.benchmarks if b == "mmlu"]
@@ -1117,13 +1454,31 @@ def main():
         for bench in args.benchmarks:
             mf = out_dir_pre / f"{args.label}_{bench}_metrics.json"
             if mf.exists():
-                print(f"[skip-exists] {mf}")
-            else:
-                filtered.append(bench)
+                try:
+                    old_metrics = json.loads(mf.read_text(encoding="utf-8"))
+                except Exception:
+                    old_metrics = {}
+                if metrics_match_current_protocol(old_metrics, bench):
+                    print(f"[skip-compatible] {mf}")
+                    continue
+                print(f"[rerun-incompatible] {mf}")
+            filtered.append(bench)
         if not filtered:
             print(f"[skip-all] all benchmarks for label={args.label} already saved; nothing to do")
             return
         args.benchmarks = filtered
+
+    provenance = {
+        "schema_version": 3,
+        "evaluator_sources": _evaluator_source_fingerprints(),
+        "model_artifact": _artifact_fingerprint(
+            args.model, include_adapter_weights=False
+        ),
+        "adapter_artifact": (
+            _artifact_fingerprint(args.adapter, include_adapter_weights=True)
+            if args.adapter else None
+        ),
+    }
 
     print(f"Loading model: {args.model}")
     tokenizer = AutoTokenizer.from_pretrained(
@@ -1135,6 +1490,7 @@ def main():
         device_map="auto",
         trust_remote_code=True,
     )
+    model_default_use_cache = getattr(model.config, "use_cache", None)
 
     if args.adapter and Path(args.adapter).is_dir():
         print(f"Loading adapter: {args.adapter}")
@@ -1154,7 +1510,18 @@ def main():
         print(f"\n{'='*60}")
         print(f"Benchmark: {bench} | Label: {args.label} | "
               f"chat={args.use_chat_template} sft_style={args.sft_style} "
-              f"fewshot={args.fewshot} k={args.num_samples_per_item}")
+              f"fold_system={args.fold_system_into_user} "
+              f"think_prefix={args.force_think_prefix} "
+              f"system_control={args.system_control or '<none>'} "
+              f"empty_system={args.empty_system_prompt} "
+              f"user_suffix={args.user_suffix or '<none>'} "
+              f"fewshot={args.fewshot} k={args.num_samples_per_item} "
+              f"pass1={'sampled' if args.pass1_do_sample else 'greedy'} "
+              f"seed={args.eval_seed} temp={args.temperature} "
+              f"top_p={args.top_p} top_k={args.top_k} min_p={args.min_p} "
+              f"rep_penalty={args.repetition_penalty} "
+              f"kv_cache={not args.disable_kv_cache} "
+              f"topology_scoring={args.score_topology}")
         print(f"{'='*60}")
 
         try:
@@ -1165,6 +1532,18 @@ def main():
         if not items:
             print(f"No data for benchmark {bench}, skipping")
             continue
+        population_items = len(items)
+        if args.item_sample_size > 0:
+            if args.item_sample_size > population_items:
+                raise ValueError(
+                    f"Cannot sample {args.item_sample_size} items from "
+                    f"{bench} population of {population_items}"
+                )
+            item_rng = random.Random(args.item_sample_seed)
+            selected_indices = sorted(
+                item_rng.sample(range(population_items), args.item_sample_size)
+            )
+            items = [items[index] for index in selected_indices]
         if args.max_items > 0:
             items = items[: args.max_items]
 
@@ -1179,8 +1558,20 @@ def main():
             use_chat_template=args.use_chat_template,
             sft_style=args.sft_style,
             fewshot=args.fewshot,
+            pass1_do_sample=args.pass1_do_sample,
             temperature=args.temperature,
             top_p=args.top_p,
+            top_k=args.top_k,
+            min_p=args.min_p,
+            repetition_penalty=args.repetition_penalty,
+            eval_seed=args.eval_seed,
+            fold_system_into_user=args.fold_system_into_user,
+            force_think_prefix=args.force_think_prefix,
+            system_control=args.system_control,
+            empty_system_prompt=args.empty_system_prompt,
+            user_suffix=args.user_suffix,
+            use_kv_cache=not args.disable_kv_cache,
+            score_topology=args.score_topology,
             save_solutions=args.save_solutions,
         )
         elapsed = time.time() - t0
@@ -1191,22 +1582,84 @@ def main():
         metrics["num_samples_per_item"] = args.num_samples_per_item
         metrics["k_values"] = args.k_values
         metrics["use_chat_template"] = args.use_chat_template
+        metrics["fold_system_into_user"] = args.fold_system_into_user
+        metrics["force_think_prefix"] = args.force_think_prefix
+        metrics["system_control"] = args.system_control
+        metrics["empty_system_prompt"] = args.empty_system_prompt
+        metrics["user_suffix"] = args.user_suffix
+        metrics["prompt_role_protocol"] = (
+            "user_only" if args.fold_system_into_user else "system_user"
+        )
         metrics["sft_style"] = args.sft_style
         metrics["fewshot"] = args.fewshot
+        metrics["model"] = str(Path(args.model).resolve())
+        metrics["adapter"] = str(Path(args.adapter).resolve()) if args.adapter else ""
+        metrics["max_new_tokens"] = args.max_new_tokens
+        metrics["batch_size"] = args.batch_size
+        metrics["pass1_do_sample"] = args.pass1_do_sample
+        metrics["temperature"] = args.temperature
+        metrics["top_p"] = args.top_p
+        metrics["top_k"] = args.top_k
+        metrics["min_p"] = args.min_p
+        metrics["repetition_penalty"] = args.repetition_penalty
+        metrics["kv_cache_enabled"] = not args.disable_kv_cache
+        metrics["model_default_use_cache"] = model_default_use_cache
+        metrics["eval_seed"] = args.eval_seed
+        metrics["score_topology"] = args.score_topology
+        if args.item_sample_size > 0:
+            selected_item_ids = sorted(str(row["item_id"]) for row in results)
+            metrics["item_sampling"] = {
+                "method": "uniform_without_replacement",
+                "population_items": population_items,
+                "sample_items": len(results),
+                "seed": args.item_sample_seed,
+                "item_id_set_sha256": hashlib.sha256(
+                    "\n".join(selected_item_ids).encode("utf-8")
+                ).hexdigest(),
+            }
+        metrics["pass1_decoding"] = (
+            "sampled" if args.pass1_do_sample else "greedy"
+        )
+        metrics["provenance_schema_version"] = 3
+        metrics["visible_token_counting"] = (
+            "retokenized_decoded_response_no_special_tokens"
+        )
+        metrics["math_scoring_protocol"] = (
+            "last_nonempty_box_else_explicit_final_answer_math_verify_gold_first"
+            if raw_matcher_for_benchmark(bench) is not None
+            else "extracted_answer_matcher"
+        )
+        metrics["provenance"] = {
+            **provenance,
+            "benchmark_source": _benchmark_source_fingerprint(bench),
+            "prompt_profile": metrics["prompt_profile"],
+            "response_envelope": metrics["response_envelope"],
+            "response_envelope_evidence": {
+                "source": "generation_rendered_prompt_suffix",
+                "template_ends_with_think": (
+                    metrics["response_envelope"] == "prefilled_think"
+                ),
+                "forced_think_prefix": args.force_think_prefix,
+            },
+        }
 
         metrics_path = out_dir / f"{args.label}_{bench}_metrics.json"
-        metrics_path.write_text(json.dumps(metrics, indent=2) + "\n", encoding="utf-8")
+        metrics_tmp = metrics_path.with_suffix(metrics_path.suffix + ".partial")
+        metrics_tmp.write_text(json.dumps(metrics, indent=2) + "\n", encoding="utf-8")
+        metrics_tmp.replace(metrics_path)
 
         details_path = out_dir / f"{args.label}_{bench}_details.jsonl"
-        with details_path.open("w", encoding="utf-8") as f:
+        details_tmp = details_path.with_suffix(details_path.suffix + ".partial")
+        with details_tmp.open("w", encoding="utf-8") as f:
             for r in results:
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
+        details_tmp.replace(details_path)
 
         print(
             f"\n  {bench}: pass@1={metrics.get('pass@1', 0.0)*100:.1f}% "
             f"pass@5={metrics.get('pass@5', 0.0)*100:.1f}% "
             f"maj@5={metrics.get('maj@5', 0.0)*100:.1f}% "
-            f"prm@5={metrics.get('prm@5', 0.0)*100:.1f}% "
+            f"prm@5={metrics.get('prm@5', float('nan'))*100:.1f}% "
             f"tok={metrics.get('avg_tokens', 0):.0f} "
             f"in {elapsed:.0f}s"
         )

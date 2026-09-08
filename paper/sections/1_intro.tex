@@ -1,0 +1,32 @@
+\section{Introduction}
+\label{sec:introduction}
+
+% 第一段：RLVR + PRM 共同把轨迹当线形 → 但推理实际是图 → 失配
+Reinforcement learning with verifiable rewards (RLVR) now drives long chain-of-thought (CoT) reasoning in large language models and is a core mechanism for training mathematical and symbolic ability~\citep{wei2022chain,kojima2022large,deepseekr1,yeo2025demystify,shao2024deepseekmath,ke2026com}. From sparse final-answer rewards~\citep{cobbe2021gsm8k} to process reward models (PRMs) that attach supervision to intermediate positions or prefixes~\citep{lightman2023lets,wang2024math,uesato2022solving}, the dominant training interface still treats a trace as a \emph{linear sequence of steps}. However, long reasoning is rarely linear: a later conclusion depends on several non-adjacent premises, an intermediate equation is reused downstream, and subgoals branch before merging into the answer~\citep{besta2024graph,zhong2026chainsdag}. \textbf{Closing the structural mismatch} is the core challenge for moving reasoning supervision beyond linear credit assignment.
+% RLVR 让 LLM 长 CoT 推理能力显著提升，并成为训练数学符号推理的核心机制。从稀疏的答案奖励到提供中间步骤监督的 PRM，现有方法都把推理轨迹当作线形步骤序列。但实际上长推理几乎从不是线形的：数学推导中后续结论常依赖若干非相邻前提、中间等式被多条后续推导复用、子目标在汇合到最终答案前先发生分支。这种"推理本质是图结构、监督却只看序列"的失配，是本文要解决的核心问题。
+
+% 第二段：两类代表工作的具体不足，过去时
+Recent reasoning models sharpened the macroscopic structure of inference but stayed inside the CoT-as-result view. Outcome-only rewards scale~\citep{deepseekr1,yu2025dapo,lambert2024tulu3}, yet they cannot separate a well-supported derivation from one that reaches the same answer through unsupported intermediate claims, and they remain open to reward hacking~\citep{gao2023scaling,skalse2022defining}. PRMs densify the signal with Monte Carlo rollouts, trained verifiers, or implicit outcome-derived scores~\citep{wang2024math,luo2024omegaprm,zhang2025qwen25mathprm,thinkprm2025,genprm2026,yuan2024implicitprm,she2025rprm}, and can condition on a full prefix, but none explicitly recovers the \textbf{multi-parent support relation} in which one intermediate result supports, or is supported by, several non-adjacent steps~\citep{wang2025com}. Token-level distillation likewise never requires a compact target to preserve those cross-step dependencies~\citep{agarwal2024gkd}.
+% 近期推理工作让模型推理的宏观结构更清晰可靠，却仍停留在 CoT 结果层面。RLVR 一侧：DeepSeek-R1、DAPO、Tulu 3 证明仅凭结果奖励即可扩展，但无法区分"有支持的推导"与"经无依据中间断言到达同一答案的轨迹"，并且面临 reward hacking。PRM 一侧：Math-Shepherd、OmegaPRM、Qwen2.5-Math-PRM、ThinkPRM、GenPRM 提供更密集的步骤级信号，却普遍依赖人工标注、大量 rollout 标注流水线或须额外校准的独立验证器才能作为在线奖励。隐式 PRM 缓解了标注成本，但仍孤立打分每一步，把"第 t 步在 t−1 步之上"当作唯一的条件依赖。这些方法都未刻画跨非相邻步骤的隐式条件依赖；token 级蒸馏因逐步匹配教师分布而继承同样的线形偏置。
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.96\linewidth]{figs/fig1_topoprm_motivation.pdf}
+\caption{\method overview. The mathematical trace is mapped to a layered dependency graph; direction and acyclicity enter the topology-conditioned multi-source reward, while the same graph diagnostics localize dependency-preserving teacher revisions for distillation. %The policy itself never emits graph tags.
+}
+% 方法概述：将数学轨迹映射为分层依赖图；方向与无环性会纳入受拓扑约束的多源奖励，同时借助该图的诊断结果定位可保留依赖关系的教师模型修订内容以用于蒸馏；策略本身绝不会输出图标签。
+\label{fig:motivation}
+\end{figure*}
+
+% 第三段：统一介绍拓扑奖励优化与拓扑引导蒸馏，强调"用隐式拓扑依赖结构监督推理"。
+We propose \method, which supervises reasoning through its \emph{implicit topological dependency structure} instead of assuming that surface order is already valid (Figure~\ref{fig:motivation}). A frozen, order-agnostic edge encoder recovers a raw directed support graph $\mathcal{H}_y$ from an unchanged free-form trace. Projecting $\mathcal{H}_y$ onto a text-order DAG $\mathcal{G}_y$ is what makes the discarded structure informative: backward-edge mass measures direction inconsistency, and cycle-edge mass measures circular support. We keep these as two separate reward sources and aggregate them non-additively with outcome, format, and continuity. Direction--acyclicity synergy then rewards traces that satisfy local support order and global non-circularity together, while the outcome and continuity interactions let topology reorder rollouts rather than act as a small generic bonus. The same projected graph guides distillation toward a compact dependency-preserving trace, and the policy never decodes graph tags or a special DAG format.
+% 我们提出\method，该方法通过隐式拓扑依赖结构对推理过程进行监督，而非默认表面顺序已然有效（见图~\ref{fig:motivation}）。一个固定的、与顺序无关的边编码器可从无改动的自由格式轨迹中还原出原始有向支撑图$\mathcal{H}_y$。将$\mathcal{H}_y$投影到文本顺序DAG $\mathcal{G}_y$的操作，正是让被舍弃的结构具备信息价值的关键：反向边的质量用于衡量方向不一致性，环边的质量用于衡量循环支撑关系。我们将这两者作为两个独立的奖励源，以非累加的方式与结果、格式、连续性奖励进行聚合。随后，方向-无环性的协同作用会对同时满足局部支撑顺序与全局非循环性的轨迹给予奖励，而结果与连续性的交互作用则让拓扑重排序能够主导轨迹生成，而非仅作为微小的通用奖励。同一投影后的图会引导蒸馏过程生成紧凑且保留依赖关系的轨迹，且策略全程不会解码图标签或特殊的DAG格式。
+Our contributions are threefold:
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+\item \textbf{Auditable structural supervision from free text.} We construct a typed support DAG without step labels, graph-formatted decoding, or a learned inference-time verifier, and separate typed support completeness from local continuity.
+
+\item \textbf{A unified topology-guided post-training pipeline.} Hierarchical aggregation makes structure condition an outcome-dominant reward; ACE confines structural re-ranking to correctness strata; and \tgd targets teacher supervision at unsupported or discontinuous regions.
+
+\item \textbf{Accuracy--efficiency and audit evidence.} Across three post-training lineages, Full attains the highest displayed macro-average in every block. Controlled comparisons, training trajectories, edge audits, graph interventions, and cross-backbone stress tests characterize when the gains hold and where the surface extractor fails.
+\end{enumerate}
+% 三点贡献：(1) 把长 CoT 形式化为隐式依赖 DAG，定义"被支持 / 方向一致 / 局部可追溯"的拓扑感知过程信号；(2) 以同一套图诊断统一多源奖励聚合与拓扑引导蒸馏（TGD）；(3) 验证准确率与长度效率的联合收益。

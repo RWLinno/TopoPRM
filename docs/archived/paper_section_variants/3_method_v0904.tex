@@ -1,0 +1,102 @@
+\section{Method}
+\label{sec:method}
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.98\linewidth]{figs/fig2_topoprm_framework.pdf}
+\caption{The \method pipeline. A deterministic DAG Scorer converts free-form traces into typed support graphs. Stage~II combines an outcome-anchored hierarchical reward with ACE; Stage~III uses the same diagnostics to target on-policy teacher supervision. The Topology-guided Distillation (\tgd) aims at improving reasoning behavior rather than compressing model size.} % 该方法的流程。确定性 DAG 评分器将自由形式轨迹转换为类型化支撑图。第二阶段将以结果为锚点的分层奖励与 ACE 相结合；第三阶段采用相同的诊断方法，以实现针对同策略的教师监督。TG-D 旨在优化推理行为，而非压缩模型规模。
+\label{fig:overview}
+\end{figure*}
+
+\method (Figure~\ref{fig:overview}) is a topology-aware post-training framework whose three stages share one graph encoder $\mathcal{E}_{\phi}$ and one acyclic projection $\Pi$: Stage~I produces parsable traces, Stage~II applies GRPO to a topology-conditioned multi-source reward, and Stage~III runs \framework, where the Stage-II teacher revises student rollouts from defects localized on the projected graph.
+% \method 是一个拓扑感知的后训练框架，三个阶段共享同一个图编码器 $\mathcal{E}_{\phi}$ 与同一个无环投影 $\Pi$：阶段一产出可解析的推理轨迹；阶段二用 GRPO 优化拓扑条件化的多源奖励；阶段三执行拓扑引导蒸馏，由阶段二的教师依据投影图上定位到的缺陷修订学生轨迹。
+
+% One frozen structural interface couples all three stages (Figure~\ref{fig:overview}): SFT makes traces segmentable, GRPO ranks their support structure, and TGD turns diagnosed defects into teacher supervision.
+% % 一个固定的结构接口将三个阶段全部耦合起来（见图~\ref{fig:overview}）：SFT 使轨迹可分段，GRPO 对其支撑结构进行排序，TGD 则将诊断出的缺陷转化为教师监督信号。
+
+\subsection{Topology-Aware Reasoning Representation}
+\label{sec:data_processing}
+
+For a problem $x=(q,c)$, let $\pi_\theta$ generate $y=(s_1,\ldots,s_T)$. Outcome-only RLVR observes $r_{\mathrm{out}}(x,y)$ but not support among the steps. \method adds a frozen interface $\mathcal{E}(y)=(\mathcal{G}_y,\mathcal{L}_y)$, where $\mathcal{G}_y$ is a typed support DAG and $\mathcal{L}_y$ records the evidence for each edge. It is training-only: the policy neither emits graph syntax nor invokes $\mathcal{E}$ at inference.
+% 对于问题 $x=(q,c)$，令 $\pi_\theta$ 生成 $y=(s_1,\ldots,s_T)$。仅基于结果的 RLVR 仅观测 $r_{\mathrm{out}}(x,y)$，无法获取各步骤间的依赖关系。本方法新增了一个冻结接口 $\mathcal{E}(y)=(\mathcal{G}_y,\mathcal{L}_y)$，其中 $\mathcal{G}_y$ 是带类型的依赖 DAG，$\mathcal{L}_y$ 则记录每条边对应的依据。该接口仅在训练阶段生效：推理阶段策略既不会输出图语法，也不会调用 $\mathcal{E}$。
+
+\paragraph{Evidence-grounded DAG construction.}
+The scorer segments reasoning at step, sentence, equation, and discourse boundaries, then records normalized expressions, claim keys, variables, and coarse step types. Within each subproblem, it adds $i\!\to\!j$ for $i<j$ when expression reuse, claim reference, or guarded variable overlap provides evidence; an unsupported derivation may receive a weak edge from $s_{j-1}$. Ledger entries retain endpoints, type, triggering spans, and weight, making rule-level audit intrinsic to the score (Appendix~\ref{app:dag}).
+% 评分器会在步骤、句子、公式及语篇边界处对推理内容进行切分，随后记录归一化表达式、主张键、变量以及粗略步骤类型。在每个子问题内部，当存在表达式复用、主张引用或受保护变量重叠作为依据时，若满足i<j的条件，评分器会添加$i\!\to\!j$；对于无依据的推导，可能会从$s_{j-1}$处获得一条弱边。日志条目会保留边的端点、类型、触发跨度以及权重，从而让规则层面的审计成为评分过程的固有组成部分（详见附录~\ref{app:dag}）。
+
+Because every edge points forward, $\mathcal{G}_y$ is acyclic by construction. Direction and acyclicity therefore validate the extraction contract, not mathematical correctness. Rollout-level information comes from graph existence, supported conclusions, agreement with independent judgments, and support completeness beyond local continuity. We do not equate graph validity with deductive validity.
+% 由于所有边均指向前方，$\mathcal{G}_y$ 在构造上即为无环图。因此，是方向属性与无环性验证了提取契约，而非数学正确性。策略级信息来源于图的存在性、得到支撑的结论、与独立判断的一致性，以及超出局部连续性的支撑完备性。我们并不将图的有效性等同于演绎有效性。
+
+\paragraph{Complementary structural diagnostics.}
+Let $\rho_{\mathrm{orph}}(\mathcal{G}_y)$ be the support-weighted fraction of conclusion nodes lacking sufficient incoming evidence, $\delta(\mathcal{G}_y)$ the fraction of order-consistent edges, and $\kappa(\mathcal{G}_y,\mathcal{G}^{\star})$ the typed-edge F1 against an optional reference graph. We define
+\begin{equation}
+\label{eq:qtopo}
+q_{\mathrm{topo}}(y)=
+\frac{\lambda_b\mathbb{1}[|\mathcal{V}|>0]+\lambda_a\mathbb{1}[\mathcal{G}_y\ \mathrm{acyclic}]+\lambda_o\mathbb{1}[\rho_{\mathrm{orph}}=0]+\lambda_d\delta+\lambda_k\kappa}
+{\lambda_b+\lambda_a+\lambda_o+\lambda_d+\lambda_k},
+\end{equation}
+where $\lambda_k=0$ without an aligned reference. Policy optimization uses only rollout graphs because generated and reference steps are not aligned. Under forward-only extraction, direction and acyclicity are guards; graph existence and orphan conclusions drive the varying terms.
+
+Continuity measures local traceability. Let $h_i=1$ when $s_i$ is grounded in the problem or a supported prefix and $\eta(y)=T^{-1}\sum_i h_i$; the scorer maps $\eta$ to $q_{\mathrm{cont}}\in[0,1]$. Thus $q_{\mathrm{topo}}$ captures typed support completeness and $q_{\mathrm{cont}}$ captures stepwise progression, neither as a semantic verifier.
+
+\paragraph{Why the two views are complementary.}
+A fluent trace may end in an orphan conclusion, while recovered non-local premises can coexist with an unsupported transition; neither diagnostic determines the other. Both remain inspectable because a score change resolves to an orphan node, typed edge, or grounding decision. This evidence-preserving interface distinguishes \method from graph-formatted decoding and opaque process scores.
+
+\subsection{Correctness-Constrained Topology Optimization}
+\label{sec:post_training}
+
+Structural supervision must both rank rollouts and constrain how that order enters the gradient. An additive bonus can compensate for an incorrect answer, whereas a hard gate discards useful variation among failures. We therefore separate scalar preference from gradient admissibility.
+
+\paragraph{Outcome-anchored hierarchical reward.}
+The outcome-anchored base combines correctness, format, and a bounded length term,
+\begin{equation}
+\label{eq:rbase}
+r_{\mathrm{base}}=w_o r_{\mathrm{out}}+w_f r_{\mathrm{fmt}}+w_l r_{\mathrm{len}}.
+\end{equation}
+Within each GRPO group, $q_{\mathrm{topo}}$ and $q_{\mathrm{cont}}$ are scaled to $\widetilde q_{\mathrm{topo}}$ and $\widetilde q_{\mathrm{cont}}$; a constant component maps to $1/2$. The hierarchical reward is
+\begin{equation}
+\label{eq:r_total}
+r_{\mathrm{total}}=\operatorname{clip}_{[0,1]}\!\left(
+\max(r_{\mathrm{base}},\epsilon)
+\left[1+\alpha\widetilde q_{\mathrm{topo}}+(1-\alpha)\widetilde q_{\mathrm{cont}}\right]\right).
+\end{equation}
+The multiplicative form preserves an explicit outcome source. In the unclipped regime,
+$\partial r_{\mathrm{total}}/\partial\widetilde q_{\mathrm{topo}}=\alpha\max(r_{\mathrm{base}},\epsilon)$ and
+$\partial r_{\mathrm{total}}/\partial\widetilde q_{\mathrm{cont}}=(1-\alpha)\max(r_{\mathrm{base}},\epsilon)$, so structural resolution scales with task reward rather than acting as a free-standing bonus. ACE controls the remaining sign risk.
+
+\paragraph{Asymmetric credit assignment.}
+ACE adapts correctness-stratified clipping~\citep{liu2026graph} to standardized topology--continuity returns. For correct and incorrect strata $\mathcal{C},\mathcal{W}$, let $z_i^{\mathcal C},z_i^{\mathcal W}$ be within-stratum standardized returns and $\Delta r_{\mathrm{aux}}^{(i)}$ the centered auxiliary contribution. ACE computes
+\begin{equation}
+\label{eq:ace}
+\widehat A_i=
+\begin{cases}
+\operatorname{clip}\!\left(z_i^{\mathcal C}+\max(0,\Delta r_{\mathrm{aux}}^{(i)}),0,\bar c\right), & i\in\mathcal C,\\
+\operatorname{clip}\!\left(z_i^{\mathcal W}+\min(0,\Delta r_{\mathrm{aux}}^{(i)}),\underline c,0\right), & i\in\mathcal W.
+\end{cases}
+\end{equation}
+Stage~I provides a parsable supervised warm start; Stage~II optimizes Eq.~\ref{eq:r_total} with GRPO~\citep{shao2024deepseekmath} using Eq.~\ref{eq:ace}.
+
+\begin{proposition}[Outcome separation with one-sided structural resolution]
+\label{prop:ace_separation}
+Assume $\underline c\leq0\leq\bar c$. Then $\widehat A_i\in[0,\bar c]$ for $i\in\mathcal C$ and $\widehat A_i\in[\underline c,0]$ for $i\in\mathcal W$. Before saturation, it is monotone only in positive auxiliary deviations on $\mathcal C$ and negative deviations on $\mathcal W$. At fixed standardized return, ACE preserves admissible within-stratum order without reversing correctness-induced gradient signs.
+\end{proposition}
+
+Equation~\ref{eq:r_total} defines scalar candidate order; Proposition~\ref{prop:ace_separation} restricts its gradient realization. Appendix~\ref{app:ace_proof} gives the derivation. The \emph{w/o ACE} control retains both reward and TGD, isolating the estimator.
+
+\subsection{Defect-Conditioned Topology-Guided Distillation}
+\label{sec:distillation}
+
+Stage~III uses a fixed same-parameter teacher $\pi_T$ and Stage-II target $\pi_\theta$. The target samples $y^{\star}\sim\pi_\theta(\cdot\mid x)$; the scorer converts its highest-priority orphan, missing support, or continuity break into revision instruction $P_r$. The teacher returns $\widetilde y$ and its token distribution conditioned on $(x,y^{\star},P_r)$. Gate $a_r(x,y^{\star},\widetilde y)$ accepts revisions that pass answer, format, structural, and response-budget checks.
+
+\paragraph{Gated distillation objective.}
+For target and teacher next-token distributions $p_t$ and $q_t$ on an on-policy prefix, the target minimizes
+\begin{equation}
+\label{eq:tgd}
+\mathcal{L}_{\mathrm{TGD}}(\theta)=
+\mathbb{E}_{x,\,y^{\star}\sim\pi_\theta,\,\widetilde y\sim\pi_T}
+a_r(x,y^{\star},\widetilde y)\sum_{t=1}^{|\widetilde y|}
+\mathcal{D}_{\mathrm{RKL}}\!\left(p_t\,\|\,q_t\right).
+\end{equation}
+Unlike static imitation, both dispatch and acceptance depend on current-policy failures, forming a policy--diagnosis--revision--acceptance loop under one structural criterion. Same-scale teacher and target separate behavioral distillation from model compression: all Full checkpoints are post-\tgd, while only marked ablations retain \tgd. Deployment requires neither $\mathcal{E}$, $\pi_T$, nor a separate verifier.
+
+SFT stabilizes the representation, GRPO changes candidate preference, and TGD guides updated-policy failures; one scorer fixes the criterion throughout. Matching $T$ parsed steps costs $O(T^2)$, requires no language-model forward pass, and remains training-only.

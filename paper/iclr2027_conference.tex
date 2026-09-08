@@ -1,0 +1,151 @@
+
+\documentclass{article} % For LaTeX2e
+\usepackage{iclr2027_conference,times}
+
+% Optional math commands from https://github.com/goodfeli/dlbook_notation.
+\input{math_commands.tex}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{inconsolata}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\hypersetup{hidelinks}
+\usepackage{url}
+\usepackage{amsfonts}
+\usepackage{dsfont}
+\usepackage{nicefrac}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
+\usepackage{xspace}
+\usepackage{makecell}
+\usepackage{enumitem}
+\usepackage[capitalize,noabbrev]{cleveref}
+\usepackage{subcaption}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{wrapfig}
+\usepackage{colortbl}
+\usepackage{float}
+\usepackage{listings}
+\usepackage[normalem]{ulem}
+\usepackage[most]{tcolorbox}
+\usepackage{pifont}
+\usepackage{placeins}
+\usepackage{needspace}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{calc}
+\usepgfplotslibrary{groupplots}
+
+\graphicspath{{figs/}}
+
+\definecolor{ourblue}{RGB}{220,235,250}
+\definecolor{tablegroup}{RGB}{239,243,246}
+\definecolor{tableheader}{RGB}{231,238,243}
+\definecolor{tableours}{RGB}{220,235,247}
+\definecolor{tablematched}{RGB}{250,243,224}
+\definecolor{ablgray}{RGB}{245,245,245}
+\definecolor{promptgray}{RGB}{248,248,248}
+
+\newcommand{\method}{TopoPRM\xspace}
+\newcommand{\framework}{Topology-Guided Distillation\xspace}
+\newcommand{\tgd}{TGD\xspace}
+\newcommand{\prm}{Implicit PRM\xspace}
+\newcommand{\eg}{\emph{e.g.}\xspace}
+\newcommand{\ie}{\emph{i.e.}\xspace}
+\newcommand{\etal}{\emph{et al.}\xspace}
+\newcommand{\boldres}[1]{{\textbf{\textcolor{red}{#1}}}}
+\newcommand{\secondres}[1]{{\underline{\textcolor{blue}{#1}}}}
+
+\newcommand{\tbd}[1]{\textcolor{red}{#1}}
+\newcommand{\needcheck}[1]{\textcolor{orange}{#1}}
+\newcommand{\reused}[1]{\textcolor{teal}{#1}}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+
+\title{Rewarding the Graph Behind the Chain: Topology-Aware Process Supervision for RL and Reasoning Distillation}
+% Authors must not appear in the submitted version. They should be hidden
+% as long as the \iclrfinalcopy macro remains commented out below.
+% Non-anonymous submissions will be rejected without review.
+
+% Weilin Ruan, Songxin Lei, Zhuoming Zhu, Xixuan Hao, Hao Li, Yuxuan Liang 
+\author{Antiquus S.~Hippocampus, Natalia Cerebro \& Amelie P. Amygdale \thanks{ Use footnote for providing further information
+about author (webpage, alternative address)---\emph{not} for acknowledging
+funding agencies.  Funding acknowledgements go at the end of the paper.} \\
+Department of Computer Science\\
+Cranberry-Lemon University\\
+Pittsburgh, PA 15213, USA \\
+\texttt{\{hippo,brain,jen\}@cs.cranberry-lemon.edu} \\
+\And
+Ji Q. Ren \& Yevgeny LeNet \\
+Department of Computational Neuroscience \\
+University of the Witwatersrand \\
+Joburg, South Africa \\
+\texttt{\{robot,net\}@wits.ac.za} \\
+\AND
+Coauthor \\
+Affiliation \\
+Address \\
+\texttt{email}
+}
+
+% The \author macro works with any number of authors. There are two commands
+% used to separate the names and addresses of multiple authors: \And and \AND.
+%
+% Using \And between authors leaves it to \LaTeX{} to determine where to break
+% the lines. Using \AND forces a linebreak at that point. So, if \LaTeX{}
+% puts 3 of 4 authors names on the first line, and the last on the second
+% line, try using \AND instead of \And before the third author name.
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+%\iclrfinalcopy % Uncomment for camera-ready version, but NOT for submission.
+\begin{document}
+
+\maketitle
+
+\input{sections/0_abstract}
+\input{sections/1_intro}
+\input{sections/3_method}
+\input{sections/4_experiments}
+\input{sections/2_related}
+\input{sections/5_conclusion}
+
+\subsection*{AI use statement}
+Generative AI tools assisted with literature discovery, manuscript organization, and language polishing.
+The authors inspected the primary sources, code paths, experimental artifacts, equations, citations, and every AI-assisted edit. The authors take responsibility for the final text, claims, code, and results.
+
+\subsection*{Ethics statement}
+The reported study uses public mathematics benchmarks and model-generated reasoning traces. It collects no personal or demographic data, includes no human-subject study, and uses no private benchmark to support a claim. The edge audit uses model annotators and is identified as such. The principal risk is methodological: a trace can exhibit coherent surface dependencies while containing an incorrect mathematical deduction. We therefore treat topology as a training-time process signal rather than a semantic verifier, report this failure mode directly, and retain final-answer verification as a separate reward source. The study is limited to mathematical reasoning; broader deployment claims would require domain-specific safety and validity evaluation.
+
+\subsection*{Reproducibility statement}
+Appendix~\ref{app:details} records the training, reward, and decoding configuration, and Appendix~\ref{app:dag} specifies graph construction and the audit protocol. The anonymized supplementary artifact contains source and configuration snapshots plus aggregate JSON files for the edge audit, controlled rerun, cross-backbone, structural, and shared-pool diagnostics. Table~\ref{tab:main_results} was transcribed from archived aggregate evaluation tables; its per-item outputs are not included, which we disclose as a reproducibility limitation. We distinguish single training runs, repeated decoding draws, and paired annotation statistics throughout, and we do not use incomplete experiments as evidence.
+
+% \subsubsection*{Author Contributions}
+% If you'd like to, you may include a section for author contributions as is done
+% in many journals. This is optional and at the discretion of the authors.
+
+% \subsubsection*{Acknowledgments}
+% Use unnumbered third level headings for the acknowledgments. All  
+% acknowledgments, including those to funding agencies, go at the end of the paper.
+
+
+\bibliography{iclr2027_conference}
+\bibliographystyle{iclr2027_conference}
+
+\appendix
+\input{sections/6_appendix}
+
+\end{document}

@@ -1,0 +1,17 @@
+\begin{table}[!t]
+\centering
+\caption{Diagnostic Best-of-8 selection accuracy (\%) on one shared Qwen2.5-Math-7B-Instruct candidate pool ($n{=}80$ per benchmark; 2,048-token generation cap). PRM uses Qwen2.5-Math-PRM-7B; Hybrid multiplies normalized PRM by $1+q_{\mathrm{topo}}$. Oracle reports whether any candidate is correct. This diagnostic is separate from the primary 4,096-token policy comparison.}
+\label{tab:reranking_diagnostic}
+\setlength{\tabcolsep}{3.4pt}
+\renewcommand{\arraystretch}{1.12}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+\textbf{Benchmark} & \textbf{Pass@1} & \textbf{Maj@8} & \textbf{PRM@8} & \textbf{Topo@8} & \textbf{Hybrid@8} & \textbf{Oracle@8} \\
+\midrule
+GSM8K   & 93.75 & 95.00 & 95.00 & 91.25 & 95.00 & 96.25 \\
+MATH-500 & 83.75 & 85.00 & 83.75 & 78.75 & 83.75 & 92.50 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

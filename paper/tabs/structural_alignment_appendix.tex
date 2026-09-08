@@ -1,0 +1,17 @@
+\begin{table*}[!t]
+\centering
+\caption{Topology score and correctness on 160 matched GSM8K responses per fixed policy. High and low denote the upper and lower score strata used by the archived analysis.}
+\label{tab:structural_alignment}
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l ccccc@{}}
+\toprule
+\textbf{Policy reward} & $\boldsymbol{n}$ & \textbf{p@1} & \textbf{Mean $q_{\rm topo}$} & $\boldsymbol{P(\mathrm{correct}\mid\mathrm{high})}$ & $\boldsymbol{P(\mathrm{correct}\mid\mathrm{low})}$ \\
+\midrule
+Outcome only     & 160 & 51.25 & .925 & 55.86 & 40.82 \\
+Outcome + length & 160 & 53.12 & .928 & 57.26 & 41.86 \\
+\method          & 160 & 53.12 & .939 & 57.63 & 40.48 \\
+\bottomrule
+\end{tabular*}
+\end{table*}

@@ -1,0 +1,100 @@
+% Accuracy--length Pareto frontier, four benchmarks.
+%
+% DATA PROVENANCE. Every coordinate below is a literal cell of
+% tables/main_emnlp_promoted.tex (itself derived from tables/main_detailed.tex),
+% i.e. reused EMNLP-protocol measurements: 5 samples/item, 2,560-token cap on
+% most sets. Nothing is fitted, smoothed, or invented.
+% Machine-readable copy + dominance computation:
+%   analysis/pareto_frontier_data.py -> analysis/pareto_frontier_data.csv
+%
+% x is plotted in kilotokens (cell value / 1000) purely to keep tick labels
+% short; y is pass@1 in percent, exactly as tabulated.
+%
+% FRONTIER. Under acc(A)>=acc(B) and tok(A)<=tok(B) with one strict inequality,
+% TopoPRM (Full) is the unique non-dominated row in all four panels, so the
+% staircase degenerates to the single-vertex step anchored at that point: the
+% dashed L-shape bounds the dominated region, and the other five rows all fall
+% inside it. Verified by analysis/pareto_frontier_data.py.
+
+\pgfplotsset{
+  paretopanel/.style={
+    width=2.34cm, height=1.90cm, scale only axis,
+    tick label style={font=\tiny}, label style={font=\tiny},
+    title style={font=\scriptsize, yshift=-3pt},
+    xlabel near ticks, ylabel near ticks,
+    axis line style={semithick}, tick style={semithick},
+    max space between ticks=28, try min ticks=3,
+    every axis plot/.append style={mark size=1.7pt, thin},
+  },
+}
+
+\pgfplotsset{
+  rBase/.style   ={only marks, mark=o,          draw=black!55},
+  rOut/.style    ={only marks, mark=square,     draw=blue!55!black},
+  rTopo/.style   ={only marks, mark=triangle,   draw=orange!80!black},
+  rCont/.style   ={only marks, mark=diamond,    draw=black!45},
+  rAce/.style    ={only marks, mark=pentagon,   draw=violet!70!black},
+  rFull/.style   ={only marks, mark=star, mark size=2.6pt,
+                   draw=red!75!black, fill=red!75!black},
+  frontier/.style={draw=red!75!black, densely dashed, thin, forget plot},
+}
+\begin{tikzpicture}
+\begin{groupplot}[
+  group style={group size=4 by 1, horizontal sep=0.95cm},
+  paretopanel,
+  legend style={font=\tiny, draw=black!35, inner sep=1.5pt,
+                /tikz/every even column/.append style={column sep=3pt}},
+  legend columns=6,
+]
+% ---- GSM8K (main_emnlp_promoted.tex, cols 2-3) ----
+\nextgroupplot[title={GSM8K}, ylabel={pass@1 (\%)},
+  legend to name=paretolegend,
+  xmin=0.70, xmax=1.68, ymin=44, ymax=101, ytick={50,70,90}]
+\addplot[frontier] coordinates {(0.796,101) (0.796,94.1) (1.68,94.1)};
+\addplot[rBase] coordinates {(1.536,55.2)}; \addlegendentry{Base}
+\addplot[rOut]  coordinates {(1.047,93.3)}; \addlegendentry{Outcome Only}
+\addplot[rTopo] coordinates {(0.946,93.0)}; \addlegendentry{w/o Topology}
+\addplot[rCont] coordinates {(1.528,51.0)}; \addlegendentry{w/o Continuity}
+\addplot[rAce]  coordinates {(1.006,93.8)}; \addlegendentry{w/o ACE}
+\addplot[rFull] coordinates {(0.796,94.1)}; \addlegendentry{\method (Full)}
+% ---- MATH-500 (main_emnlp_promoted.tex, cols 5-6) ----
+\nextgroupplot[title={MATH-500},
+  xmin=1.40, xmax=1.60, ymin=14, ymax=56, ytick={20,35,50},
+  xtick={1.45,1.52,1.59}]
+\addplot[frontier] coordinates {(1.454,56) (1.454,51.0) (1.60,51.0)};
+\addplot[rBase] coordinates {(1.536,19.8)};
+\addplot[rOut]  coordinates {(1.511,50.8)};
+\addplot[rTopo] coordinates {(1.506,51.0)};
+\addplot[rCont] coordinates {(1.536,21.6)};
+\addplot[rAce]  coordinates {(1.515,50.8)};
+\addplot[rFull] coordinates {(1.454,51.0)};
+% ---- OlympiadBench (main_emnlp_promoted.tex, cols 8-9) ----
+\nextgroupplot[title={OlympiadBench},
+  xmin=1.68, xmax=2.66, ymin=4, ymax=37, ytick={10,20,30},
+  xtick={1.8,2.2,2.6}]
+\addplot[frontier] coordinates {(1.768,37) (1.768,32.8) (2.66,32.8)};
+\addplot[rBase] coordinates {(2.560,11.2)};
+\addplot[rOut]  coordinates {(2.043,31.3)};
+\addplot[rTopo] coordinates {(2.468,29.8)};
+\addplot[rCont] coordinates {(2.560,8.2)};
+\addplot[rAce]  coordinates {(2.491,32.8)};
+\addplot[rFull] coordinates {(1.768,32.8)};
+% ---- AIME 2024 (main_emnlp_promoted.tex, cols 11-12) ----
+\nextgroupplot[title={AIME 2024},
+  xmin=2.30, xmax=4.25, ymin=3, ymax=34, ytick={10,20,30},
+  xtick={2.5,3.3,4.1}]
+\addplot[frontier] coordinates {(2.431,34) (2.431,30.0) (4.25,30.0)};
+\addplot[rBase] coordinates {(4.083,16.7)};
+\addplot[rOut]  coordinates {(2.546,16.7)};
+\addplot[rTopo] coordinates {(2.560,20.0)};
+\addplot[rCont] coordinates {(2.560,6.7)};
+\addplot[rAce]  coordinates {(2.560,20.0)};
+\addplot[rFull] coordinates {(2.431,30.0)};
+\end{groupplot}
+\node[font=\tiny, anchor=north] at
+  ($(group c1r1.south)!0.5!(group c4r1.south)+(0,-0.42cm)$)
+  {mean generated tokens (k, lower better)};
+\node[anchor=north] at
+  ($(group c1r1.south)!0.5!(group c4r1.south)+(0,-0.80cm)$)
+  {\pgfplotslegendfromname{paretolegend}};
+\end{tikzpicture}

@@ -11,6 +11,7 @@ from src.data.build_dag import (
     classify_step_type,
     build_dag_from_answer,
     parse_answer_to_dag_debug,
+    segmentation_issue_reasons,
 )
 from src.dag.graph import ReasoningDAG
 from src.dag.node import LocalVerdict, Node
@@ -52,7 +53,38 @@ class TestExtractSteps:
     def test_inline_step_markers(self):
         answer = "Step 1: let x=1; Step 2: therefore y=x+1; Step 3: answer y=2"
         steps = extract_steps_from_answer(answer)
-        assert len(steps) >= 3
+        assert [step["raw_text"] for step in steps] == [
+            "let x=1",
+            "therefore y=x+1",
+            "answer y=2",
+        ]
+
+    @pytest.mark.parametrize(
+        "answer",
+        [
+            r"$\frac{(b - 1)b}{2}$ leaves remainder 4, so $b=8$.",
+            r"The value is $(2 * 111) - 50 = 172$.",
+            r"The possible pairs are $(5, 12)$ and $(6, 8)$.",
+            r"$\dbinom{5}{1}=\dfrac{(5\times 4\times 3\times 2)(1)}{(1)(4\times 3\times 2\times 1)}=5$.",
+        ],
+    )
+    def test_formula_parentheses_are_not_numbered_steps(self, answer):
+        steps = extract_steps_from_answer(answer)
+        assert len(steps) == 1
+        assert steps[0]["raw_text"] == answer
+
+    @pytest.mark.parametrize(
+        ("answer", "expected"),
+        [
+            ("1) Let x=1. 2) Therefore y=2.", ["Let x=1.", "Therefore y=2."]),
+            ("(1) Let x=1. (2) Therefore y=2.", ["Let x=1.", "Therefore y=2."]),
+            ("1. Let x=1. 2. Therefore y=2.", ["Let x=1.", "Therefore y=2."]),
+            ("1、设 x=1。 2、所以 y=2。", ["设 x=1。", "所以 y=2。"]),
+        ],
+    )
+    def test_numbered_steps_require_following_content(self, answer, expected):
+        steps = extract_steps_from_answer(answer)
+        assert [step["raw_text"] for step in steps] == expected
 
 
 # ---------------------------------------------------------------------------
@@ -339,6 +371,94 @@ class TestLLMHybridDependencyEdges:
         assert (99, 100, "llm_semantic") not in deps
         assert (0, 2, "llm_semantic") in deps
 
+    def test_raw_directed_semantic_direction_overrides_rule_pair(self, monkeypatch):
+        from src.data.build_dag import build_dependency_edges_by_llm
+
+        monkeypatch.setenv("TOPO_DAG_LLM_REFINE", "1")
+        monkeypatch.setenv("TOPO_DAG_RAW_DIRECTED", "1")
+        steps = self._parsed_steps(
+            "Step 1: Therefore profit is 1075.\n"
+            "Step 2: Revenue is 1200.\n"
+            "Step 3: Cost is 125, so profit is 1200-125."
+        )
+
+        class BackwardClient:
+            def generate(self, prompt: str) -> str:
+                assert "llm_symbolic" in prompt
+                assert "backward edges are allowed" in prompt
+                return (
+                    '[{"source":2,"target":0,"dep_type":"llm_symbolic",'
+                    '"confidence":0.95,"evidence":"step 0 states the result from step 2"}]'
+                )
+
+        edges, _ = build_dependency_edges_by_llm(steps, llm_client=BackwardClient())
+        pair_edges = [(source, target, dep) for source, target, _, dep in edges if {source, target} == {0, 2}]
+        assert pair_edges == [(2, 0, "llm_symbolic")]
+
+    def test_raw_directed_abstains_on_ambiguous_reciprocal_edges(self, monkeypatch):
+        from src.data.build_dag import build_dependency_edges_by_llm
+
+        monkeypatch.setenv("TOPO_DAG_LLM_REFINE", "1")
+        monkeypatch.setenv("TOPO_DAG_RAW_DIRECTED", "1")
+        steps = self._parsed_steps(
+            "Step 1: One hundred patches cost 125.\n"
+            "Step 2: One hundred patches earn 1200.\n"
+            "Step 3: Profit is 1200-125."
+        )
+
+        class ReciprocalClient:
+            def generate(self, prompt: str) -> str:
+                return (
+                    '[{"source":0,"target":1,"dep_type":"llm_semantic",'
+                    '"confidence":0.8,"evidence":"same quantity"},'
+                    '{"source":1,"target":0,"dep_type":"llm_semantic",'
+                    '"confidence":0.8,"evidence":"same quantity"}]'
+                )
+
+        edges, _ = build_dependency_edges_by_llm(steps, llm_client=ReciprocalClient())
+        assert all({source, target} != {0, 1} for source, target, _, _ in edges)
+
+    def test_raw_directed_mode_retains_backward_edge_before_projection(self, monkeypatch):
+        monkeypatch.setenv("TOPO_DAG_RAW_DIRECTED", "1")
+        answer = (
+            "Step 1: See step #3, assert z=3.\n"
+            "Step 2: Let x=1.\n"
+            "Step 3: From x=1, derive z=x+2."
+        )
+        dag, debug = parse_answer_to_dag_debug(answer, problem_id="raw-direction")
+
+        raw_edges = dag.graph.graph["raw_dependency_edges"]
+        assert any(edge["source"] == 2 and edge["target"] == 0 for edge in raw_edges)
+        assert dag.graph.graph["raw_topology"]["direction_consistency"] < 1.0
+        assert dag.graph.graph["raw_topology"]["projection_cost"] > 0.0
+        assert not dag.graph.has_edge(2, 0)
+        assert dag.is_valid_dag()
+        assert debug["summary"]["raw_num_edges"] >= debug["summary"]["projected_num_edges"]
+
+    def test_frozen_encoder_edge_is_injected_before_projection(self, monkeypatch):
+        monkeypatch.setenv("TOPO_DAG_RAW_DIRECTED", "1")
+        answer = "Step 1: Therefore y = 5.\nStep 2: Given x + y = 10."
+        dag, _ = parse_answer_to_dag_debug(
+            answer,
+            semantic_edges=[{"source": 1, "target": 0, "confidence": 0.91}],
+        )
+        raw_pair = [
+            edge
+            for edge in dag.graph.graph["raw_dependency_edges"]
+            if {edge["source"], edge["target"]} == {0, 1}
+        ]
+        assert raw_pair == [
+            {
+                "source": 1,
+                "target": 0,
+                "edge_type": "virtual_edge",
+                "dep_type": "encoder_semantic",
+                "weight": 0.91,
+            }
+        ]
+        assert dag.graph.graph["raw_topology"]["direction_score"] < 0.5
+        assert not dag.graph.has_edge(1, 0)
+
     def test_llm_failure_falls_back_to_rule_edges(self, monkeypatch, caplog):
         """If the LLM client raises, the pipeline must still return rule edges."""
         from src.data.build_dag import build_dependency_edges_by_llm
@@ -383,7 +503,214 @@ class TestBenchmarkSmoke:
         assert q_topo_proxy > 0.0
 
 
+class TestRequiredEdgeEncoder:
+    def test_long_trace_encoder_indices_are_remapped(self, monkeypatch):
+        import src.data.build_dag as build_dag
+
+        class RecordingEncoder:
+            def predict_batches(self, step_batches, subquestion_batches):
+                assert [len(steps) for steps in step_batches] == [4]
+                assert step_batches[0] == ["step 0", "step 3", "step 6", "step 9"]
+                return [[{"source": 1, "target": 3, "confidence": 0.9}]]
+
+        monkeypatch.setenv("TOPO_DAG_EDGE_MAX_STEPS", "4")
+        monkeypatch.setattr(build_dag, "_LOCAL_EDGE_ENCODER", RecordingEncoder())
+        monkeypatch.setattr(build_dag, "_LOCAL_EDGE_ENCODER_LOAD_ATTEMPTED", True)
+        steps = [[{"raw_text": f"step {index}", "sub_question_id": None} for index in range(10)]]
+        predictions = build_dag.predict_semantic_dependency_edges_batch(steps)
+        assert predictions == [[{"source": 3, "target": 9, "confidence": 0.9}]]
+
+    def test_load_failure_is_fatal_when_required(self, monkeypatch):
+        import src.dag.edge_encoder as edge_encoder
+        import src.data.build_dag as build_dag
+
+        monkeypatch.setenv("TOPO_DAG_EDGE_CHECKPOINT", "/missing/edge-encoder")
+        monkeypatch.setenv("TOPO_DAG_EDGE_REQUIRED", "1")
+        monkeypatch.setattr(build_dag, "_LOCAL_EDGE_ENCODER", None)
+        monkeypatch.setattr(build_dag, "_LOCAL_EDGE_ENCODER_LOAD_ATTEMPTED", False)
+        monkeypatch.setattr(
+            edge_encoder,
+            "load_edge_encoder",
+            lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("load failed")),
+        )
+        with pytest.raises(RuntimeError, match="Required semantic edge encoder failed to load"):
+            build_dag._get_local_edge_encoder()
+
+    def test_inference_failure_is_fatal_when_required(self, monkeypatch):
+        import src.data.build_dag as build_dag
+
+        class BrokenEncoder:
+            def predict_batches(self, *args, **kwargs):
+                raise RuntimeError("inference failed")
+
+        monkeypatch.setenv("TOPO_DAG_EDGE_REQUIRED", "1")
+        monkeypatch.setattr(build_dag, "_LOCAL_EDGE_ENCODER", BrokenEncoder())
+        monkeypatch.setattr(build_dag, "_LOCAL_EDGE_ENCODER_LOAD_ATTEMPTED", True)
+        with pytest.raises(
+            RuntimeError, match="Required semantic edge encoder inference failed"
+        ):
+            build_dag.predict_semantic_dependency_edges_batch([[{"raw_text": "x=1"}]])
+
+
 class TestExtractorFlags:
+    def test_shared_quality_gate_accepts_short_quantity_steps(self):
+        assert segmentation_issue_reasons(["Darla:6 books", "6+3=9 books"]) == []
+
+    def test_shared_quality_gate_rejects_unbalanced_fragments(self):
+        assert "unbalanced_braces" in segmentation_issue_reasons([r"\frac{1}{2"])
+
+    def test_extra_markers_do_not_split_ordinal_phrases(self, monkeypatch):
+        monkeypatch.setenv("TOPO_DAG_EXTRA_STEP_MARKERS", "1")
+        answer = (
+            "First find the income during the first 3 years. "
+            "Then compute the second period. Finally, report the total."
+        )
+
+        texts = [step["raw_text"] for step in extract_steps_from_answer(answer)]
+
+        assert texts == [
+            "First find the income during the first 3 years.",
+            "compute the second period.",
+            "report the total.",
+        ]
+
+    def test_numbers_at_sentence_end_are_not_step_markers(self):
+        answer = (
+            "The factors include 1, 57, and 342. "
+            "The largest common factor is 57."
+        )
+
+        texts = [step["raw_text"] for step in extract_steps_from_answer(answer)]
+
+        assert texts == [answer]
+
+    @pytest.mark.parametrize(
+        "answer",
+        [
+            "Multiply the top and bottom by 4: 1/5 * 4/4 = 4/20.",
+            "The price rises by 1.2: $100 * 1.2 = 120$.",
+        ],
+    )
+    def test_numeric_explanations_are_not_step_markers(self, answer):
+        texts = [step["raw_text"] for step in extract_steps_from_answer(answer)]
+
+        assert texts == [answer]
+
+    def test_extra_marker_prefix_does_not_strip_solution(self, monkeypatch):
+        monkeypatch.setenv("TOPO_DAG_EXTRA_STEP_MARKERS", "1")
+
+        texts = [
+            step["raw_text"]
+            for step in extract_steps_from_answer("Solution #1\nSo, x=1")
+        ]
+
+        assert texts == ["Solution #1", "x=1"]
+
+    def test_format_filter_removes_latex_environment_shell(self, monkeypatch):
+        monkeypatch.setenv("TOPO_DAG_FILTER_FORMATTING", "1")
+        answer = "\\begin{align*}\nx &= 1 \\\\\ny &= x+1\n\\end{align*}"
+
+        texts = [step["raw_text"] for step in extract_steps_from_answer(answer)]
+
+        assert texts == [r"x &= 1 \\", "y &= x+1"]
+
+    def test_format_filter_removes_asymptote_block(self, monkeypatch):
+        monkeypatch.setenv("TOPO_DAG_FILTER_FORMATTING", "1")
+        answer = (
+            "Divide the square into triangles. [asy]\n"
+            "draw((0,0)--(1,0)--(0,1)--cycle);\n"
+            "[/asy] Therefore the area is $\\boxed{30}$."
+        )
+
+        texts = [step["raw_text"] for step in extract_steps_from_answer(answer)]
+
+        assert texts == [
+            "Divide the square into triangles.",
+            "Therefore the area is $\\boxed{30}$.",
+        ]
+
+    def test_format_filter_removes_latex_table_block(self, monkeypatch):
+        monkeypatch.setenv("TOPO_DAG_FILTER_FORMATTING", "1")
+        answer = (
+            "Long division gives\n"
+            "\\begin{array}{cc}1 & 2 \\\\ 3 & 4\\end{array}\n"
+            "so the answer is $\\boxed{43_5}$."
+        )
+
+        texts = [step["raw_text"] for step in extract_steps_from_answer(answer)]
+
+        assert texts == ["Long division gives", "so the answer is $\\boxed{43_5}$."]
+
+    def test_format_filter_coalesces_semantic_prefix(self, monkeypatch):
+        monkeypatch.setenv("TOPO_DAG_FILTER_FORMATTING", "1")
+        answer = "We claim that\n\\[x^2 + 1 \\ge 2x.\\]\nTherefore $x=1$."
+
+        texts = [step["raw_text"] for step in extract_steps_from_answer(answer)]
+
+        assert texts == ["We claim that x^2 + 1 \\ge 2x.", "Therefore $x=1$."]
+
+    def test_format_filter_coalesces_math_continuation(self, monkeypatch):
+        monkeypatch.setenv("TOPO_DAG_FILTER_FORMATTING", "1")
+        answer = "x^2 - 1 = (x-1)(x+1)\n&= 0\nThus $x=1$."
+
+        texts = [step["raw_text"] for step in extract_steps_from_answer(answer)]
+
+        assert texts == ["x^2 - 1 = (x-1)(x+1) &= 0", "Thus $x=1$."]
+
+    def test_format_filter_coalesces_brace_continuation(self, monkeypatch):
+        monkeypatch.setenv("TOPO_DAG_FILTER_FORMATTING", "1")
+        answer = "$\\dfrac{5!\n}{1!4!}=5$"
+
+        texts = [step["raw_text"] for step in extract_steps_from_answer(answer)]
+
+        assert texts == ["$\\dfrac{5! }{1!4!}=5$"]
+
+    def test_sentence_fallback_does_not_split_decimals(self, monkeypatch):
+        monkeypatch.setenv("TOPO_DAG_FILTER_FORMATTING", "1")
+        monkeypatch.setenv("TOPO_DAG_SENTENCE_FALLBACK", "1")
+        answer = (
+            "Tickets cost $13.5$ dollars. "
+            "The horizontal length is $\\boxed{21.6}$ inches."
+        )
+
+        texts = [step["raw_text"] for step in extract_steps_from_answer(answer)]
+
+        assert texts == [
+            "Tickets cost $13.5$ dollars.",
+            "The horizontal length is $\\boxed{21.6}$ inches.",
+        ]
+
+    def test_format_filter_coalesces_unclosed_display_math(self, monkeypatch):
+        monkeypatch.setenv("TOPO_DAG_FILTER_FORMATTING", "1")
+        answer = "The count is $\n\\binom{40}{4}.\n$ Therefore it is positive."
+
+        texts = [step["raw_text"] for step in extract_steps_from_answer(answer)]
+
+        assert texts == ["The count is $ \\binom{40}{4}. $ Therefore it is positive."]
+
+    def test_format_filter_removes_branch_only_headings(self, monkeypatch):
+        monkeypatch.setenv("TOPO_DAG_FILTER_FORMATTING", "1")
+
+        texts = [
+            step["raw_text"]
+            for step in extract_steps_from_answer(
+                "Solution #1\nx=1\nOR\nSolution #2\nx=2"
+            )
+        ]
+
+        assert texts == ["x=1", "x=2"]
+
+    def test_sentence_fallback_preserves_valid_single_step(self, monkeypatch):
+        monkeypatch.setenv("TOPO_DAG_SENTENCE_FALLBACK", "1")
+        answer = (
+            "The first figure has perimeter 18, so the difference is "
+            "$18-14=\\boxed{4}$."
+        )
+
+        texts = [step["raw_text"] for step in extract_steps_from_answer(answer)]
+
+        assert texts == [answer]
+
     def test_new_flags_noop_when_unset(self, monkeypatch):
         # Explicitly clear new flags to ensure legacy path remains stable.
         for key in [

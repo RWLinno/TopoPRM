@@ -19,6 +19,7 @@ Two phases so generation (policy) and scoring (PRM+Topo) are decoupled.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -152,6 +153,112 @@ def _agg(scores: list[float], mode: str) -> float:
     return sum(scores) / len(scores)
 
 
+def _normalize_scores(scores: list[float]) -> list[float]:
+    lo, hi = min(scores), max(scores)
+    if hi - lo < 1e-9:
+        return [0.5] * len(scores)
+    return [(score - lo) / (hi - lo) for score in scores]
+
+
+def _argmax_correct(scores: list[float], flags: list[bool]) -> int:
+    best_index = max(range(len(scores)), key=lambda index: scores[index])
+    return int(flags[best_index])
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def cmd_rescore_cached(args: argparse.Namespace) -> None:
+    """Recompute correctness with the canonical verifier without rerunning models."""
+    from collections import defaultdict
+    from src.eval.math_scoring import (
+        extract_last_boxed,
+        verify_answer_equivalence,
+        verify_math_response,
+    )
+
+    pool_path = Path(args.pool)
+    score_path = Path(args.per_candidate)
+    rows = [json.loads(line) for line in pool_path.open() if line.strip()]
+    cached = json.loads(score_path.read_text())
+    if len(rows) != len(cached):
+        raise ValueError(f"pool/cache length mismatch: {len(rows)} != {len(cached)}")
+
+    betas = [float(beta) for beta in args.betas.split(",")]
+    aggregate: defaultdict[str, defaultdict[str, int]] = defaultdict(
+        lambda: defaultdict(int)
+    )
+    candidates_per_item: set[int] = set()
+
+    for row, scores in zip(rows, cached):
+        if row["bench"] != scores["bench"]:
+            raise ValueError("pool/cache benchmark order mismatch")
+        candidates = row["candidates"]
+        flags = [verify_math_response(candidate, row["gold"]) for candidate in candidates]
+        prm_scores = scores["prm_s"]
+        topo_scores = scores["topo_s"]
+        if not (len(candidates) == len(prm_scores) == len(topo_scores)):
+            raise ValueError("candidate/score length mismatch")
+        candidates_per_item.add(len(candidates))
+
+        benchmark = row["bench"]
+        bucket = aggregate[benchmark]
+        bucket["n"] += 1
+        bucket["pass@1"] += int(flags[0])
+        bucket["pass@N"] += int(any(flags))
+        bucket["prm-rm@N"] += _argmax_correct(prm_scores, flags)
+        bucket["topo-rm@N"] += _argmax_correct(topo_scores, flags)
+
+        answers = [extract_last_boxed(candidate) for candidate in candidates]
+        vote = Counter(answer for answer in answers if answer is not None)
+        if vote:
+            bucket["maj@N"] += int(
+                verify_answer_equivalence(vote.most_common(1)[0][0], row["gold"])
+            )
+
+        prm_normalized = _normalize_scores(prm_scores)
+        topo_normalized = _normalize_scores(topo_scores)
+        for beta in betas:
+            hybrid = [
+                prm_normalized[index] * (1.0 + beta * topo_normalized[index])
+                for index in range(len(candidates))
+            ]
+            bucket[f"hybrid@N(beta={beta:g})"] += _argmax_correct(hybrid, flags)
+
+    result: dict[str, Any] = {
+        "protocol": {
+            "correctness": "src.eval.math_scoring.verify_math_response",
+            "pool": str(pool_path.resolve()),
+            "pool_sha256": _sha256(pool_path),
+            "per_candidate_scores": str(score_path.resolve()),
+            "per_candidate_scores_sha256": _sha256(score_path),
+            "candidates_per_item": sorted(candidates_per_item),
+            "generation_max_new_tokens": args.generation_max_new_tokens,
+            "betas": betas,
+        }
+    }
+    metrics = ["pass@1", "maj@N", "prm-rm@N", "topo-rm@N"] + [
+        f"hybrid@N(beta={beta:g})" for beta in betas
+    ] + ["pass@N"]
+    for benchmark, bucket in aggregate.items():
+        n_items = bucket["n"]
+        result[benchmark] = {
+            metric: round(bucket[metric] / n_items, 6) for metric in metrics
+        }
+        result[benchmark]["n"] = n_items
+
+    output_path = Path(args.out)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(result, indent=2) + "\n")
+    print(json.dumps(result, indent=2))
+    print(f"[rescore-cached] -> {output_path}")
+
+
 def cmd_score(args: argparse.Namespace) -> None:
     import torch
     from transformers import AutoModel, AutoTokenizer
@@ -180,17 +287,7 @@ def cmd_score(args: argparse.Namespace) -> None:
         except Exception:
             return 0.0
 
-    import math
     from collections import defaultdict
-
-    def _norm(xs: list[float]) -> list[float]:
-        lo, hi = min(xs), max(xs)
-        if hi - lo < 1e-9:
-            return [0.5] * len(xs)
-        return [(x - lo) / (hi - lo) for x in xs]
-
-    def _argmax_correct(scores, flags):
-        return int(flags[int(max(range(len(scores)), key=lambda i: scores[i]))])
 
     # Per-candidate raw scores are cached so beta sweeps need no model reruns.
     percand = []  # list of dicts: bench, flags, prm_s, topo_s, preds
@@ -219,7 +316,7 @@ def cmd_score(args: argparse.Namespace) -> None:
         agg[bench]["prm-rm@N"] += _argmax_correct(prm_s, flags)
         agg[bench]["topo-rm@N"] += _argmax_correct(topo_s, flags)
         # Hybrid: rerank by normalized PRM * (1 + beta * normalized topo).
-        pn, tn = _norm(prm_s), _norm(topo_s)
+        pn, tn = _normalize_scores(prm_s), _normalize_scores(topo_s)
         for b in betas:
             hyb = [pn[i] * (1.0 + b * tn[i]) for i in range(len(pn))]
             agg[bench][f"hybrid@N(b={b})"] += _argmax_correct(hyb, flags)
@@ -258,6 +355,19 @@ def main() -> None:
                    help="comma-separated beta values for hybrid PRM*(1+beta*topo) reranking")
     s.add_argument("--out", default="rebuttal/outputs/prm_bon_results.json")
     s.set_defaults(func=cmd_score)
+    r = sub.add_parser(
+        "rescore-cached",
+        help="recompute selection accuracy from a saved pool and candidate scores",
+    )
+    r.add_argument("--pool", default="rebuttal/outputs/prm_bon_pool_all.jsonl")
+    r.add_argument(
+        "--per_candidate",
+        default="rebuttal/outputs/prm_bon_percand.json",
+    )
+    r.add_argument("--betas", default="0.25,0.5,1.0,2.0")
+    r.add_argument("--generation_max_new_tokens", type=int, default=2048)
+    r.add_argument("--out", required=True)
+    r.set_defaults(func=cmd_rescore_cached)
     args = ap.parse_args()
     args.func(args)
 

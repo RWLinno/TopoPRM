@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Optional
+from typing import Iterable, Optional
 
 try:
     import matplotlib
@@ -39,6 +39,68 @@ _VIRTUAL_ALIASES = {"dependency", VIRTUAL_EDGE}
 _BARRIER_ALIASES = {"implicit", DOUBLE_BARRIER_EDGE}
 
 
+def analyze_topology_projection(
+    node_ids: Iterable[int],
+    weighted_edges: Iterable[tuple[int, int, float]],
+) -> tuple[dict[str, float], set[tuple[int, int]]]:
+    """Compute the canonical pre-projection direction and cycle diagnostics."""
+    nodes = list(node_ids)
+    edges = [
+        (int(source), int(target), max(0.0, float(weight)))
+        for source, target, weight in weighted_edges
+    ]
+    incident = {node for source, target, _ in edges for node in (source, target)}
+    coverage = len(incident) / len(nodes) if len(nodes) > 1 else 1.0
+    total_weight = sum(weight for _, _, weight in edges)
+    raw_direction = (
+        sum(weight for source, target, weight in edges if source < target)
+        / total_weight
+        if total_weight
+        else 1.0
+    )
+
+    graph = nx.DiGraph()
+    graph.add_nodes_from(nodes)
+    graph.add_weighted_edges_from(edges)
+    component_by_node: dict[int, int] = {}
+    cyclic_components: set[int] = set()
+    for component_id, component_nodes in enumerate(
+        nx.strongly_connected_components(graph)
+    ):
+        component_nodes = set(component_nodes)
+        for node in component_nodes:
+            component_by_node[node] = component_id
+        if len(component_nodes) > 1 or any(
+            graph.has_edge(node, node) for node in component_nodes
+        ):
+            cyclic_components.add(component_id)
+    cyclic_edge_pairs = {
+        (source, target)
+        for source, target, _ in edges
+        if component_by_node.get(source) == component_by_node.get(target)
+        and component_by_node.get(source) in cyclic_components
+    }
+    cyclic_weight = sum(
+        weight
+        for source, target, weight in edges
+        if (source, target) in cyclic_edge_pairs
+    )
+    cycle_mass = cyclic_weight / total_weight if total_weight else 0.0
+    direction_score = coverage * raw_direction + (1.0 - coverage) * 0.5
+    acyclicity_score = coverage * (1.0 - cycle_mass) + (1.0 - coverage) * 0.5
+    return {
+        "dependency_coverage": coverage,
+        "raw_direction": raw_direction,
+        "direction_consistency": raw_direction,
+        "backward_edge_mass": 1.0 - raw_direction,
+        "cycle_edge_mass": cycle_mass,
+        "direction_score": direction_score,
+        "acyclicity_score": acyclicity_score,
+        "projection_cost": 1.0 - raw_direction,
+        "edge_count": float(len(edges)),
+    }, cyclic_edge_pairs
+
+
 class ReasoningDAG:
     def __init__(self, problem_id: str) -> None:
         self.problem_id = problem_id
@@ -59,10 +121,18 @@ class ReasoningDAG:
             )
 
     def add_dependency_edge(
-        self, src_id: int, tgt_id: int, dep_type: str = "logical"
+        self,
+        src_id: int,
+        tgt_id: int,
+        dep_type: str = "logical",
+        weight: float = 1.0,
     ) -> None:
         self.graph.add_edge(
-            src_id, tgt_id, weight=1.0, edge_type=VIRTUAL_EDGE, dep_type=dep_type
+            src_id,
+            tgt_id,
+            weight=max(0.0, float(weight)),
+            edge_type=VIRTUAL_EDGE,
+            dep_type=dep_type,
         )
 
     def add_implicit_barrier_edge(self, src_id: int, tgt_id: int) -> None:
@@ -155,14 +225,44 @@ class ReasoningDAG:
 
     def direction_consistency(self) -> float:
         dep_edges = [
-            (u, v)
+            (u, v, max(0.0, float(d.get("weight", 1.0))))
             for u, v, d in self.graph.edges(data=True)
             if self.is_virtual_edge(d.get("edge_type", ""))
         ]
-        if not dep_edges:
-            return 1.0
-        forward = sum(1 for u, v in dep_edges if u < v)
-        return forward / len(dep_edges)
+        metrics, _ = analyze_topology_projection(self.graph.nodes, dep_edges)
+        return metrics["raw_direction"]
+
+    def cycle_edge_ratio(self) -> float:
+        """Weight fraction of dependency edges participating in directed cycles."""
+        dep_edges: list[tuple[int, int, float]] = []
+        for u, v, data in self.graph.edges(data=True):
+            if not self.is_virtual_edge(data.get("edge_type", "")):
+                continue
+            weight = max(0.0, float(data.get("weight", 1.0)))
+            dep_edges.append((u, v, weight))
+        metrics, _ = analyze_topology_projection(self.graph.nodes, dep_edges)
+        return metrics["cycle_edge_mass"]
+
+    def topology_projection_diagnostics(self) -> dict[str, float]:
+        """Measure the cost of projecting raw support edges onto text-order DAGs."""
+        dep_edges = [
+            (u, v, max(0.0, float(data.get("weight", 1.0))))
+            for u, v, data in self.graph.edges(data=True)
+            if self.is_virtual_edge(data.get("edge_type", ""))
+        ]
+        metrics, _ = analyze_topology_projection(self.graph.nodes, dep_edges)
+        return {
+            key: metrics[key]
+            for key in (
+                "direction_consistency",
+                "dependency_coverage",
+                "direction_score",
+                "backward_edge_mass",
+                "cycle_edge_mass",
+                "acyclicity_score",
+                "projection_cost",
+            )
+        }
 
     # ---- validation ---------------------------------------------------------
 
@@ -211,11 +311,18 @@ class ReasoningDAG:
         return edge_type
 
     def to_dict(self) -> dict:
-        return {
+        payload = {
             "problem_id": self.problem_id,
             "nodes": [n.to_dict() for n in self._nodes.values()],
             "edges": [e.to_dict() for e in self.edges],
         }
+        raw_topology = self.graph.graph.get("raw_topology")
+        if isinstance(raw_topology, dict):
+            payload["raw_topology"] = raw_topology
+        raw_dependency_edges = self.graph.graph.get("raw_dependency_edges")
+        if isinstance(raw_dependency_edges, list):
+            payload["raw_dependency_edges"] = raw_dependency_edges
+        return payload
 
     def to_json(self) -> str:
         return json.dumps(self.to_dict(), ensure_ascii=False, indent=2)
@@ -234,6 +341,10 @@ class ReasoningDAG:
                 edge_type=cls._normalize_edge_type(e.edge_type),
                 dep_type=e.dep_type,
             )
+        if isinstance(data.get("raw_topology"), dict):
+            dag.graph.graph["raw_topology"] = data["raw_topology"]
+        if isinstance(data.get("raw_dependency_edges"), list):
+            dag.graph.graph["raw_dependency_edges"] = data["raw_dependency_edges"]
         return dag
 
     @classmethod

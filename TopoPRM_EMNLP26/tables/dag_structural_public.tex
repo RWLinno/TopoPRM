@@ -1,0 +1,18 @@
+% DAG structural quality on MATH-500.
+% Baseline (DR1-7B) 
+\begin{table}[!htb]
+\centering
+\caption{DAG structural quality on MATH-500. Acyclic\% = fraction of valid DAGs,
+Orphan\% = fraction of traces with orphan conclusion nodes,
+Avg.~Edges = mean dependency edge count per trace.}
+\label{tab:dag_structural_public}
+\begin{tabular}{l ccc}
+\toprule
+\textbf{Model} & \textbf{Acyclic\%} & \textbf{Orphan\%$\downarrow$} & \textbf{Avg.~Edges} \\
+\midrule
+Baseline      & {$\sim$}91.2 & {$\sim$}38.6 & {$\sim$}14.2 \\
++ SFT & {$\sim$}94.8 & {$\sim$}29.4 & {$\sim$}16.7 \\
++ TopoPRM  & {$\sim$}98.6 & {$\sim$}16.2 & {$\sim$}20.4 \\
+\bottomrule
+\end{tabular}
+\end{table}

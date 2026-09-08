@@ -1,184 +1,343 @@
-"""Build Phase 1 SRT (Self-Revision Training) dataset for TVSD.
-
-Pipeline:
-  For each (x, a) in input:
-    1. Sample y_init ~ pi_theta(.|x)   (on-policy)
-    2. Score: r_out, r_topo, r_cont
-    3. Build topology-aware P_r (dispatch over r_out x r_topo)
-    4. Sample y_revised ~ pi_theta(.|x, y_init, P_r)
-    5. Keep iff r_out(y_revised)=1 AND format_ok(y_revised)
-
-Output: data/srt_ready/train.jsonl with records
-  {messages: [...], y_init: str, P_r: str, y_revised: str,
-   r_out: 0/1, r_topo: float, r_cont: float, orphan_step: int|null}
-"""
+"""Build topology-guided teacher revisions for compact-student distillation."""
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
-from dataclasses import asdict, dataclass
+from collections import Counter
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
-# Note: actual model inference is performed by a separate rollout script
-# (scripts/rollout_srt.py). This module builds dispatch + filtering logic.
 
+SYSTEM_PROMPT = (
+    "You are a math reasoning assistant. Reason step by step inside "
+    "<think>...</think>, then write Final answer: \\boxed{...}."
+)
 
 REVISION_PROMPTS = {
-    (1, "good"): "Let me rephrase the above solution more concisely.",
-    (1, "bad"):  "Your answer is correct but step {k} has no dependency to earlier steps. Rewrite with explicit references.",
-    (0, "good"): "Your reasoning looks well-structured but the final verdict is wrong. Let me reconsider.",
-    (0, "bad"):  "Wait, this response is not correct, let me start over.",
+    "cycle": (
+        "The support graph contains circular justification among steps {nodes}. "
+        "Rewrite the solution so every premise is established before it is used. "
+        "Keep the reasoning concise and end with a boxed answer."
+    ),
+    "backward": (
+        "Step {source} depends on later step {target}. Rewrite the solution in a valid "
+        "premise-to-conclusion order, preserving the necessary support and a boxed answer."
+    ),
+    "orphan": (
+        "Step {step} concludes without recoverable support. Rewrite the solution so that "
+        "the conclusion explicitly follows from earlier steps, and end with a boxed answer."
+    ),
+    "continuity": (
+        "Step {step} introduces an unsupported transition. Rewrite the solution with the "
+        "missing dependency made explicit, keeping it concise and ending with a boxed answer."
+    ),
+    "compact": (
+        "Rewrite the solution more concisely without deleting any premise needed for the "
+        "conclusion. Keep a valid <think> block and end with a boxed answer."
+    ),
+    "answer": (
+        "The final answer is incorrect. Re-solve the problem with a supported, acyclic "
+        "derivation in premise-to-conclusion order and end with a boxed answer."
+    ),
 }
+GENERIC_REVISION_PROMPT = (
+    "Review and rewrite the preceding solution so it is correct, clear, and concise. "
+    "Preserve the reasoning needed for the conclusion and end with a boxed answer."
+)
+LENGTH_REVISION_PROMPT = (
+    "Rewrite the preceding solution correctly in at most {token_budget} tokens. "
+    "Keep only reasoning needed for the conclusion and end with a boxed answer."
+)
 
 
 @dataclass
-class SRTRecord:
+class DistillationRecord:
     problem: str
     solution: str
     y_init: str
     P_r: str
-    y_revised: Optional[str] = None
-    r_out_init: int = 0
-    r_topo_init: float = 0.0
-    r_cont_init: float = 0.0
-    r_out_revised: int = 0
-    format_ok_revised: bool = False
-    orphan_step: Optional[int] = None
-    structure_bucket: str = "bad"  # "good" if r_topo >= threshold else "bad"
+    y_revised: str
+    defect_type: str
+    r_out_init: int
+    r_out_revised: int
+    q_topo_init: float
+    q_topo_revised: float
+    q_dir_init: float
+    q_dir_revised: float
+    q_acyc_init: float
+    q_acyc_revised: float
+    q_cont_init: float
+    q_cont_revised: float
+    revised_tokens: int
+    format_ok_revised: bool
     keep: bool = False
+    rejection_reason: str = ""
+    record_id: str = ""
+
+
+SRTRecord = DistillationRecord
+
+
+def _first(value: Any) -> Any:
+    if isinstance(value, list) and value:
+        return value[0]
+    return value
+
+
+def derive_record_seed(seed: int, record_id: str, stream: str) -> int:
+    digest = hashlib.sha256(f"{seed}:{record_id}:{stream}".encode("utf-8")).digest()
+    return int.from_bytes(digest[:8], "big") % (2**31)
 
 
 def build_prompt_dispatch(
     r_out: int,
-    r_topo: float,
+    r_topo: float = 0.0,
     topo_threshold: float = 0.5,
     orphan_step: Optional[int] = None,
+    *,
+    defect: Optional[dict[str, Any]] = None,
 ) -> tuple[str, str]:
-    """Return (bucket, P_r) per Eq.~topo_pr.
+    """Return a localized defect type and teacher revision instruction.
 
-    bucket in {"good", "bad"} indicates whether r_topo >= threshold.
+    The positional arguments remain compatible with the released dispatcher.
+    Canonical distillation passes the full raw/projected-graph defect record.
     """
-    bucket = "good" if r_topo >= topo_threshold else "bad"
-    template = REVISION_PROMPTS[(int(r_out), bucket)]
-    k = orphan_step if orphan_step is not None else 1
-    P_r = template.format(k=k)
-    return bucket, P_r
+    defect = defect or {}
+    cycles = defect.get("cycle_components") or []
+    backward = defect.get("backward_edges") or []
+    orphan = defect.get("orphan_steps") or []
+    continuity = defect.get("continuity_breaks") or []
+
+    if cycles:
+        nodes = ", ".join(str(x) for x in _first(cycles))
+        kind = "cycle"
+        prompt = REVISION_PROMPTS[kind].format(nodes=nodes)
+    elif backward:
+        edge = _first(backward)
+        source = edge.get("source") if isinstance(edge, dict) else edge[0]
+        target = edge.get("target") if isinstance(edge, dict) else edge[1]
+        kind = "backward"
+        prompt = REVISION_PROMPTS[kind].format(source=source, target=target)
+    elif orphan or orphan_step is not None:
+        step = _first(orphan) if orphan else orphan_step
+        kind = "orphan"
+        prompt = REVISION_PROMPTS[kind].format(step=step)
+    elif continuity:
+        kind = "continuity"
+        prompt = REVISION_PROMPTS[kind].format(step=_first(continuity))
+    elif int(r_out) == 0:
+        kind = "answer"
+        prompt = REVISION_PROMPTS[kind]
+    else:
+        kind = "compact"
+        prompt = REVISION_PROMPTS[kind]
+
+    if int(r_out) == 0 and kind not in {"answer"}:
+        prompt = "The final answer is also incorrect. " + prompt
+    return kind, prompt
+
+
+def build_revision_instruction(
+    strategy: str,
+    *,
+    score: dict[str, Any],
+    token_budget: int,
+) -> tuple[str, str]:
+    if strategy == "topology":
+        return build_prompt_dispatch(
+            score["r_out"], score["r_topo"], defect=score["defect"]
+        )
+    if strategy == "generic":
+        return "generic", GENERIC_REVISION_PROMPT
+    if strategy == "length":
+        return "length", LENGTH_REVISION_PROMPT.format(token_budget=token_budget)
+    if strategy == "static":
+        return "static", ""
+    raise ValueError(f"Unknown revision strategy: {strategy}")
+
+
+def _has_closed_boxed(text: str) -> bool:
+    for match in re.finditer(r"\\boxed\{", text):
+        depth = 1
+        for char in text[match.end():]:
+            if char == "{":
+                depth += 1
+            elif char == "}":
+                depth -= 1
+                if depth == 0:
+                    return True
+    return False
 
 
 def format_ok(text: str) -> bool:
-    """Check if completion has a closed <answer>...</answer> tag."""
-    return bool(re.search(r"<answer>.*?</answer>", text, re.DOTALL))
+    lowered = text.lower()
+    return "<think>" in lowered and "</think>" in lowered and _has_closed_boxed(text)
 
 
-def filter_records(records: list[SRTRecord]) -> list[SRTRecord]:
+def revision_rejection_reason(
+    record: DistillationRecord,
+    *,
+    topo_threshold: float,
+    token_budget: int,
+    selection: str = "topology",
+    tolerance: float = 1e-8,
+) -> str:
+    if selection not in {"topology", "basic"}:
+        raise ValueError(f"Unknown selection contract: {selection}")
+    if record.r_out_revised != 1:
+        return "incorrect_answer"
+    if not record.format_ok_revised:
+        return "invalid_format"
+    if selection == "topology":
+        if record.q_topo_revised + tolerance < topo_threshold:
+            return "topology_below_threshold"
+        if record.q_dir_revised + tolerance < record.q_dir_init:
+            return "direction_degraded"
+        if record.q_acyc_revised + tolerance < record.q_acyc_init:
+            return "acyclicity_degraded"
+    if record.revised_tokens <= 0 or record.revised_tokens > token_budget:
+        return "over_budget"
+    return ""
+
+
+def filter_records(
+    records: list[DistillationRecord],
+    *,
+    topo_threshold: float = 0.5,
+    token_budget: int = 1024,
+    selection: str = "topology",
+) -> list[DistillationRecord]:
     kept = []
-    for r in records:
-        if r.r_out_revised == 1 and r.format_ok_revised:
-            r.keep = True
-            kept.append(r)
+    for record in records:
+        record.rejection_reason = revision_rejection_reason(
+            record,
+            topo_threshold=topo_threshold,
+            token_budget=token_budget,
+            selection=selection,
+        )
+        record.keep = not record.rejection_reason
+        if record.keep:
+            kept.append(record)
     return kept
 
 
-def to_training_example(r: SRTRecord) -> dict[str, Any]:
-    """Convert kept record to an SFT-compatible training example.
-
-    The resulting example trains two losses jointly:
-      L_revision:  context = (x, y_init, P_r), target = y_revised
-      L_generation: context = (x),             target = [y_init, P_r, y_revised]
-
-    For simplicity we store both variants as separate training examples,
-    with a `loss_type` tag that MS-Swift can use to multiply them by the
-    corresponding loss coefficient.
-    """
-    problem = r.problem
-    # Example A: revision task
-    ex_revision = {
+def to_training_example(record: DistillationRecord) -> dict[str, Any]:
+    return {
         "messages": [
-            {"role": "user", "content": problem},
-            {"role": "assistant", "content": r.y_init},
-            {"role": "user", "content": r.P_r},
-            {"role": "assistant", "content": r.y_revised or ""},
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": record.problem},
+            {"role": "assistant", "content": record.y_revised},
         ],
-        "loss_type": "revision",
+        "record_id": record.record_id,
         "metadata": {
-            "r_out_init": r.r_out_init,
-            "r_topo_init": r.r_topo_init,
-            "r_cont_init": r.r_cont_init,
-            "bucket": r.structure_bucket,
-            "orphan_step": r.orphan_step,
+            "defect_type": record.defect_type,
+            "q_topo_init": record.q_topo_init,
+            "q_topo_revised": record.q_topo_revised,
+            "q_dir_init": record.q_dir_init,
+            "q_dir_revised": record.q_dir_revised,
+            "q_acyc_init": record.q_acyc_init,
+            "q_acyc_revised": record.q_acyc_revised,
+            "revised_tokens": record.revised_tokens,
         },
     }
-    # Example B: generation task (trains on y_init + P_r + y_revised as full continuation)
-    ex_generation = {
-        "messages": [
-            {"role": "user", "content": problem},
-            {
-                "role": "assistant",
-                "content": (r.y_init or "")
-                + "\n\n" + r.P_r + "\n\n"
-                + (r.y_revised or ""),
-            },
-        ],
-        "loss_type": "generation",
-        "metadata": ex_revision["metadata"],
-    }
-    return {"revision": ex_revision, "generation": ex_generation}
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--raw_rollouts", type=Path, required=True,
-                    help="JSONL with rows: {problem, solution, y_init, y_revised, r_out_init, r_topo_init, r_cont_init, r_out_revised, orphan_step}")
-    ap.add_argument("--output", type=Path, default=Path("data/srt_ready/train.jsonl"))
-    ap.add_argument("--topo_threshold", type=float, default=0.5)
-    ap.add_argument("--max_samples", type=int, default=0)
-    args = ap.parse_args()
+def _record_from_dict(row: dict[str, Any]) -> DistillationRecord:
+    revised = str(row.get("y_revised", "") or "")
+    return DistillationRecord(
+        problem=str(row.get("problem", "")),
+        solution=str(row.get("solution", "")),
+        y_init=str(row.get("y_init", "")),
+        P_r=str(row.get("P_r", "")),
+        y_revised=revised,
+        defect_type=str(row.get("defect_type", row.get("bucket", "unknown"))),
+        r_out_init=int(row.get("r_out_init", 0)),
+        r_out_revised=int(row.get("r_out_revised", 0)),
+        q_topo_init=float(row.get("q_topo_init", row.get("r_topo_init", 0.0))),
+        q_topo_revised=float(row.get("q_topo_revised", row.get("r_topo_revised", 0.0))),
+        q_dir_init=float(row.get("q_dir_init", 0.0)),
+        q_dir_revised=float(row.get("q_dir_revised", 0.0)),
+        q_acyc_init=float(row.get("q_acyc_init", 0.0)),
+        q_acyc_revised=float(row.get("q_acyc_revised", 0.0)),
+        q_cont_init=float(row.get("q_cont_init", row.get("r_cont_init", 0.0))),
+        q_cont_revised=float(row.get("q_cont_revised", row.get("r_cont_revised", 0.0))),
+        revised_tokens=int(row.get("revised_tokens", 0)),
+        format_ok_revised=bool(row.get("format_ok_revised", format_ok(revised))),
+        record_id=str(row.get("record_id", "")),
+    )
 
-    records = []
-    with args.raw_rollouts.open() as f:
-        for line in f:
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--raw_rollouts", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--validation_output", type=Path)
+    parser.add_argument("--validation_fraction", type=float, default=0.05)
+    parser.add_argument("--topo_threshold", type=float, default=0.5)
+    parser.add_argument("--token_budget", type=int, default=1024)
+    parser.add_argument("--selection", choices=["topology", "basic"], default="topology")
+    parser.add_argument("--max_samples", type=int, default=0)
+    args = parser.parse_args()
+
+    records: list[DistillationRecord] = []
+    with args.raw_rollouts.open() as handle:
+        for line in handle:
             line = line.strip()
-            if not line:
-                continue
-            d = json.loads(line)
-            bucket, P_r = build_prompt_dispatch(
-                int(d.get("r_out_init", 0)),
-                float(d.get("r_topo_init", 0.0)),
-                args.topo_threshold,
-                d.get("orphan_step"),
-            )
-            rec = SRTRecord(
-                problem=d["problem"],
-                solution=d.get("solution", ""),
-                y_init=d["y_init"],
-                P_r=P_r,
-                y_revised=d.get("y_revised"),
-                r_out_init=int(d.get("r_out_init", 0)),
-                r_topo_init=float(d.get("r_topo_init", 0.0)),
-                r_cont_init=float(d.get("r_cont_init", 0.0)),
-                r_out_revised=int(d.get("r_out_revised", 0)),
-                format_ok_revised=format_ok(d.get("y_revised", "") or ""),
-                orphan_step=d.get("orphan_step"),
-                structure_bucket=bucket,
-            )
-            records.append(rec)
+            if line:
+                records.append(_record_from_dict(json.loads(line)))
 
-    kept = filter_records(records)
-    print(f"Input rollouts: {len(records)}, kept: {len(kept)} (after format+correctness filter)")
-
+    kept = filter_records(
+        records,
+        topo_threshold=args.topo_threshold,
+        token_budget=args.token_budget,
+        selection=args.selection,
+    )
+    eligible = len(kept)
     if args.max_samples > 0:
-        kept = kept[: args.max_samples]
+        kept.sort(
+            key=lambda record: hashlib.sha256(
+                (record.record_id or record.problem).encode("utf-8")
+            ).hexdigest()
+        )
+        kept = kept[:args.max_samples]
+
+    validation: list[DistillationRecord] = []
+    train: list[DistillationRecord] = kept
+    if args.validation_output:
+        fraction = max(0.0, min(0.5, args.validation_fraction))
+        train = []
+        for record in kept:
+            source_id = record.record_id.split(":sample-")[0] or record.problem
+            bucket = int(hashlib.sha256(source_id.encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
+            (validation if bucket < fraction else train).append(record)
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    with args.output.open("w") as f:
-        for r in kept:
-            exs = to_training_example(r)
-            f.write(json.dumps(exs["revision"], ensure_ascii=False) + "\n")
-            f.write(json.dumps(exs["generation"], ensure_ascii=False) + "\n")
+    with args.output.open("w") as handle:
+        for record in train:
+            handle.write(json.dumps(to_training_example(record), ensure_ascii=False) + "\n")
+    if args.validation_output:
+        args.validation_output.parent.mkdir(parents=True, exist_ok=True)
+        with args.validation_output.open("w") as handle:
+            for record in validation:
+                handle.write(json.dumps(to_training_example(record), ensure_ascii=False) + "\n")
 
-    print(f"Wrote {2 * len(kept)} training examples to {args.output}")
+    rejected = Counter(r.rejection_reason for r in records if not r.keep)
+    defects = Counter(r.defect_type for r in kept)
+    print(json.dumps({
+        "input": len(records),
+        "eligible": eligible,
+        "kept": len(kept),
+        "train": len(train),
+        "validation": len(validation),
+        "acceptance_rate": eligible / max(len(records), 1),
+        "selection": args.selection,
+        "rejections": dict(sorted(rejected.items())),
+        "accepted_defects": dict(sorted(defects.items())),
+        "output": str(args.output),
+    }, indent=2))
 
 
 if __name__ == "__main__":

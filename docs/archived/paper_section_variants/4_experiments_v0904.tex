@@ -1,0 +1,92 @@
+\section{Experiments}
+\label{sec:experiments}
+
+Four questions organize the evaluation. RQ1 asks whether the gains recur across model families and whether the complete reward moves the accuracy--length frontier. RQ2 measures sensitivity to removing topology or continuity. RQ3 tests whether the extracted support edges form a stable, auditable diagnostic signal. RQ4 examines whether topology contributes ranking information beyond a semantic PRM. Appendix~\ref{app:stress_tests} adds repeated-decoding, structure--correctness, cross-backbone, and shared-pool stress tests. 
+% 本次评估围绕四个问题展开。研究问题1旨在探究性能增益是否在不同模型系列中均存在，以及完整的奖励函数是否会改变准确率-长度的权衡边界。研究问题2用于衡量模型在移除拓扑结构或连续性约束时的敏感度。研究问题3验证提取出的支撑边能否形成稳定、可审计的诊断信号。研究问题4则考察拓扑结构是否能为语义PRM之外的排序信息提供额外贡献。附录~\ref{app:stress_tests} 补充了重复解码、结构正确性、跨骨干网络及共享池等压力测试内容。
+
+\input{tabs/main_results}
+
+\begin{figure*}[!t]
+\centering
+\input{figs/pareto_frontier}
+\caption{Accuracy--length trade-off among the Qwen3.5-9B checkpoints in Table~\ref{tab:main_ablation}. Full ($\star$) is the only checkpoint on the observed Pareto frontier of all four benchmarks. Axes are cropped per panel; length is in thousands of visible tokens.}
+\label{fig:pareto_frontier}
+\end{figure*}
+\FloatBarrier
+
+\subsection{Evaluation Setup}
+\label{sec:setup}
+
+\paragraph{Training, baselines, and controls.}
+All controlled variants start from the same Qwen3.5-9B Stage-I checkpoint~\citep{qwen35team2026} and share a frozen DAG Scorer. Stage~II applies GRPO~\citep{shao2024deepseekmath} through rank-64 LoRA~\citep{hu2022lora} with two completions per prompt and a learning rate of $5\times10^{-6}$; Full and \emph{w/o ACE} then undergo topology-guided distillation from a fixed same-parameter teacher. \emph{Base} is Stage~I, while the other controls stop after Stage~II. Structural rewards use only the rollout graph $\mathcal{G}_y$, since reference and generated steps are not aligned. Table~\ref{tab:main_results} compares complete Qwen3.5, Qwen2.5-Math, Llama~3.1, and DeepSeek-R1-Distill checkpoints~\citep{qwen35team2026_2b,qwen35team2026_4b,yang2024qwen2,grattafiori2024llama,deepseekr1} with within-lineage SFT, GRPO, SimpleRL-Zoo~\citep{zeng2025simplerlzoo}, and Open-Reasoner-Zero~\citep{hu2026open}. Because external training data and compute are unmatched, it compares displayed end-to-end systems; Table~\ref{tab:main_ablation} provides the shared-initialization study. There, \emph{Outcome Only} uses final-answer GRPO and the component controls remove the named mechanism. Removed reward mass is reassigned, and \emph{w/o Continuity} uses a shorter completion cap, so these rows measure pipeline sensitivity rather than isolated effects. Appendix~\ref{app:details} gives the complete configurations.
+% \needcheck{Before using global SOTA language, audit every external row for task version, decoding, verifier, provenance, and training budget.}
+
+\paragraph{Benchmarks and metrics.}
+Table~\ref{tab:main_results} reports pass@5 under a common five-sample protocol on nine benchmarks spanning elementary mathematics, olympiad problems, competition mathematics, and general reasoning: GSM8K~\citep{cobbe2021gsm8k}, MATH~\citep{hendrycks2021math}, OlympiadBench~\citep{he2024olympiadbench}, Omni-MATH~\citep{gao2024omnimath}, AIME~2024/2025, CNMO~2024, MMLU~\citep{hendrycks2020mmlu}, and GPQA-Diamond~\citep{rein2023gpqa}. Avg. is the nine-task macro-average. The controlled study instead reports pass@1 and mean visible tokens on GSM8K, MATH-500~\citep{lightman2023lets}, a 134-item English text-only OlympiadBench subset, and AIME~2024. Acc/kTok is the descriptive ratio $\mathrm{pass@1}/(\overline{\mathrm{tokens}}/1000)$ and is not optimized directly. Figure~\ref{fig:optimization_diagnostics} retains a third, separately aggregated optimization-log suite. Appendix~\ref{app:details} specifies each protocol; results are not pooled across suites.
+
+\FloatBarrier
+\input{tabs/main_ablation}
+
+\subsection{Main Results: Accuracy and Efficiency (RQ1)}
+\label{sec:rq1}
+
+\noindent\textbf{Observation 1: Full sets the strongest displayed aggregate in every post-training lineage.}
+\method obtains macro-averages of 55.3, 58.3, and 60.9 on Qwen2.5-7B, DeepSeek-R1-Distill-Qwen-7B, and Qwen3.5-9B, respectively (Table~\ref{tab:main_results}). These exceed the strongest alternative in each block by 8.9, 2.4, and 5.4 points. Full is best or tied-best on five of nine tasks in every lineage, and the winning tasks vary across backbones, arguing against a single-benchmark explanation. The 60.9 average is the highest displayed result, 10.2 points above the strongest complete-checkpoint reference. The profile is not uniformly dominant: Qwen3.5 GRPO remains stronger on the displayed competition sets, whereas Full gains most on MATH, Omni-MATH, MMLU, and GPQA-D. The evidence therefore supports broad aggregate improvement rather than a universal per-task ordering.
+Scale alone does not explain the ordering: Qwen2.5-7B Full (55.3) exceeds every complete open checkpoint, including DeepSeek-R1-Distill-Llama-8B (50.7). Within the recorded nine-task protocol, Full is therefore the strongest listed end-to-end result; component attribution is reserved for the shared-initialization study because external training budgets are unmatched.
+
+\smallskip
+\noindent\textbf{Observation 2: Full jointly improves accuracy and response length.}
+Relative to outcome-only GRPO, Full changes pass@1 by $+0.8$, $+0.2$, $+1.5$, and $+13.3$ points on GSM8K, MATH-500, OlympiadBench, and AIME~2024, while shortening responses by 251, 57, 275, and 115 tokens (Figure~\ref{fig:pareto_frontier}; Table~\ref{tab:main_ablation}). The easier tasks mainly expose compression, while AIME supplies the largest accuracy separation. Acc/kTok rises on every task, from 89.1 to 118.2 on GSM8K and from 6.6 to 12.3 on AIME. Full is consequently the only checkpoint on all four observed frontiers. As each variant is trained once, this is a checkpoint comparison rather than an estimate of training-seed uncertainty.
+At the aggregate level, this corresponds to $+4.0$ macro pass@1 and 175 fewer mean tokens ($-9.8\%$), so the gain is not obtained by exchanging one co-primary metric for the other.
+
+%The two evaluations answer different robustness questions.
+Table~\ref{tab:main_results} tests breadth over nine tasks and three post-training lineages; the controlled suite fixes the initialization and exposes response cost. Their agreement is informative because neither metric alone is sufficient: macro-average gains can hide verbosity, while token reduction can be obtained by truncating difficult solutions. Full instead improves or preserves pass@1 while moving leftward on every displayed frontier, including the hardest AIME subset.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=\textwidth]{figs/fig_training_efficiency.pdf}
+\caption{Archived Qwen3.5-9B training and efficiency diagnostics. Trajectories show reward, response length, and Acc/kTok; bars and diamonds summarize endpoint length and efficiency. Reward scales are objective-specific, and this suite is not pooled with Table~\ref{tab:main_ablation}.}
+\label{fig:optimization_diagnostics}
+\end{figure*}
+\FloatBarrier
+
+\subsection{Ablation Study (RQ2)}
+\label{sec:rq2}
+
+\noindent\textbf{Observation 3: ACE improves the TGD-matched checkpoint; the remaining controls expose pipeline sensitivity.}
+Full versus \emph{w/o ACE} is the only distillation-matched contrast. Removing ACE lowers four-task average pass@1 from 52.0 to 49.4 and raises mean length from 1{,}612 to 1{,}893 tokens (Table~\ref{tab:main_ablation}). Accuracy is nearly unchanged on the three larger sets, where Full is 61--723 tokens shorter, but falls by 10.0 points on AIME. Removing topology instead costs 3.0/10.0 points and adds 700/129 tokens on OlympiadBench/AIME; removing continuity costs 23.3--43.1 points and returns three tasks to Base-like or capped lengths. This asymmetry is consistent with continuity establishing a locally traceable substrate and topology refining non-local support. Because both removals stop before TGD, and continuity also changes the cap, they support the integrated pipeline rather than isolated component or TGD effects.
+
+\subsection{Auditing Recoverable Support (RQ3)}
+\label{sec:rq3}
+
+\input{tabs/edge_audit_main}
+
+\paragraph{Audit protocol.}
+Traces are stratified by task and response length. Both model annotators receive the same parsed step pairs but not the extractor decision or edge type, preventing the rule path from cueing their labels. Manual verification covers the complete pair set after independent annotation. We retain model--model agreement and extractor scores against each model reference, rather than collapsing them into an unspecified human gold standard, so that annotator stability and extractor fidelity remain separately visible.
+
+\Needspace{9\baselineskip}
+\noindent\textbf{Observation 4: Support labels are stable enough for diagnosis, but not proof verification.}
+Qwen3-32B and Qwen2.5-32B independently label 1{,}770 candidate pairs from 119 traces and agree on 89.8\%, with Cohen's $\kappa=0.734$ (Table~\ref{tab:edge_audit_main}); every pair was also checked manually. Extractor F1 is 0.528/0.510 against the two references and 0.508/0.528 against their consensus/union. The narrow range shows that the diagnostic is not tied to one annotator, while the moderate absolute F1 precludes a proof-level interpretation. A typed ledger localizes 145 false positives to variable-reference edges, versus 34 expression-reference, 11 expression-overlap, 9 implicit-block, and 82 order-fallback edges. Guarding variable and fallback rules raises precision from 0.480 to 0.580 on the same audit; because that revision was designed on these labels, it remains post-hoc error localization (Appendix~\ref{app:edge_cases}).
+The important output is therefore not a scalar F1 alone: typed provenance converts disagreement into a concrete extractor revision while preserving the boundary between diagnosis and verification.
+
+\subsection{Boundary Analysis with a Semantic PRM (RQ4)}
+\label{sec:rq4}
+
+\input{tabs/prm_complementarity}
+
+\noindent\textbf{Observation 5: Topology does not replace semantic scoring.}
+On shared Best-of-8 pools, multiplying Qwen2.5-Math-PRM-7B~\citep{zhang2025qwen25mathprm} by $1+q_{\mathrm{topo}}$ ties the PRM on both GSM8K (95.00\%) and MATH-500 (83.75\%; Table~\ref{tab:prm_complementarity}). Topology-only selection trails the PRM on both tasks, while the pool oracle remains 1.25 and 8.75 points higher. Thus the present fixed fusion provides no aggregate gain and no evidence that surface topology substitutes for semantic verification; it instead marks a boundary on the training-time claim. Larger prespecified pools and item-level selector disagreements are needed to test complementarity.
+
+\subsection{Robustness and Failure Modes}
+\label{sec:robustness}
+
+\noindent\textbf{Observation 6: Cross-backbone accuracy is mixed, and decoding removes the greedy ordering.}
+On a matched DR1-Qwen-7B decoding study, greedy evaluation orders Full above outcome-only and outcome-plus-length in pass@1, but five stochastic draws produce $68.0\!\pm\!1.8$, $67.9\!\pm\!2.7$, and $67.8\!\pm\!1.9$, respectively. The overlap shows that a single decoding order is not a training-replication result. On Llama-3.1-8B-Instruct, Full reduces mean length from 1{,}008 to 619 tokens on GSM8K while preserving pass@1, and from 3{,}823 to 3{,}427 on MATH-500 while pass@1 changes from 46.5 to 42.5. This check supports compression on the two Llama subsets but not backbone-independent accuracy preservation (Appendix~\ref{app:stress_tests}).
+
+\noindent\textbf{Observation 7: Topology score is associated with correctness but is not uniquely discriminative.}
+Full has the highest mean topology score (0.939), and its high-score stratum is 17.15 accuracy points above its low-score stratum. Outcome-only training nevertheless exhibits a comparable 15.04-point gap. The score consequently tracks a property associated with correct traces, but this stratification alone does not show that topology training creates a better semantic discriminator. Together with the PRM tie and the edge-audit F1, this result motivates the intended division of labor: outcome verification anchors correctness, ACE controls gradient sign, and graph diagnostics provide auditable structural preference.
+
+\subsection{Evidence Synthesis and Scope}
+\label{sec:evidence_scope}
+
+Together, the experiments support a three-level claim. First, Full yields the strongest displayed cross-lineage averages and the only checkpoint on every observed Qwen3.5-9B accuracy--length frontier. Second, the TGD-matched control isolates ACE, while source removals establish end-to-end sensitivity and fixed-trace interventions validate the graph diagnostics. Third, the blind audit makes surface support inspectable but the PRM tie rules out semantic verification. The evidence does not establish an independent TGD effect, formal proof recovery, training-seed invariance, or a universal backbone effect; Appendix~\ref{app:additional_discussion} develops these boundaries.

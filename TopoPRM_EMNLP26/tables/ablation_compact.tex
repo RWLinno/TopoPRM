@@ -1,0 +1,35 @@
+% =============================================================================
+% Compact ablation: reward component degradation on Qwen3.5-9B (8 benchmarks).
+% =============================================================================
+\begin{table}[!t]
+\centering
+\caption{Reward component ablation on Qwen3.5-9B. Avg is the unweighted
+mean pass@1 across 8 benchmarks. $\Delta$ is the drop relative to the full
+model. Acc/kTok = Avg / (mean tokens / 1000). Collapse\% is the fraction of
+GRPO rollout groups with near-zero reward std (from training logs).}
+\label{tab:ablation_compact}
+\vspace{2pt}
+\setlength{\tabcolsep}{3.5pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}l ccccc@{}}
+\toprule
+\textbf{Reward Config.}
+  & \textbf{Avg (\%)} & $\boldsymbol{\Delta}$
+  & \textbf{Tok} & \textbf{Acc/kTok}$\uparrow$
+  & \textbf{Collapse\%}$\downarrow$ \\
+\midrule
+\rowcolor{blue!6}
+TopoPRM (Full)
+  & 45.6 & ---     & 1692 & 26.9 & 37.9 \\
+\quad w/o ACE
+  & 41.7 & $-$3.8  & 1958 & 21.3 & 42.1 \\
+\quad w/o Topology
+  & 41.8 & $-$3.8  & 1943 & 21.5 & 44.6 \\
+\quad w/o Continuity
+  & 16.3 & $-$29.3 & 2047 & \phantom{0}8.0 & 68.8 \\
+Outcome Only
+  & 40.8 & $-$4.7  & 1823 & 22.4 & 57.8 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}

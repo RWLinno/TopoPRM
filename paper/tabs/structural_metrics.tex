@@ -1,0 +1,31 @@
+% Table 3: Structural quality of generated reasoning DAGs.
+\begin{table}[H]
+\centering
+\caption{Structural quality of extracted reasoning DAGs on the in-domain middle-school evaluation set.
+  Acyclic\% is the fraction of valid DAGs;
+  No-Orphan\% is the fraction of traces without unsupported conclusion nodes;
+  Dir-Cons.\ is mean directional consistency;
+  DAG Depth is mean dependency depth;
+  Edge-Keep\% is the fraction of dependency edges retained after compression.}
+\label{tab:structural_metrics}
+\vspace{2pt}
+\small
+\setlength{\tabcolsep}{5.4pt}
+\begin{tabular}{@{}l ccccc@{}}
+\toprule
+\textbf{Model}
+  & \textbf{Acyclic\%}$\uparrow$
+  & \textbf{No-Orphan\%}$\uparrow$
+  & \textbf{Dir-Cons.}$\uparrow$
+  & \textbf{DAG Depth}
+  & \textbf{Edge-Keep\%}$\uparrow$ \\
+\midrule
+Qwen3-32B + SFT              & 100 & 61 & 0.49 & 1.05 & 43 \\
+\quad + GRPO (outcome only)   & 100 & 82 & 0.89 & 1.12 & 56 \\
+\quad + GRPO (w/o topology)   & 100 & 84 & 0.91 & 1.14 & 58 \\
+\quad + GRPO (w/o continuity) & 100 & 83 & 0.91 & 1.13 & 57 \\
+\rowcolor{blue!6}
+\quad + GRPO (TopoPRM full)   & 100 & 89 & 1.00 & 1.17 & 60 \\
+\bottomrule
+\end{tabular}
+\end{table}

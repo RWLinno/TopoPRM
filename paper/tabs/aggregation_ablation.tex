@@ -1,0 +1,24 @@
+\begin{table*}[!t]
+\centering
+\caption{Frozen four-candidate aggregation diagnostic. Rows rank identical Stage-I samples; benchmark cells are selection, not trained-policy, accuracy. AUC measures correct--incorrect pair ranking and StructWrong counts wrong selections with $q_{\mathrm{dir}},q_{\mathrm{acyc}}\geq.8$. \tbd{Cells await the canonical pool; intervals are item bootstrap, not training variance.}}
+\label{tab:aggregation_ablation}
+\scriptsize
+\setlength{\tabcolsep}{2.7pt}
+\setlength{\belowcaptionskip}{2pt}
+\renewcommand{\arraystretch}{0.94}
+\newcommand{\pendingten}{\tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X ccccc ccccc@{}}
+\toprule
+\textbf{Aggregator} & \textbf{GSM8K} & \textbf{MATH} & \textbf{Olymp.} & \textbf{AIME} & \textbf{Macro} & \textbf{AUC}$\uparrow$ & \textbf{StructWrong}$\downarrow$ & \textbf{Tok.}$\downarrow$ & $q_{\mathrm{dir}}\uparrow$ & $q_{\mathrm{acyc}}\uparrow$ \\
+\midrule
+Outcome only & \pendingten \\
+Equal-weight additive & \pendingten \\
+Shapley-matched additive & \pendingten \\
+Shapley-matched multiplicative & \pendingten \\
+Choquet w/o dir.--acyc. term & \pendingten \\
+\rowcolor{blue!6}
+Topology-conditional Choquet & \pendingten \\
+\bottomrule
+\end{tabularx}
+\let\pendingten\relax
+\end{table*}

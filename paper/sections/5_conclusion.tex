@@ -1,0 +1,11 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+\label{sec:limitations_future}
+% We presented \method that converts the backward and cyclic support that DAG projection discards into two separately identifiable supervision signals, and reuses both for reward aggregation and distillation without asking the policy to decode a graph format. Matched counterfactuals show the signals respond to different interventions, and that averaging them first suppresses most of their cross-trace variation. 
+% % 我们提出 \method：把 DAG 投影所丢弃的后向支持与环状支持转化为两个可分别识别的监督信号，并将二者复用于奖励聚合与蒸馏，同时不要求策略输出图格式。匹配反事实实验表明两个信号对不同干预各自响应，且先做平均会抹掉它们大部分的跨轨迹变异。
+
+We presented \method, which infers evidence-backed dependencies from free-form reasoning and uses their topology to guide reinforcement learning and targeted distillation, addressing the structural blindness of outcome-only supervision. Because this supervision is confined to post-training and preserves ordinary text generation at inference, the framework can scale across model families and reasoning tasks without modifying the deployed architecture. In future work, we will improve the fidelity and semantic grounding of dependency inference and extend topology-aware supervision to broader reasoning domains and larger-scale training.
+% 我们提出了 \method，该方法可从自由形式的推理中推断有证据支撑的依赖关系，并利用这些依赖关系的拓扑结构引导强化学习与针对性蒸馏，解决了仅基于结果的监督存在的结构性盲区问题。由于该监督方式仅在训练后实施，且在推理阶段不影响常规文本生成，因此该框架无需修改已部署的架构即可适配不同模型系列与各类推理任务。在未来工作中，我们将提升依赖关系推断的保真度与语义 grounding 能力，并将拓扑感知监督拓展至更广泛的推理领域与更大规模的训练场景。
+
+\clearpage

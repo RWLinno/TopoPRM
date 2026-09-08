@@ -1,0 +1,104 @@
+% Complete metric ledger, split into paired-benchmark panels for readability.
+\begin{table*}[t]
+\centering
+\caption{Detailed Qwen3.5-9B ablation ledger for GSM8K and MATH-500. Tok. is mean visible response length; Time is total evaluation wall-clock time in seconds.}
+\label{tab:detailed_ablation_easy}
+\footnotesize
+\setlength{\tabcolsep}{2.4pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular}{@{}l rrrrrr rrrrrr@{}}
+\toprule
+& \multicolumn{6}{c}{\textbf{GSM8K} ($n=1{,}319$)}
+& \multicolumn{6}{c}{\textbf{MATH-500} ($n=500$)} \\
+\cmidrule(lr){2-7}\cmidrule(lr){8-13}
+\textbf{Variant} & p@1 & p@5 & maj@5 & Tok. & Time & Acc/kTok
+& p@1 & p@5 & maj@5 & Tok. & Time & Acc/kTok \\
+\midrule
+Base & 55.2 & 87.8 & 55.7 & 1{,}536 & 45.0 & 35.9 & 19.8 & 39.2 & 21.4 & 1{,}536 & 18.7 & 12.9 \\
+Outcome Only & 93.3 & 97.7 & 93.6 & 1{,}047 & 34.2 & 89.1 & 50.8 & 59.0 & 55.2 & 1{,}511 & 18.9 & 33.6 \\
+w/o Topology & 93.0 & 97.7 & 93.9 & 946 & 25.0 & 98.3 & 51.0 & 59.4 & 55.6 & 1{,}506 & 16.2 & 33.9 \\
+w/o Continuity & 51.0 & 86.1 & 52.6 & 1{,}528 & 48.3 & 33.4 & 21.6 & 39.6 & 23.2 & 1{,}536 & 19.1 & 14.1 \\
+ACE-off (archived) & 93.8 & 98.0 & 94.6 & 1{,}006 & 28.3 & 93.2 & 50.8 & 59.8 & 55.2 & 1{,}515 & 18.2 & 33.5 \\
+\rowcolor{blue!6}
+\textbf{\method (Full)} & 94.1 & 97.9 & 94.8 & 796 & 19.7 & 118.2 & 51.0 & 81.9 & 54.6 & 1{,}454 & 16.6 & 35.1 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\centering
+\caption{Detailed Qwen3.5-9B ablation ledger for OlympiadBench and Omni-MATH. Metric definitions follow Table~\ref{tab:detailed_ablation_easy}.}
+\label{tab:detailed_ablation_olympiad}
+\footnotesize
+\setlength{\tabcolsep}{2.4pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular}{@{}l rrrrrr rrrrrr@{}}
+\toprule
+& \multicolumn{6}{c}{\textbf{OlympiadBench} ($n=134$)}
+& \multicolumn{6}{c}{\textbf{Omni-MATH} ($n=262$)} \\
+\cmidrule(lr){2-7}\cmidrule(lr){8-13}
+\textbf{Variant} & p@1 & p@5 & maj@5 & Tok. & Time & Acc/kTok
+& p@1 & p@5 & maj@5 & Tok. & Time & Acc/kTok \\
+\midrule
+Base & 11.2 & 25.4 & 14.2 & 2{,}560 & 26.5 & 4.4 & 16.4 & 33.2 & 17.9 & 2{,}559 & 52.0 & 6.4 \\
+Outcome Only & 31.3 & 46.3 & 37.3 & 2{,}043 & 19.7 & 15.3 & 41.6 & 55.3 & 48.9 & 1{,}845 & 35.2 & 22.5 \\
+w/o Topology & 29.8 & 50.7 & 38.1 & 2{,}468 & 11.8 & 12.1 & 42.4 & 54.2 & 45.8 & 2{,}430 & 17.8 & 17.4 \\
+w/o Continuity & 8.2 & 25.4 & 9.0 & 2{,}560 & 8.7 & 3.2 & 14.9 & 30.5 & 17.6 & 2{,}560 & 18.5 & 5.8 \\
+ACE-off (archived) & 32.8 & 47.0 & 35.8 & 2{,}491 & 9.6 & 13.2 & 42.0 & 53.8 & 47.3 & 2{,}463 & 19.4 & 17.1 \\
+\rowcolor{blue!6}
+\textbf{\method (Full)} & 32.8 & 50.7 & 38.8 & 1{,}768 & 18.1 & 18.6 & 42.8 & 55.7 & 47.7 & 1{,}592 & 19.0 & 26.9 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\centering
+\caption{Detailed Qwen3.5-9B ablation ledger for AIME~2024 and AIME~2025. Metric definitions follow Table~\ref{tab:detailed_ablation_easy}.}
+\label{tab:detailed_ablation_aime}
+\footnotesize
+\setlength{\tabcolsep}{2.4pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular}{@{}l rrrrrr rrrrrr@{}}
+\toprule
+& \multicolumn{6}{c}{\textbf{AIME 2024} ($n=30$)}
+& \multicolumn{6}{c}{\textbf{AIME 2025} ($n=90$)} \\
+\cmidrule(lr){2-7}\cmidrule(lr){8-13}
+\textbf{Variant} & p@1 & p@5 & maj@5 & Tok. & Time & Acc/kTok
+& p@1 & p@5 & maj@5 & Tok. & Time & Acc/kTok \\
+\midrule
+Base & 16.7 & 33.3 & 33.3 & 4{,}083 & 8.5 & 4.1 & 2.2 & 4.4 & 1.1 & 2{,}560 & 5.9 & 0.9 \\
+Outcome Only & 16.7 & 33.3 & 20.0 & 2{,}546 & 5.6 & 6.6 & 13.3 & 15.6 & 8.9 & 2{,}547 & 16.7 & 5.2 \\
+w/o Topology & 20.0 & 40.0 & 30.0 & 2{,}560 & 2.1 & 7.8 & 12.2 & 16.7 & 10.0 & 2{,}560 & 6.2 & 4.8 \\
+w/o Continuity & 6.7 & 13.3 & 3.3 & 2{,}560 & 2.3 & 2.6 & 1.1 & 4.4 & 0.0 & 2{,}560 & 7.0 & 0.4 \\
+ACE-off (archived) & 20.0 & 30.0 & 23.3 & 2{,}560 & 2.6 & 7.8 & 13.3 & 17.8 & 12.2 & 2{,}560 & 7.7 & 5.2 \\
+\rowcolor{blue!6}
+\textbf{\method (Full)} & 30.0 & 43.3 & 33.3 & 2{,}431 & 5.4 & 12.3 & 15.6 & 18.9 & 11.1 & 2{,}457 & 7.7 & 6.4 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\centering
+\caption{Detailed Qwen3.5-9B ablation ledger for CNMO~2024 and MMLU. Metric definitions follow Table~\ref{tab:detailed_ablation_easy}.}
+\label{tab:detailed_ablation_general}
+\footnotesize
+\setlength{\tabcolsep}{2.4pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular}{@{}l rrrrrr rrrrrr@{}}
+\toprule
+& \multicolumn{6}{c}{\textbf{CNMO 2024} ($n=30$)}
+& \multicolumn{6}{c}{\textbf{MMLU} ($n=500$)} \\
+\cmidrule(lr){2-7}\cmidrule(lr){8-13}
+\textbf{Variant} & p@1 & p@5 & maj@5 & Tok. & Time & Acc/kTok
+& p@1 & p@5 & maj@5 & Tok. & Time & Acc/kTok \\
+\midrule
+Base & 10.0 & 16.7 & 3.3 & 2{,}560 & 1.9 & 3.9 & 28.6 & 41.4 & 26.2 & 512 & 55.1 & 55.9 \\
+Outcome Only & 16.7 & 33.3 & 26.7 & 2{,}530 & 5.5 & 6.6 & 63.0 & 84.0 & 61.0 & 512 & 146.2 & 123.0 \\
+w/o Topology & 20.0 & 40.0 & 26.7 & 2{,}560 & 2.0 & 7.8 & 65.8 & 85.0 & 63.0 & 512 & 32.3 & 128.5 \\
+w/o Continuity & 6.7 & 20.0 & 3.3 & 2{,}560 & 2.4 & 2.6 & 20.2 & 34.8 & 18.6 & 512 & 80.4 & 39.5 \\
+ACE-off (archived) & 20.0 & 30.0 & 26.7 & 2{,}560 & 2.6 & 7.8 & 61.1 & 83.1 & 61.2 & 508 & 58.1 & 120.3 \\
+\rowcolor{blue!6}
+\textbf{\method (Full)} & 30.0 & 47.0 & 30.0 & 2{,}530 & 2.5 & 11.9 & 68.2 & 86.4 & 68.8 & 508 & 48.0 & 134.2 \\
+\bottomrule
+\end{tabular}
+\end{table*}

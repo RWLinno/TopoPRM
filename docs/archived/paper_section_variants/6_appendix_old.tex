@@ -1,0 +1,430 @@
+
+\section{Implementation Details}
+\label{app:details}
+
+\subsection{Hyperparameters}
+\label{app:hparam}
+
+Table~\ref{tab:hparam} lists the key hyperparameters for each training stage.
+% Table~\ref{tab:hparam} 汇总了三个训练阶段（SFT、GRPO、\framework）的关键超参数。
+
+\begin{table}[H]
+\centering
+\small
+\caption{Hyperparameter summary for the three training stages.}
+\label{tab:hparam}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}p{4.2cm}p{2.8cm}p{3.0cm}@{}}
+\toprule
+\textbf{Parameter} & \textbf{Value} & \textbf{Description} \\
+\midrule
+\multicolumn{3}{@{}l}{\textit{Stage I: Supervised Fine-Tuning (SFT)}} \\
+\midrule
+Base model & Qwen3.5-9B & -- \\
+Adapter & LoRA r=64, $\alpha{=}128$ & all-linear modules \\
+Learning rate & $5 \times 10^{-5}$ & cosine, 3\% warmup \\
+Epochs & 3 & -- \\
+Selected checkpoint & step 1,100 & minimum held-out loss 0.381609; final step 1,734 \\
+Batch size & 1/device, accum 8 & global batch 32 on 4 GPUs \\
+Max seq length & 4096 & -- \\
+Precision & bf16 & -- \\
+\midrule
+\multicolumn{3}{@{}l}{\textit{Stage II: GRPO with \method Rewards}} \\
+\midrule
+Base model & SFT step 1,100 & held-out-loss selection \\
+Adapter & LoRA r=64, $\alpha{=}128$ & all-linear modules \\
+Learning rate & $5 \times 10^{-6}$ & cosine, 5\% warmup \\
+Gradient steps & 300 & -- \\
+Batch size & 1/device, accum 4 & global prompt batch 16 on 4 GPUs \\
+Num generations & 4 per prompt & for GRPO grouping \\
+Temperature & 0.9 & rollout sampling \\
+$\beta$ (KL penalty) & 0.04 & -- \\
+Max completion length & 4096 & prompt capped at 512 \\
+Precision & bf16 & -- \\
+\midrule
+\multicolumn{3}{@{}l}{\textit{Stage III: \framework}} \\
+\midrule
+Teacher model & Stage-II 9B & frozen during distillation \\
+Student model & Qwen3.5-4B & canonical cross-scale run \\
+Adapter & LoRA r=64, $\alpha{=}128$ & all-linear modules \\
+Learning rate & $2 \times 10^{-5}$ & cosine, 3\% warmup \\
+Epochs & 1 & -- \\
+Batch size & 2/device, accum 4 & global batch 32 on 4 GPUs \\
+Student temperature & 0.7 & student-sampled trace \\
+Teacher temperature & 0.0 & greedy revision target \\
+Target budget & 1024 tokens & fixed across methods \\
+Target selection & answer, format, direction, acyclicity & threshold calibrated on validation \\
+Max seq length & 4096 & -- \\
+Precision & bf16 & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Reward Configuration}
+
+The Choquet reward in Eq.~\ref{eq:r_total} uses the five independent sources $(r_{\mathrm{out}},r_{\mathrm{fmt}},q_{\mathrm{dir}},q_{\mathrm{acyc}},q_{\mathrm{cont}})$ and the interaction set $\{(o,d),(o,a),(d,c),(a,c),(d,a)\}$. \needcheck{The exact non-negative capacity coefficients are pending author confirmation and are not yet a training or paper claim.} Once locked, the coefficients will sum to one and remain fixed across the canonical run and its matched controls. The additive control uses the capacity's Shapley source importance; the multiplicative control uses those same exponents. No length or reference-solution graph enters the canonical main reward because generated traces have no node alignment with a reference solution.
+% Choquet 奖励使用五个独立源（结果、格式、方向、无环、连续性）与五组交互项。具体的非负容度系数仍待作者确认，目前不作为训练或论文结论；一旦确定，系数将归一化到和为一，并在规范运行与其匹配对照中保持不变。加性对照采用该容度的 Shapley 源重要度，乘性对照沿用相同指数。规范主奖励不包含长度项或参考解图，因为生成轨迹与参考解之间没有节点对齐。
+    
+\subsection{Hardware and Infrastructure}
+
+Canonical ICLR runs use 4$\times$NVIDIA L20 GPUs. We report measured wall-clock time and peak memory from this configuration rather than extrapolating from the earlier A100 runs.
+% 规范 ICLR 实验使用 4 张 NVIDIA L20 GPU。我们汇报的是该配置下实测的墙钟时间与峰值显存，而不是从早前 A100 运行外推得到的数字。
+
+\subsection{Evaluation Protocol}
+\label{app:eval_details}
+
+All public benchmark evaluations use the Transformers generation backend. Pass@1 is one sampled response per item from a single seed-0 evaluation pass; this is neither a multi-seed training result nor an average over repeated decodes. The shared decoder uses temperature 0.6, top-$p{=}0.95$, top-$k{=}20$, min-$p{=}0$, and repetition penalty 1.0. This matches Qwen3 and DeepSeek-R1's reasoning-time recommendations and keeps the public and adapted rows comparable; it differs from Qwen3.5's general-task recommendation only in using temperature 0.6 instead of 1.0. Generation explicitly enables the standard key--value cache even if a released checkpoint retains a training-time \texttt{use\_cache=false} setting; this is recorded in the result manifest. The four primary mathematics benchmarks use the same 4,096-token completion cap and the same instruction to provide a step-by-step solution with the final answer in \texttt{\textbackslash boxed\{\}}. We retain each released chat template and documented control: GoT-R1, OpenReasoning-Nemotron, and AceMath receive a user-only task; MiMo uses an explicit empty system turn; the released Nemotron-Cascade template injects the terminal ``\texttt{/think}'' control; and the AceMath, Qwen-family, and Klear templates activate their released reasoning format without an evaluator-added prefix. No model receives an uncounted response prefix. For mathematics tasks, the evaluator verifies the last nonempty boxed answer, or a short terminal region after the last explicit final-answer marker, against the dataset target; it never searches an unsubmitted truncated derivation for a matching intermediate expression. The reference is passed first to the asymmetric \texttt{math\_verify} verifier. Visible length is obtained by retokenizing the decoded response without special tokens. Pass@5 and maj@5, when run as secondary diagnostics, draw five samples from the same decoder and reuse this equivalence relation rather than raw string equality. The manifest stores the message-role protocol, prefix flag, decoder parameters, evaluation seed, batch size, model and adapter paths, dataset fingerprint, and full per-example responses; cached results are reused only when these protocol fields match.
+% 所有公开基准评测均使用 Transformers 生成后端。Pass@1 指每题在单次 seed-0 评测中采样一条回复，既非多种子训练结果，也非多次解码的平均。共享解码器使用 temperature 0.6、top-$p$=0.95、top-$k$=20、min-$p$=0、重复惩罚 1.0，与 Qwen3 及 DeepSeek-R1 的推理期建议一致，并保证公开行与适配行可比；相对 Qwen3.5 的通用任务建议只在温度上用 0.6 而非 1.0。即使某些开源检查点保留了训练期的 \texttt{use\_cache=false}，生成时也显式启用标准 KV 缓存，并记入结果清单。四个主要数学基准使用相同的 4,096 token 上限与相同的"分步作答、最终答案放入 \texttt{\textbackslash boxed\{\}}"指令。我们保留每个模型自带的对话模板与已文档化的控制项，且不为任何模型添加未计入长度的回复前缀。数学任务的评测器只校验最后一个非空 boxed 答案，或最后一个显式最终答案标记之后的一小段终末区域，绝不在未提交的截断推导中搜索匹配的中间表达式；参考答案先送入非对称的 \texttt{math\_verify}。可见长度通过对解码文本去除特殊 token 后重新分词得到。作为次要诊断的 Pass@5 与 maj@5 复用同一解码器与同一等价关系，而非原始字符串比较。清单记录消息角色协议、前缀标志、解码参数、评测种子、批大小、模型与适配器路径、数据集指纹以及全部逐样本回复；只有这些协议字段完全一致时才复用缓存结果。
+
+\section{Choquet Capacity and Baselines}
+\label{app:choquet}
+For non-negative M\"obius coefficients summing to one, Eq.~\ref{eq:r_total} is a normalized monotone 2-additive capacity~\citep{choquet1954capacities,grabisch1997kadditive}: it maps $\mathbf{0}$ to 0 and $\mathbf{1}$ to 1 and remains in $[0,1]$. We separately replace the direction--acyclicity interaction with equal singleton mass to preserve both normalization and Shapley source importance, distinguishing the proposed structural synergy from merely increasing either source's weight. We also test traces that are structurally plausible but answer-incorrect to detect reward hacking.
+% 当 Möbius 系数非负且和为一时，Eq.~\ref{eq:r_total} 是归一化的单调 2-additive 容度：它把全 0 映到 0、全 1 映到 1，并始终落在 $[0,1]$ 内。我们另外用等量的单点质量替换"方向—无环"交互项，以同时保持归一化与 Shapley 源重要度，从而把所提出的结构性协同效应与"单纯提高其中一个源的权重"区分开。我们还构造结构上看似合理但答案错误的轨迹，用于检测 reward hacking。
+
+\paragraph{Matched baseline protocols.}
+The LASER-D adaptation uses the true response-token count and four rollouts per prompt. It labels a prompt high, medium, or low by rollout accuracy thresholds $2/3$ and $1/3$, and adds 0.5 only to correct rollouts at or below the band's target. Every 20 steps, the target is recomputed from a synchronized rolling monitor of 500 prompts. To match our 4,096-token cap, the released 4,096--16,384 candidate range is scaled by four to 1,024--4,096 in increments of 256; no character-length proxy is used. The matched additive policy control uses the Choquet capacity's Shapley source importance, preserving marginal source weights while removing every interaction. Equal additive, matched multiplicative, and direction--acyclicity-interaction controls are evaluated on the identical frozen four-candidate pool rather than presented as separately trained policies.
+% LASER-D 的适配版本使用真实响应 token 数与每题 4 条 rollout，按 rollout 准确率阈值 2/3 与 1/3 把题目标为高/中/低难度，并只对处于该档目标长度及以下的正确 rollout 额外加 0.5；每 20 步用同步维护的 500 题滚动监控重新计算目标。为匹配我们的 4,096 token 上限，其原始 4,096–16,384 候选区间按 4 倍缩放为 1,024–4,096（步长 256），且不使用任何字符长度代理。匹配的加性策略对照采用 Choquet 容度的 Shapley 源重要度，在保留边际源权重的同时移除所有交互项。等权加性、匹配乘性以及"方向—无环交互"三个对照都在完全相同的冻结四候选池上评估，而不是各自独立训练出的策略。
+
+\begin{table*}[!t]
+\centering
+\small
+\caption{Detailed diagnostics for the frozen candidate pool in Table~\ref{tab:aggregation_ablation}. Tie accuracy averages correctness across all top-scoring candidates rather than choosing the first; tie and zero-spread rates expose uninformative ranking groups. \tbd{Cells await the canonical pool and report item-bootstrap intervals, not training variance.}}
+\label{tab:aggregation_diagnostics}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.10}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Aggregator} & \textbf{Tie acc.}$\uparrow$ & \textbf{Oracle acc.}$\uparrow$ & \textbf{Tie groups}$\downarrow$ & \textbf{Zero-spread}$\downarrow$ & \textbf{StructWrong}$\downarrow$ \\
+\midrule
+Outcome only & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} \\
+Equal-weight additive & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} \\
+Shapley-matched additive & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} \\
+Shapley-matched multiplicative & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} \\
+Choquet w/o dir.--acyc. interaction & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} \\
+\rowcolor{blue!6}
+Topology-conditioned Choquet & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+\section{DAG Extraction Details}
+\label{app:dag}
+
+\paragraph{Extraction pipeline.}
+Given a reasoning trace in \texttt{<think>}, we apply five frozen stages:
+\begin{enumerate}[leftmargin=*,itemsep=1pt]
+    \item Step segmentation: split by numbered-step markers, mathematical discourse markers ($\because$, $\therefore$), and line boundaries.
+    \item Sub-question partitioning: markers such as ``Sub-question $k$'' define connected components; cross-sub-question edges are disallowed.
+    \item Information extraction: for each step, extract expressions, claims, and variables with rule-based patterns.
+    \item Raw support encoding: combine high-precision symbolic candidates with a lightweight pair classifier that selects $i\!\to\!j$, $j\!\to\!i$, or abstention without imposing text order.
+    \item Projection: retain the raw graph for diagnostics, remove backward edges to obtain the training DAG, then add adaptive weak sequential edges only when support is absent.
+\end{enumerate}
+% 给定 \texttt{<think>} 中的推理轨迹，我们施加五个冻结阶段：(1) 步骤切分，依据编号标记、数学话语标记（$\because$、$\therefore$）与行边界切开；(2) 子问题划分，"Sub-question $k$" 之类标记定义连通分量，跨子问题的边被禁止；(3) 信息抽取，用规则模式为每步抽取表达式、断言与变量；(4) 原始支持编码，把高精度符号候选与一个轻量成对分类器结合，在 $i\!\to\!j$、$j\!\to\!i$ 与弃权之间选择，不施加文本顺序；(5) 投影，保留原始图用于诊断，删除逆向边得到训练用 DAG，仅在缺少支持时补充自适应的弱顺序边。
+
+\paragraph{Scope of the acyclicity assumption.}
+\label{app:acyclicity_scope}
+Acyclicity is normative only for the \emph{semantic support relation in the committed trace}. It does not forbid exploratory computation, rechecking an earlier result, or revising a failed branch. Such behavior may revisit a latent state or repeat a concept and still yield an acyclic final justification. A cycle in $\mathcal{H}_y$ carries the narrower meaning that a written claim ultimately supports itself, so $q_{\mathrm{acyc}}$ targets circular justification rather than recurrent reasoning in general.
+% 无环性只对"已提交轨迹中的语义支持关系"具有规范性，并不禁止探索性计算、回头复核先前结果或修正失败分支。这类行为可能重访某个潜在状态或重复某个概念，但最终的论证依然可以是无环的。$\mathcal{H}_y$ 中的环含义更窄：某条已写下的论断最终支持了自身。因此 $q_{\mathrm{acyc}}$ 针对的是循环论证，而不是一般意义上的循环式推理。
+
+\paragraph{Information-density filters.}
+To avoid low-information nodes and noisy links: (a) claims are extracted at sentence level, with heading fragments and unfinished prefixes removed; (b) trivial tokens (single symbols, pure numerals, non-relational fragments) are excluded from dependency matching.
+% 为避免低信息节点与噪声连边：(a) 断言以句子为单位抽取，去掉标题片段与未完成前缀；(b) 平凡 token（单个符号、纯数字、非关系性片段）不参与依赖匹配。
+
+\paragraph{Dependency rules.}
+For each unordered pair of steps in the same sub-question, rules propose candidates from informative expression reuse, canonicalized claim overlap, variable roles, and explicit step references. The pair classifier assigns direction or abstains. Only after raw-graph diagnostics are computed do we insert a fallback edge for an unsupported derivation or conclusion in the projected DAG.
+% 对同一子问题内的每个无序步骤对，规则从"有信息量的表达式复用、规范化后的断言重叠、变量角色以及显式步骤引用"中提出候选边，再由成对分类器判定方向或弃权。只有在原始图诊断计算完毕之后，我们才为投影 DAG 中缺乏支持的推导或结论插入兜底边。
+
+\paragraph{Pair-encoder adaptation.}
+The lightweight encoder is Qwen3.5-0.8B with a rank-8 LoRA three-way classification head. The frozen 9B semantic teacher processes 595 candidate source traces; 536 contain parsed semantic edges, and the shared strict segmentation filter rejects one dangling clause. The remaining 535 sources are hash-split before order augmentation into 428 training and 107 validation sources. After original, reversed, and interleaved presentations, deterministic negative subsampling yields 9,301 training pairs; the unsampled validation set contains 2,897 pairs. On these teacher-held-out pairs, the selected epoch-3 encoder reaches 0.7784 three-class macro-F1, 0.7711 edge precision, 0.7603 edge recall, and 0.7375 direction accuracy on gold edges. The calibrated edge-confidence and direction-margin thresholds are 0.70 and 0.20. This teacher-held-out diagnostic is not the independent human result in Table~\ref{tab:edge_audit}. The encoder is frozen during policy optimization; a retained encoder edge keeps its calibrated confidence as $w_{ij}$, while auditable rule edges use $w_{ij}=1$. The semantic-teacher cache, adapter weights, corrected 120-trace audit pack, and all-order frozen prediction ledger have SHA-256 fingerprints \texttt{69131f16...b19c}, \texttt{9e8e78ac...3212}, \texttt{95c440a3...b53}, and \texttt{8c7a644e...9328}, respectively; all order-control statistics are paired by source record.
+% 轻量编码器为 Qwen3.5-0.8B 加 rank-8 LoRA 三分类头。冻结的 9B 语义教师处理 595 条候选源轨迹，其中 536 条含可解析的语义边，共享的严格切分过滤器又剔除一条悬挂子句，余下 535 条源轨迹在顺序增广之前按哈希划分为 428 训练 / 107 验证。经原始、逆序、交错三种呈现方式与确定性负采样后得到 9,301 个训练对，未采样的验证集含 2,897 个对。在这些教师留出对上，所选的第 3 轮编码器取得 0.7784 三分类 macro-F1、0.7711 边精确率、0.7603 边召回率，以及在金标边上的 0.7375 方向准确率；校准后的边置信度与方向边距阈值为 0.70 与 0.20。该教师留出诊断不同于 Table~\ref{tab:edge_audit} 中的独立人工结果。编码器在策略优化期间冻结：保留下来的编码器边以其校准置信度作为 $w_{ij}$，可审计的规则边取 $w_{ij}=1$。语义教师缓存、适配器权重、修正后的 120 条审计包与全顺序冻结预测台账均附有 SHA-256 指纹，所有顺序对照统计按源记录配对。
+
+\paragraph{Controlled edge noise.}
+Table~\ref{tab:edge_noise} measures how the two raw-graph diagnostics respond when frozen predictions are corrupted after extraction. Deletion probes missed edges, false-edge addition probes spurious support, and direction reversal probes orientation errors. The audit uses one deterministic perturbation draw per source trace and paired bootstrap across traces; it is not a repeated-training or multi-seed result.
+% Table~\ref{tab:edge_noise} 测量当冻结预测在抽取之后被人为破坏时，两个原始图诊断如何响应：删边探测漏边、加假边探测虚假支持、反向探测方向错误。该审计对每条源轨迹只用一次确定性扰动抽样，并在轨迹层面做配对 bootstrap；它不是重复训练或多种子结果。
+
+\input{tabs/edge_noise}
+
+\begin{figure*}[!t]
+    \centering
+    \includegraphics[width=0.82\textwidth]{figs/topology_falsification.pdf}
+    \caption{Controlled response of the frozen raw-graph encoder. Each point is the paired mean change relative to the identical source trace; bars are paired source-trace bootstrap 95\% intervals. Reversal primarily changes direction, matched cycle closure changes acyclicity at fixed backward mass, and stochastic edge corruption moves both diagnostics according to its targeted failure. These are deterministic perturbation audits, not downstream policy results or training-seed variation.}
+    \label{fig:topology_falsification}
+\end{figure*}
+
+\begin{figure*}[!t]
+    \centering
+    \includegraphics[width=\textwidth]{figs/topology_audit_dashboard.png}
+    \caption{Trace-level topology audit interface. For each sampled reasoning trace, the dashboard exposes the recovered support graph, its edge ledger, and independently recomputed coverage-adjusted direction and acyclicity channels. The interactive reward preview substitutes these trace-measured channels into either preregistered candidate capacity while outcome, format, and continuity remain explicit user-controlled assumptions; it is not a canonical Stage-II result. Original, reversed, and interleaved controls switch the same trace online. Three linked annotation copies hide model predictions and internal record identities, independently shuffle trace presentation, and retain a matched step-order condition for agreement. The illustrated corrected-encoder trace is one auditable sample, not an aggregate evaluation result.}
+    \label{fig:topology_audit_dashboard}
+\end{figure*}
+
+\paragraph{Topology is not a standalone correctness verifier.}
+Table~\ref{tab:reranking_diagnostic} rescales the rebuttal-era shared Best-of-8 pool with the canonical gold-first symbolic verifier. Topology-only selection underperforms the dedicated PRM on both subsets, and their simple product ties rather than improves on the PRM. We therefore use topology as an auditable training-time structural source and do not claim that it replaces semantic verification. The candidate-pool and cached-score ledgers have SHA-256 fingerprints \texttt{2f4ded08...2664} and \texttt{8304d8fc...b7c8}.
+% Table~\ref{tab:reranking_diagnostic} 用规范的"金标优先"符号验证器重新标定了 rebuttal 期的共享 Best-of-8 候选池。仅靠拓扑做选择在两个子集上都不如专用 PRM，二者的简单乘积也只是与 PRM 打平而没有提升。因此我们把拓扑用作训练期可审计的结构性奖励源，不主张它能替代语义验证。候选池与缓存分数台账均附 SHA-256 指纹。
+
+\input{tabs/reranking_diagnostic}
+
+\paragraph{Adaptive sequential weak edges.}
+A weak sequential edge (weight 0.3) is added only when the target step lacks strong incoming support and the source step does not already emit strong outgoing dependencies.
+This prevents chain-dominant artifacts in long traces.
+% 只有当目标步骤缺少强入向支持、且源步骤本身没有发出强出向依赖时，才添加权重 0.3 的弱顺序边。这样可以避免长轨迹中出现"整条链主导"的伪结构。
+
+\paragraph{Node typing.}
+Each node is classified into \textsc{definition}, \textsc{derivation}, \textsc{computation}, \textsc{conclusion}, \textsc{auxiliary}, \textsc{substitution}, or \textsc{case\_analysis} by keyword rules.
+% 每个节点由关键词规则归入定义、推导、计算、结论、辅助、代入或分类讨论七种类型之一。
+
+\paragraph{Relationship between DAG quality and reasoning compression.}
+We test whether traces with stronger independent graph diagnostics (acyclicity, low orphan ratio, and directional consistency) admit shorter compressed forms under \framework.
+Intuitively, a well-structured DAG has fewer redundant branches and shorter critical paths, so the transitive reduction yields a more compact chain.
+The raw-graph scores $q_{\mathrm{dir}}$ and $q_{\mathrm{acyc}}$ enter Eq.~\ref{eq:r_total} independently, while the projected DAG supplies localized revision targets. This relationship is evaluated rather than assumed.
+% 我们检验这样一个假设：独立图诊断更好的轨迹（无环、孤立节点比例低、方向一致性高）在 \framework 下是否能压缩得更短。直觉上，结构良好的 DAG 冗余分支更少、关键路径更短，因此传递归约后得到的链更紧凑。原始图分数 $q_{\mathrm{dir}}$ 与 $q_{\mathrm{acyc}}$ 各自独立进入 Eq.~\ref{eq:r_total}，投影后的 DAG 则提供定位化的修订目标。这一关系是被实证检验的，而不是被预设的。
+
+\section{Reward Function Details}
+\label{app:rewards}
+
+\paragraph{Outcome reward.}
+Extracts the final mathematical answer from the last \texttt{\textbackslash boxed\{\}} expression, falling back to an explicit final numeric expression when needed. Symbolic equivalence to the reference answer is checked with \texttt{math\_verify}; a correct answer receives 1 and an incorrect or unparseable answer receives 0.
+% 结果奖励从最后一个 \texttt{\textbackslash boxed\{\}} 表达式中抽取最终数学答案，必要时退回到显式的最终数值表达式；用 \texttt{math\_verify} 检查与参考答案的符号等价性，正确得 1，错误或无法解析得 0。
+
+\paragraph{Format reward.}
+The released Qwen3.5 template owns the opening \texttt{<think>} prefix, so it is part of the prompt rather than the scored continuation. The canonical reward therefore requires the continuation to contain non-empty reasoning, exactly one closing \texttt{</think>} tag, and a subsequent boxed answer; it assigns 1 only when all three conditions hold and 0 otherwise. A generated opening tag is rejected, preventing the policy from receiving credit for duplicating a prompt-owned control token. This \texttt{prefilled\_think} protocol is fixed in the launch environment and recorded in the immutable run manifest.
+% 开源 Qwen3.5 模板自带开头的 \texttt{<think>} 前缀，因此它属于 prompt 而非被打分的续写部分。规范格式奖励要求续写中包含非空推理、恰好一个闭合 \texttt{</think>} 标签，以及随后的 boxed 答案；三条同时满足记 1，否则记 0。策略自己生成的开标签会被拒绝，从而避免它因重复 prompt 自带的控制 token 而获得分数。该 \texttt{prefilled\_think} 协议在启动环境中固定，并写入不可变的运行清单。
+
+\paragraph{Length-only control.}
+The explicit-efficiency baseline uses linear decay from 1.0 (at $\leq$ 2,000 characters) to 0.0 (at $\geq$ 8,000 characters). This signal is absent from the main \method reward; all evaluation tables independently report tokenizer-token counts.
+% 显式效率基线采用线性衰减：不超过 2,000 字符时为 1.0，达到或超过 8,000 字符时为 0.0。该信号不出现在 \method 的主奖励中；所有评测表格都独立汇报分词器 token 数。
+
+\paragraph{Raw-graph rewards.}
+The GRPO reward consumes the coverage-adjusted direction and acyclicity scores from Eqs.~\eqref{eq:qdir}--\eqref{eq:qacyc} as two aligned sources from one frozen encoder pass. It never replaces them with a scalar average. Orphan conclusions on the projected DAG remain an interpretable defect record for distillation but are not a sixth source in the canonical Stage-II capacity.
+% GRPO 奖励把 Eqs.~\eqref{eq:qdir}--\eqref{eq:qacyc} 给出的覆盖率校正后的方向分与无环分，作为同一次冻结编码器前向得到的两个对齐源来使用，绝不把它们合成一个标量平均值。投影 DAG 上的孤立结论仍作为可解释的缺陷记录用于蒸馏，但不构成规范 Stage-II 容度中的第六个源。
+
+\paragraph{Continuity reward.}
+Uses regex-based expression matching to verify that each step references expressions or claims from prior steps or the problem statement.
+The continuity score $q_{\mathrm{cont}}$ (Eq.~\ref{eq:qcont_full}) measures the fraction of supported steps.
+% 连续性奖励用基于正则的表达式匹配，检查每一步是否引用了先前步骤或题面中的表达式与断言；连续性分数 $q_{\mathrm{cont}}$（Eq.~\ref{eq:qcont_full}）度量被支持步骤所占的比例。
+
+\section{External Bars}
+\label{app:external_bars}
+
+Related systems are context, not comparisons. FlowTracer derives token credit from an attention-induced answer-flow DAG under a 1K-output protocol~\citep{dong2026flowtracer}; Structured Reasoning applies attention-MaxFlow or cross-response LCS rewards to explicitly tagged traces~\citep{dong2026structured}; the Graph Reasoning Paradigm makes the policy emit labeled graph nodes and reports a 7,040-token AIME mean that exceeds our cap~\citep{liu2026graph}; ARLCP and Self-Aligned Reward target efficient reasoning without modeling explicit support direction~\citep{yu2026arlcp,han2026sar}. Their base models, training budgets, decoders, and answer verifiers all differ from ours, and our body table adds one further incompatibility by reporting the EMNLP-protocol run rather than the canonical ICLR protocol. We therefore never place an external number and a \method{} number on the same axis or in the same sentence about relative performance, and we make no state-of-the-art claim against any released checkpoint.
+% 外部参考线只是背景，不是可比对象：FlowTracer 用注意力诱导的答案流 DAG（1K 输出协议）导出 token 信用；Structured Reasoning 对显式标注轨迹使用注意力 MaxFlow 或跨回答 LCS 奖励；Graph Reasoning Paradigm 让策略直接输出带标签图节点，其报告的 AIME 平均 7,040 token 超过我们的上限；ARLCP 与 Self-Aligned Reward 面向高效推理但不建模显式支持方向。它们的基座模型、训练预算、解码器与判分器都与我们不同，而我们的正文表还多一层不兼容——它报告的是 EMNLP 协议运行而非 ICLR 规范协议。因此我们绝不把外部数字与 \method 的数字放在同一坐标轴或同一句相对性能表述中，也不对任何已发布 checkpoint 声称 SOTA。
+
+\section{Supplementary Mathematical Definitions}
+\label{app:math_details}
+
+\paragraph{Proof of Proposition~\ref{prop:projection_split}.}
+\label{app:prop_proof}
+Part~(i) is immediate: $\Pi$ removes exactly the edges $i\!\to\!j$ with $i\ge j$, which is the set $B$, and $B=(B\cap C)\sqcup(B\setminus C)$ partitions that residual into cycle-participating and non-circular order violations.
+For part~(ii), let $v_1\!\to\!v_2\!\to\!\cdots\!\to\!v_k\!\to\!v_1$ be a directed cycle; all of its edges lie in $C$. If every edge satisfied $i<j$, the step indices would increase strictly around the cycle and yield $v_1<v_1$, a contradiction. Hence at least one edge has $i\ge j$ and lies in $B\cap C$, so $u_H>0$ forces $d_H<1$. The converse fails: the three-step graph $\{3\!\to\!2\}$ is backward ($d_H=0$) yet acyclic ($u_H=0$).
+For part~(iii), take unit weights and full coverage $c_H=1$. The graphs $\{1\!\to\!2,2\!\to\!1\}$ and $\{1\!\to\!2,4\!\to\!3\}$ share $d_H=1/2$, hence the same $q_{\mathrm{dir}}$, but have $u_H=1$ versus $u_H=0$. Conversely $\{1\!\to\!2\}$ and $\{2\!\to\!1\}$ share $u_H=0$, hence the same $q_{\mathrm{acyc}}$, but have $q_{\mathrm{dir}}=1$ versus $0$. So neither coordinate is a function of the other, and both are needed to identify the residual split. \hfill$\square$
+% 命题~\ref{prop:projection_split} 的证明。(i) 投影恰好删除 $i\ge j$ 的边（即集合 $B$），而 $B$ 可划分为环内后向边与非环后向边两部分。(ii) 沿任一有向环，若每条边都满足 $i<j$，则下标沿环严格递增而得 $v_1<v_1$，矛盾；故环中至少一条边是后向边，于是 $u_H>0$ 迫使 $d_H<1$。反之不成立：$\{3\to2\}$ 后向但无环。(iii) 取单位权重与满覆盖，给出两组反例图：$\{1\to2,2\to1\}$ 与 $\{1\to2,4\to3\}$ 的 $q_{dir}$ 相同而 $u_H$ 分别为 1 与 0；$\{1\to2\}$ 与 $\{2\to1\}$ 的 $q_{acyc}$ 相同而 $q_{dir}$ 分别为 1 与 0。故任一分量都不是另一个的函数，必须同时保留二者才能识别残差构成。
+
+\paragraph{Identifiability, not orthogonality.}
+Part~(ii) of Proposition~\ref{prop:projection_split} implies that the attainable set of $(q_{\mathrm{dir}},q_{\mathrm{acyc}})$ is a strict subset of $[0,1]^2$: at full coverage a deficient acyclicity score forces a deficient direction score. The two signals are therefore neither redundant nor statistically independent, and we do not claim they are orthogonal. Empirically they are strongly \emph{anti}correlated on reversed controls ($r=-0.907$), which is exactly why a single averaged topology score is lossy: averaging retains only $0.213\times$ the direction score's cross-trace standard deviation (\cref{sec:rq2}). Part~(iii) is the identifiability condition that licenses keeping them apart --- given nonzero edge coverage the pair is recoverable from $\mathcal{H}_y$, while neither coordinate alone recovers the other.
+% 可识别而非正交：由命题 (ii) 可知 $(q_{dir},q_{acyc})$ 的可达集是 $[0,1]^2$ 的真子集——满覆盖下无环性不足必然迫使方向性不足。所以二者既不冗余也不统计独立，我们明确不声称"正交"。实证上它们在反转对照上强负相关（$r=-0.907$），这正是单一平均拓扑分数有损的原因：平均后只保留方向分数跨轨迹标准差的 $0.213$ 倍。(iii) 提供的是可识别性条件：在边覆盖非零时，二者可从 $\mathcal{H}_y$ 联合恢复，但任一分量都无法单独恢复另一个。
+
+\paragraph{Independent topology sources.}
+Let $c_H$ be the fraction of nodes incident to a dependency edge in the raw graph, and let $d_H$ and $u_H$ be the confidence-weighted forward-edge and cycle-edge mass defined in Eqs.~\eqref{eq:qdir}--\eqref{eq:qacyc}. The affine shrinkage by $c_H$ maps missing edge evidence to uncertainty at 0.5 rather than structural perfection. The two scores stay separate through aggregation: $q_{\mathrm{dir}}$ responds to local reversal without requiring a cycle, whereas $q_{\mathrm{acyc}}$ responds to strongly connected support even when backward mass is held fixed. Their interaction in Eq.~\ref{eq:r_total} can reward joint satisfaction without cancelling their distinct counterfactual responses.
+% 设 $c_H$ 为原始图中与依赖边相连的节点比例，$d_H$ 与 $u_H$ 为 Eqs.~\eqref{eq:qdir}--\eqref{eq:qacyc} 定义的置信度加权前向边质量与成环边质量。按 $c_H$ 做的仿射收缩把"缺少边证据"映射为 0.5 的不确定态，而不是映射为结构完美。两个分数在聚合过程中始终保持独立：$q_{\mathrm{dir}}$ 对局部反向敏感且不要求存在环，$q_{\mathrm{acyc}}$ 则在逆向质量固定时仍对强连通支持敏感。它们在 Eq.~\ref{eq:r_total} 中的交互项可以奖励"两者同时满足"，同时不抹平各自不同的反事实响应。
+
+\paragraph{Continuity score (full form).}
+The local continuity quality is
+\begin{equation}
+\label{eq:qcont_full}
+q_{\mathrm{cont}}(y)=
+\begin{cases}
+1.0, & \eta(y)=1,\\
+0.8\,\eta(y), & \eta(y)<1,
+\end{cases}
+\qquad
+\eta(y)=\frac{1}{T}\sum_{i=1}^{T}\mathbb{1}[\mathrm{supported}(s_i,s_{<i},q)].
+\end{equation}
+
+\noindent\textit{Remark.} Eq.~\eqref{eq:qcont_full} is the engineering-tuned continuity term used in the implementation. It is a separate source in the Choquet reward rather than being folded into topology before aggregation.
+% 局部连续性质量由 Eq.~\eqref{eq:qcont_full} 给出：当被支持步骤比例 $\eta(y)=1$ 时取 1.0，否则取 $0.8\,\eta(y)$。备注：该式是实现中经工程调参的连续性项，它在 Choquet 奖励中是一个独立源，不会在聚合之前被并入拓扑分数。
+
+\paragraph{Topology-conditioned revision dispatch.}
+The revision instruction is generated by
+\begin{equation}
+\label{eq:topo_pr}
+P_r=\psi(r_{\mathrm{out}},q_{\mathrm{dir}},q_{\mathrm{acyc}},
+\rho_{\mathrm{orphan}},q_{\mathrm{cont}},\ell),
+\end{equation}
+where $\ell$ identifies the offending edge, cyclic component, or unsupported step when one can be localized.
+% 修订指令由 Eq.~\eqref{eq:topo_pr} 生成：以结果奖励、方向分、无环分、孤立节点比例、连续性分数以及定位信息 $\ell$ 为输入，其中 $\ell$ 在可定位时指出违规的边、成环分量或缺乏支持的步骤。
+
+\section{\framework Details}
+\label{appx:distillation_details}
+
+\framework is an optional compression stage whose goal is to retain the teacher's structural reasoning profile while reducing generation length in compact students.
+Table~\ref{tab:compression} compares static traces, generic revision, length-only revision, and \framework under the same teacher, student initialization, accepted-target count, and budgets. Direction and acyclicity retention must survive the independent audit; this extension returns to the main paper only if the single canonical run supports a central claim.
+% \framework 是一个可选的压缩阶段，目标是在缩短紧凑学生模型生成长度的同时保留教师的结构性推理特征。Table~\ref{tab:compression} 在相同教师、相同学生初始化、相同接受目标数量与相同预算下，比较静态轨迹蒸馏、通用修订、仅长度修订与 \framework。方向与无环保持率必须通过独立审计；只有当单次规范运行足以支撑某个核心论点时，这一扩展才会回到正文。
+
+\input{tabs/compression}
+
+\begin{algorithm}[t]
+\small
+\caption{\framework Training Pipeline}
+\label{alg:topoprm}
+\begin{algorithmic}[1]
+\Require Base policy $\pi_0$; data $\mathcal{D}_{\mathrm{sft}},\mathcal{D}_{\mathrm{rl}}$; Choquet coefficients $\{m_i,m_{ij}\}$
+\Ensure Teacher $\pi_T$, compact student $\pi_S$
+\State $\pi_\theta\!\leftarrow\!\mathrm{SFT}(\pi_0,\mathcal{D}_{\mathrm{sft}})$ \Comment{Stage~I}
+\For{each GRPO step on $\mathcal{D}_{\mathrm{rl}}$} \Comment{Stage~II}
+  \State Sample $\{y^{(i)}\}_{i=1}^{G}\!\sim\!\pi_\theta(\cdot\!\mid\!x)$; build $\mathcal{H}^{(i)}\!=\!\mathcal{E}_{\phi}(y^{(i)})$ and $\mathcal{G}^{(i)}\!=\!\Pi(\mathcal{H}^{(i)})$
+  \State Compute $r_{\mathrm{out}}^{(i)},r_{\mathrm{fmt}}^{(i)},q_{\mathrm{dir}}^{(i)},q_{\mathrm{acyc}}^{(i)},q_{\mathrm{cont}}^{(i)}$
+  \State Compute $r_{\mathrm{total}}^{(i)}$ by Eq.~\ref{eq:r_total}; normalize within the GRPO group
+  \State Update $\pi_\theta'$ with the GRPO objective
+\EndFor
+\State $\pi_T\!\leftarrow\!\pi_\theta'$; init.\ $\pi_S$ from a smaller pretrained checkpoint
+\For{each prompt $x\!\in\!\mathcal{D}_{\mathrm{rl}}$} \Comment{Stage~III}
+  \State $y_{\mathrm{init}}\!\sim\!\pi_S(\cdot\!\mid\!x)$; extract defect record $F(y_{\mathrm{init}})$ from $\mathcal{H}$ and $\mathcal{G}$
+  \State $P_r\!\leftarrow\!\psi(F(y_{\mathrm{init}}))$; sample $y_{\mathrm{rev}}\!\sim\!\pi_T(\cdot\!\mid\!x,y_{\mathrm{init}},P_r)$
+  \State Retain $(x,y_{\mathrm{rev}})$ only if answer, format, direction, acyclicity, and budget constraints pass
+  \State Update $\pi_S$ with $\mathcal{L}_{\mathrm{distill}}$ (Eq.~\ref{eq:distillation})
+\EndFor
+\State \Return $(\pi_T,\pi_S)$
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Why static trace distillation is insufficient.}
+Conventional trace distillation~\citep{hinton2015distilling,minillm2023} presents every student with the same teacher solutions. It therefore cannot target a student's particular missing dependency, and a length-only target can become shorter by deleting support that is necessary for the conclusion. \framework instead constructs supervision after observing the compact student's own trace.
+% 常规轨迹蒸馏给所有学生同一批教师解答，因此无法针对某个学生特有的缺失依赖；而仅以长度为目标的监督可能通过删掉结论所必需的支持来变短。\framework 改为在观察到紧凑学生自己的轨迹之后再构造监督信号。
+
+\paragraph{Defect localization and revision.}
+For each initial student attempt, we retain the raw edge list and projected DAG. The defect record contains the endpoints of backward edges, nodes in a non-trivial strongly connected component, orphan conclusions in the projected DAG, and unsupported local transitions. The dispatcher selects the highest-priority localized defect and asks the frozen Stage-II teacher to rewrite the solution within a fixed response budget while preserving a boxed final answer.
+% 对每次学生的初始作答，我们都保留其原始边表与投影 DAG。缺陷记录包含逆向边的端点、位于非平凡强连通分量中的节点、投影 DAG 中的孤立结论，以及缺乏支持的局部转移。调度器挑出优先级最高且可定位的缺陷，要求冻结的 Stage-II 教师在固定响应预算内重写解答，并保留 boxed 最终答案。
+
+\paragraph{Target acceptance.}
+A revised trace is retained only if it has a correct boxed answer and valid format, reaches the calibrated topology threshold, does not reduce coverage-adjusted direction consistency or acyclicity relative to the initial trace, and stays within the shared token budget. We log every rejection reason and report acceptance coverage. This makes direction and acyclicity part of the distillation data contract, not merely an evaluation diagnostic.
+% 一条修订轨迹只有在同时满足以下条件时才被保留：boxed 答案正确、格式合法、达到校准后的拓扑阈值、相对初始轨迹不降低覆盖率校正后的方向一致性与无环性，并且不超出共享 token 预算。我们记录每一条拒绝原因并汇报接受覆盖率。这使方向与无环成为蒸馏数据契约的一部分，而不只是评测阶段的诊断指标。
+
+\paragraph{Student training and controls.}
+The 4B student is trained on accepted revisions with Eq.~\ref{eq:distillation}. Matched controls use the same teacher, prompts, number of accepted targets, and optimization budget but replace topology-conditioned dispatch with either a generic revision instruction or an explicit length-only instruction. External answer accuracy and generated tokens are primary; extractor-based structural retention is reported as internal-consistency evidence and paired with the independent human edge audit.
+% 4B 学生模型在被接受的修订数据上以 Eq.~\ref{eq:distillation} 训练。匹配对照使用相同教师、相同 prompt、相同接受目标数量与相同优化预算，只是把拓扑条件化的调度替换为通用修订指令或显式的仅长度指令。外部答案准确率与生成 token 数为主指标；基于抽取器的结构保持率作为内部一致性证据汇报，并与独立人工边审计结果配对呈现。
+
+\section{Closest-Method Design Audit}
+\label{app:closest_methods}
+
+Table~\ref{tab:closest_methods} isolates representation and optimization choices rather than
+comparing numbers obtained under incompatible models or evaluators. A method may use a graph
+without exposing violations that a DAG representation has already ruled out. Our distinguishing
+object is the unconstrained directed support graph before projection: backward and
+cycle-participating support remain separately measurable and enter the online reward through
+explicit source interactions.
+% 本节隔离的是表示与优化层面的设计选择，而不是在不兼容模型或评测器下比较数字。一个方法可以用到图，却并不暴露"DAG 表示已经提前排除掉"的违例。我们的区分性对象是投影之前那张无约束的有向支持图：逆向支持与参与成环的支持仍可分别测量，并通过显式的源交互进入在线奖励。
+
+\paragraph{Per-method mechanisms.}
+The following expands the survey compressed in \cref{sec:related_work}. PARC links a completed
+chain back to its preceding premises for error identification~\citep{mukherjee2025parc}; GRiD
+generates knowledge and reasoning nodes and verifies each node against its declared
+parents~\citep{wen2025grid}; Graph of Verification adaptively decomposes a trace into a DAG and
+verifies node blocks in topological order without training~\citep{fang2026gov}. Each of these
+treats declared or inferred parents as given, so support that opposes text order is never
+measured.
+% 以下展开正文中被压缩的综述。PARC 把已完成的推理链回连到其前置前提以定位错误；GRiD 生成知识节点与推理节点，并逐节点对照其声明的父节点做验证；Graph of Verification 无需训练即可把轨迹自适应分解为 DAG，并按拓扑序验证节点块。这三者都把声明或推断出的父节点当作既定输入，因此"与文本顺序相反的支持"从未被测量。
+
+\paragraph{Methods requiring graph-formatted generation.}
+DAG-Math evaluates graph-level logical closeness~\citep{zhang2026dagmath}; Structured Reasoning
+rewards within-graph flow and cross-sample overlap~\citep{dong2026structured}; Structural CoT
+trains executable computation graphs; VeriGraph makes a
+data-analytic agent emit a heterogeneous evidence DAG and rewards its integrity and
+coherence~\citep{jin2026verigraph}; the Graph Reasoning Paradigm emits labeled symbolic
+graphs~\citep{liu2026graph}; and GoT-R1 reinforces parsability, sparsity, and non-linearity of
+serialized reasoning graphs under an additive reward~\citep{li2026gotr1}. AtomGraph learns a
+graph-attention verifier over chains that have already been parsed into DAGs~\citep{karmore2026atomgraph}.
+All of them change the policy's output contract; \method does not.
+% 这一类方法要求策略直接生成图格式：DAG-Math 评估图层面的逻辑贴合度；Structured Reasoning 奖励图内流动性与跨样本重叠；Structural CoT 训练可执行计算图；VeriGraph 让数据分析智能体输出异质证据 DAG 并奖励其完整性与一致性；Graph Reasoning Paradigm 输出带标签的符号图；GoT-R1 以加性奖励强化序列化推理图的可解析性、稀疏性与非线性。AtomGraph 则在已解析为 DAG 的推理链上学习图注意力验证器。它们都改变了策略的输出约定，而 \method 不改变。
+
+\paragraph{Methods that discard the residuals we score.}
+Contract-checked graph editing enforces acyclicity as a hard gate when composing candidate DAGs
+during inference-time search, so a cycle is rejected rather than scored~\citep{li2026contract}.
+TUR-DPO sanitizes extracted claim--support graphs and linearly combines valid-path, cycle,
+dangling-node, and contradiction terms to shape offline preference optimization; it keeps neither
+edge-direction residuals nor a separation of direction from cyclic support~\citep{abdullah2026turdpo}.
+RewardFlow merges observed agent trajectories into an environment-state transition graph and
+propagates terminal reward along action edges, which does not recover support direction within one
+free-text derivation~\citep{feng2026rewardflow}. FlowTracer derives token credit from an
+attention-induced answer-flow DAG~\citep{dong2026flowtracer}. The two systems named Graph-GRPO
+propagate credit over a predefined e-commerce relevance graph or optimize sampled multi-agent
+communication topologies, not dependencies inside one trace~\citep{che2026graphgrpo,cang2026graphgrpo}.
+% 这一类方法恰好丢弃了我们要打分的残差：Contract-checked 图编辑在推理期搜索中把无环性当作硬性门限来组合候选 DAG，环被直接拒绝而不是被打分；TUR-DPO 先清洗抽取出的主张—支持图，再把有效路径、环、悬挂节点与矛盾项线性加权用于离线偏好优化，既不保留边方向残差，也不把方向与成环支持分开；RewardFlow 把观测到的智能体轨迹合并为环境状态转移图并沿动作边回传终局奖励，无法恢复单条自由文本推导内部的支持方向；FlowTracer 从注意力导出的答案流 DAG 中分配 token 信用；两个同名 Graph-GRPO 分别在预定义的电商相关性图上传播信用、或优化采样得到的多智能体通信拓扑，都不是单条轨迹内部的依赖。
+
+\begin{table}[H]
+\centering
+\caption{Design audit of the closest topology-based reasoning objectives. ``Graph-form output''
+means that the policy must serialize a graph. ``Raw dir.'' asks whether support edges that oppose
+text order remain measurable before a DAG constraint; ``cycle signal'' asks whether circular
+semantic support is separately scored. This is a mechanism comparison, not a performance claim.}
+\label{tab:closest_methods}
+\setlength{\tabcolsep}{4.0pt}
+\renewcommand{\arraystretch}{1.05}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{l l c c c c c}
+\toprule
+Method & Relation represented & Graph-form output & Raw dir. & Cycle signal & Online RL & Source interaction \\
+\midrule
+GoT-R1~\citep{li2026gotr1}
+  & Declared predecessor in serialized graph & Yes & No & No & Yes & Additive \\
+SARL~\citep{wang2026sarl}
+  & Undirected latent-function transition & No & No & No & Yes & Additive \\
+TUR-DPO~\citep{abdullah2026turdpo}
+  & Elicited claim-support graph & No & No & Yes & No (DPO) & Additive \\
+FlowTracer~\citep{dong2026flowtracer}
+  & Attention-induced answer-flow DAG & No & No & No & Yes & No \\
+\midrule
+\method
+  & Unconstrained directed semantic support & No & \textbf{Yes} & \textbf{Yes} & \textbf{Yes} & \textbf{2-additive} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\clearpage
+\section{Pending Ablation Ledgers}
+\label{app:pending_ablations}
+
+The two ledgers below hold the mechanism-test and aggregation-ranking cells. Their canonical-protocol runs are still in progress, so every entry is a \tbd{--} placeholder rather than a result; the measured counterfactual effects those tables will eventually tabulate are already reported numerically in \cref{sec:rq2}, and the trained-policy evidence is in Table~\ref{tab:main_emnlp_promoted}.
+% 待补消融账目：以下两张表分别承载机制检验与聚合排序的单元格。它们在规范协议下的运行仍在进行中，因此每一格都是 \tbd{--} 占位而非结果；这些表最终要列出的反事实效应数值已在 RQ2 正文中给出，训练后的策略证据则在正文主表中。
+
+\input{tabs/ablation_compact}
+\input{tabs/aggregation_ablation}
+
+\section{ICLR-Protocol Reproduction Status}
+\label{app:iclr_protocol_status}
+
+The canonical ICLR protocol draws one seed-0 sample per item under a 4,096-token cap with matched sampling parameters and a single shared verifier, and it is being re-run for every row. The two tables below record which cells already exist under that protocol and which remain pending; a \tbd{--} cell marks a pending run, not a zero result, and no claim in this paper rests on a pending cell. The reported main results are the reused EMNLP-protocol numbers in Table~\ref{tab:main_emnlp_promoted}. This section will be replaced by the completed tables once the reproduction finishes.
+% 本节说明 ICLR 规范协议的复现进度：该协议对每个题目只取 seed-0 的单次采样、4,096 token 上限、统一的采样参数与同一个验证器，目前正在对所有行重新跑一遍。下面两张表记录哪些单元格已在该协议下产出、哪些仍待运行；\tbd{--} 表示尚未跑完，而不是结果为零，论文中没有任何结论依赖这些空缺单元格。正文汇报的主结果仍是复用 EMNLP 协议的 Table~\ref{tab:main_emnlp_promoted}。复现完成后本节将替换为完整表格。
+
+\input{tabs/main_accuracy}
+
+\clearpage
+\section{Retained EMNLP Submission Results}
+\label{app:legacy_emnlp_results}
+
+\noindent\textbf{Protocol scope of this section.} The nine result tables rendered in the EMNLP submission PDF are retained below with their numeric values unchanged, so that every earlier number stays inspectable. Retired method names are expanded or replaced only to avoid reintroducing abandoned terminology. \needcheck{These tables were produced under the EMNLP protocol and therefore mix earlier checkpoints, decoders, and response budgets, and a few entries are explicitly marked as approximate; row-level provenance is still being confirmed.} The ICLR main tables use the canonical single-run protocol of \cref{sec:setup}, and a row is promoted from this section only after its provenance and protocol are revalidated under that protocol.
+% 本节的协议范围：EMNLP 投稿 PDF 中呈现的九张结果表原样保留在下方，数值不作改动，以便早前的每个数字都可查验；被弃用的方法名只做展开或替换，以避免重新引入已废弃的术语。这些表格产自 EMNLP 协议，因而混合了较早的检查点、解码器与响应预算，个别条目已显式标注为近似值，行级来源仍在确认中。ICLR 正文表格使用 \cref{sec:setup} 的规范单次运行协议；本节中的某一行只有在其来源与协议按该协议重新验证后，才会被提升到正文。
+
+\input{tabs/legacy_emnlp_missing}
+\input{tabs/main_detailed}
+\clearpage
+\input{tabs/private_results}
+\clearpage
+\input{tabs/ablation_cross_scale}
+\input{tabs/ablation_length}
+\input{tabs/structural_metrics}
+
+\clearpage
+\subsection{Additional EMNLP-workspace results}
+\noindent The following six supplementary tables were present in the accompanying EMNLP source workspace but were not among the nine result tables rendered in the submission PDF. Their values are retained for reference under the same archival restrictions.
+% 以下六张补充表格存在于随附的 EMNLP 源工程中，但并未出现在投稿 PDF 呈现的那九张结果表内。它们的数值在同样的归档限制下保留以供参考。
+
+\input{tabs/public_results_unified}
+\clearpage
+\input{tabs/unified_metrics}
+\input{tabs/ablation_9b}
+\input{tabs/efficiency}
+\input{tabs/revision_gain}
+\input{tabs/case_study}

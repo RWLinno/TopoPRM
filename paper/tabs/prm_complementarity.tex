@@ -1,0 +1,17 @@
+\begin{center}
+\captionsetup{hypcap=false}
+\captionof{table}{Diagnostic PRM--topology fusion on shared Best-of-8 pools ($n=80$ per benchmark). The hybrid multiplies normalized Qwen2.5-Math-PRM-7B scores by $1+q_{\mathrm{topo}}$; $\Delta$ is the change from PRM selection.}
+\label{tab:prm_complementarity}
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.10}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lcccc@{}}
+\toprule
+\rowcolor{tableheader}
+\textbf{Benchmark} & \textbf{PRM@8} & \textbf{PRM$\times$Topo@8} & $\boldsymbol{\Delta}$ & \textbf{Oracle@8} \\
+\midrule
+GSM8K & 95.00 & 95.00 & 0.00 & 96.25 \\
+MATH-500 & 83.75 & 83.75 & 0.00 & 92.50 \\
+\bottomrule
+\end{tabular*}
+\end{center}

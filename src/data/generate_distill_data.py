@@ -13,7 +13,6 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-import jsonlines
 from tqdm import tqdm
 
 from src.data.build_dag import build_dag_from_answer, extract_steps_from_answer
@@ -83,16 +82,12 @@ def generate_distill_dataset(
     output_p.parent.mkdir(parents=True, exist_ok=True)
 
     if teacher_traces_path and Path(teacher_traces_path).exists():
-        records = []
-        with jsonlines.open(teacher_traces_path) as reader:
-            for item in reader:
-                records.append(item)
+        with Path(teacher_traces_path).open(encoding="utf-8") as reader:
+            records = [json.loads(line) for line in reader if line.strip()]
         logger.info(f"Loaded {len(records)} teacher traces")
     else:
-        records = []
-        with jsonlines.open(input_path) as reader:
-            for item in reader:
-                records.append(item)
+        with Path(input_path).open(encoding="utf-8") as reader:
+            records = [json.loads(line) for line in reader if line.strip()]
         logger.info(f"Using {len(records)} SFT records as base (run teacher inference first)")
 
     filtered = filter_by_length(records, max_steps, max_chars)
@@ -114,10 +109,10 @@ def generate_distill_dataset(
     scored.sort(key=lambda x: x[0], reverse=True)
 
     count = 0
-    with jsonlines.open(output_path, mode="w") as writer:
+    with output_p.open("w", encoding="utf-8") as writer:
         for quality, record in scored:
             record["distill_quality_score"] = round(quality, 4)
-            writer.write(record)
+            writer.write(json.dumps(record, ensure_ascii=False) + "\n")
             count += 1
 
     logger.info(f"Wrote {count} distillation samples to {output_path}")

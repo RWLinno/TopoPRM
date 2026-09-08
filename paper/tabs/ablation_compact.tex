@@ -1,0 +1,35 @@
+\begin{table*}[!t]
+\centering
+\caption{Direction and acyclicity mechanism tests. \textbf{Top:} matched policy ablations use one decoder and budget. \textbf{Bottom:} targeted frozen-encoder counterfactuals; Appendix Table~\ref{tab:edge_noise} gives the complete ledger and paired intervals. \tbd{Marked cells await canonical policy outputs.}}
+\label{tab:ablation_compact}
+\scriptsize
+\setlength{\tabcolsep}{3.4pt}
+\renewcommand{\arraystretch}{0.95}
+\newcommand{\pendingeight}{\tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--} & \tbd{--}}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X cccccccc@{}}
+\toprule
+& \multicolumn{4}{c}{\textbf{Accuracy (\%)}} & \multicolumn{2}{c}{\textbf{Aggregate}} & \multicolumn{2}{c}{\textbf{Generated topology}} \\
+\cmidrule(lr){2-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
+\textbf{Policy variant} & GSM8K & MATH & Olymp. & AIME & Macro & Tok. & $q_{\mathrm{dir}}$ & $q_{\mathrm{acyc}}$ \\
+\midrule
+\rowcolor{blue!6} Full \method & \pendingeight \\
+w/o direction source & \pendingeight \\
+w/o acyclicity source & \pendingeight \\
+w/o raw support & \pendingeight \\
+\bottomrule
+\end{tabularx}
+
+\vspace{2pt}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X c cc >{\raggedright\arraybackslash}X@{}}
+\toprule
+\multicolumn{5}{@{}l}{\textit{Frozen-encoder counterfactuals on identical source traces}} \\
+\textbf{Control} & \textbf{$n$} & \textbf{Direction response} & \textbf{Acyclicity response} & \textbf{Isolated effect} \\
+\midrule
+Reverse all steps & 120 & $\Delta q_{\mathrm{dir}}=-.715$ & $\Delta q_{\mathrm{acyc}}=+.064$ & Textual order / direction \\
+Matched cycle closure & 57 & $\Delta q_{\mathrm{dir}}=.000$ & $\Delta q_{\mathrm{acyc}}=-.328$ & Cycle at fixed backward mass \\
+\midrule
+Premature averaging & 120 & $\sigma_{\mathrm{dir}}=.110$ & $\sigma_{\mathrm{acyc}}=.107$ & Avg. $\sigma=.023$ ($.213\times$); opposite: $39.2\%$ \\
+\bottomrule
+\end{tabularx}
+\let\pendingeight\relax
+\end{table*}

@@ -1,38 +1,39 @@
-# SFT distillation: Qwen3.5-4B student on high-quality mixed data
-# Strategy: use the same SFT data that produced our best 9B models
-# Key improvements over old RKL distill:
-# 1. Same model family (Qwen3.5) -> better architecture compatibility
-# 2. Complete <think>...<answer> format in data -> student learns to stop
-# 3. SFT is more stable than reverse-KL for small models
-# 4. Larger dataset (10847 vs 4000 samples)
-model: Qwen/Qwen3.5-4B
+# Canonical Stage-III 9B-to-4B Topology-Guided Distillation run.
+model: /knowin-oss/weilinruan/models/Qwen3.5-4B
 
 dataset:
-  - data/sft_ready/train_mixed.jsonl
+  - /knowin-oss/weilinruan/TopoPRM_ICLR27/canonical/distill_data/topology/train.jsonl
+val_dataset:
+  - /knowin-oss/weilinruan/TopoPRM_ICLR27/canonical/distill_data/topology/validation.jsonl
 
-train_type: lora
+tuner_type: lora
 lora_rank: 64
 lora_alpha: 128
 target_modules: all-linear
 lora_dropout: 0.05
+torch_dtype: bfloat16
 
-per_device_train_batch_size: 4
+per_device_train_batch_size: 2
+per_device_eval_batch_size: 2
 gradient_accumulation_steps: 4
-learning_rate: 3e-5
-num_train_epochs: 3
+learning_rate: 2e-5
+num_train_epochs: 1
 lr_scheduler_type: cosine
 warmup_ratio: 0.03
 weight_decay: 0.01
 max_length: 4096
-bf16: true
 gradient_checkpointing: true
+deepspeed: zero2
 
 eval_strategy: steps
 eval_steps: 100
 save_steps: 100
-save_total_limit: 3
+save_total_limit: 2
 report_to:
   - tensorboard
 logging_steps: 10
+seed: 0
+data_seed: 0
+add_version: false
 
-output_dir: output/sft_distill_4b
+output_dir: /tmp/TopoPRM_ICLR27/canonical/distill_topology_qwen35_4b

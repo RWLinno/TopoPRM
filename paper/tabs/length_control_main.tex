@@ -1,0 +1,19 @@
+\begin{table*}[!t]
+\centering
+\caption{Matched DR1-Qwen-7B attribution check on a fixed 200-item GSM8K subset. Greedy columns use one decode; repeated columns summarize five stochastic draws from each fixed policy. Standard deviations measure decoding variation, not training-seed variation.}
+\label{tab:length_control}
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.14}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l cc cc l@{}}
+\toprule
+& \multicolumn{2}{c}{\textbf{Single greedy decode}} & \multicolumn{2}{c}{\textbf{Five stochastic draws}} & \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+\textbf{Reward} & \textbf{p@1} & \textbf{Tokens} & \textbf{p@1 mean$\pm$sd} & \textbf{Tokens mean$\pm$sd} & \textbf{Structural sources} \\
+\midrule
+Outcome only & 75.5 & 278.9 & $68.0\pm1.8$ & $198.1\pm21.8$ & none \\
+Outcome + length & 76.5 & 277.5 & $67.9\pm2.7$ & $194.4\pm21.7$ & none \\
+\method & 77.0 & 438.3 & $67.8\pm1.9$ & $201.3\pm25.1$ & topology + continuity \\
+\bottomrule
+\end{tabular*}
+\end{table*}

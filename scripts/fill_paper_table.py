@@ -1,189 +1,259 @@
 #!/usr/bin/env python3
-"""Aggregate per-bench metrics.json and fill the Qwen3.5-9B rows of
-`topoprm_paper/tables/public_results_unified.tex` with real pass@1.
+"""Safely fill one row of the ICLR accuracy--length table.
 
-By default dry-runs and prints a diff; pass --write to modify the tex file.
+The command dry-runs by default. It accepts only complete canonical single-
+response artifacts that passed strict rescoring and whose details SHA-256 still
+matches the recorded audit.
 
-Usage:
-    python scripts/fill_paper_table.py --label qwen35_9b_base --row "Qwen3.5-9B (base)"
-    python scripts/fill_paper_table.py --label qwen35_9b_sft --row "+ SFT" --write
-
-Row matching is substring-based on the first column up to '&'. The nine columns
-filled (in order) are:
-
-    GSM8K | MATH-500 | Olympiad | Omni-MATH | AIME'24 | AIME'25 | CNMO'24 | MMLU | GPQA-D
+Example:
+    python scripts/fill_paper_table.py \
+      --label public_qwen3_8b --row Qwen3-8B \
+      --expected-prompt-role system_user \
+      --expected-prompt-profile task_system \
+      --expected-response-envelope full_think
 """
+
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
-import re
 import sys
 from pathlib import Path
 
 
-BENCH_TO_COLUMN_IDX = {
-    "gsm8k":         2,  # col index (1-based as LaTeX would write, here 0-based)
-    "math500":       3,
-    "olympiadbench": 4,
-    "omni_math":     5,
-    "aime2024":      6,
-    "aime2025":      7,
-    "cnmo2024":      8,
-    "mmlu":          9,
-    "gpqa_diamond":  10,
+BENCHMARKS = ("gsm8k", "math500", "olympiadbench", "aime2024")
+EXPECTED_ITEMS = {
+    "gsm8k": 1319,
+    "math500": 500,
+    "olympiadbench": 675,
+    "aime2024": 30,
 }
-# public_results_unified.tex column layout (0-based):
-#   0: Model name
-#   1: Size
-#   2: GSM8K
-#   3: MATH-500
-#   4: Olympiad
-#   5: Omni-MATH
-#   6: AIME'24
-#   7: AIME'25
-#   8: CNMO'24
-#   9: MMLU (note: last header says MMLU-Pro, but our data column is "MMLU")
-#  10: GPQA-D
-
-TEX_PATH_DEFAULT = "topoprm_paper/tables/public_results_unified.tex"
+STRICT_MATH_PROTOCOL = (
+    "last_nonempty_box_else_explicit_final_answer_math_verify_gold_first"
+)
+DEFAULT_EVAL_DIR = Path(
+    "/knowin-oss/weilinruan/TopoPRM_ICLR27/canonical/eval"
+)
+DEFAULT_TEX = Path(
+    "/Knowin/foundation/weilinruan/TopoPRM_ICLR27/tables/main_accuracy.tex"
+)
 
 
-def load_pass1(label: str, eval_dir: Path) -> dict[str, float]:
-    out = {}
-    for bench in BENCH_TO_COLUMN_IDX:
-        p = eval_dir / f"{label}_{bench}_metrics.json"
-        if p.exists():
-            try:
-                d = json.loads(p.read_text())
-                p1 = d.get("pass@1") or d.get("accuracy") or 0.0
-                out[bench] = float(p1) * 100.0
-            except Exception as e:
-                print(f"[warn] failed to parse {p}: {e}", file=sys.stderr)
-    return out
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
-def fmt_cell(val: float) -> str:
-    return f"{val:.1f}"
+def load_canonical_metrics(
+    label: str,
+    eval_dir: Path,
+    expected_prompt_role: str,
+    expected_prompt_profile: str,
+    expected_response_envelope: str,
+) -> tuple[dict[str, tuple[float, float]], list[str]]:
+    values: dict[str, tuple[float, float]] = {}
+    pending: list[str] = []
+    for benchmark in BENCHMARKS:
+        prefix = f"{label}_{benchmark}"
+        metrics_path = eval_dir / f"{prefix}_metrics.json"
+        details_path = eval_dir / f"{prefix}_details.jsonl"
+        if not metrics_path.is_file() or not details_path.is_file():
+            pending.append(benchmark)
+            continue
+        metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+        audit = metrics.get("rescore_audit")
+        expected_n = EXPECTED_ITEMS[benchmark]
+        errors = []
+        if int(metrics.get("provenance_schema_version", 0)) < 3:
+            errors.append("provenance_schema_version<3")
+        if metrics.get("math_scoring_protocol") != STRICT_MATH_PROTOCOL:
+            errors.append("non-canonical math scoring")
+        if int(metrics.get("num_samples_per_item", 0)) != 1:
+            errors.append("num_samples_per_item!=1")
+        if [int(value) for value in metrics.get("k_values", [])] != [1]:
+            errors.append("k_values!=[1]")
+        if int(metrics.get("n_items", -1)) != expected_n:
+            errors.append(f"n_items!={expected_n}")
+        if metrics.get("prompt_role_protocol") != expected_prompt_role:
+            errors.append(f"prompt_role_protocol!={expected_prompt_role}")
+        if metrics.get("prompt_profile") != expected_prompt_profile:
+            errors.append(f"prompt_profile!={expected_prompt_profile}")
+        if metrics.get("response_envelope") != expected_response_envelope:
+            errors.append(f"response_envelope!={expected_response_envelope}")
+        provenance = metrics.get("provenance", {})
+        if provenance.get("prompt_profile") != metrics.get("prompt_profile"):
+            errors.append("nested prompt_profile mismatch")
+        if provenance.get("response_envelope") != metrics.get("response_envelope"):
+            errors.append("nested response_envelope mismatch")
+        if not isinstance(audit, dict):
+            errors.append("missing rescore_audit")
+        else:
+            if int(audit.get("rows", -1)) != expected_n:
+                errors.append(f"audit.rows!={expected_n}")
+            if int(audit.get("unique_item_ids", -1)) != expected_n:
+                errors.append(f"audit.unique_item_ids!={expected_n}")
+            recorded_sha = str(audit.get("details_sha256", ""))
+            if not recorded_sha or recorded_sha != sha256_file(details_path):
+                errors.append("details SHA-256 mismatch")
+        if errors:
+            raise ValueError(f"{metrics_path}: " + "; ".join(errors))
+        values[benchmark] = (
+            float(metrics["accuracy_pct"]),
+            float(metrics["mean_tokens_pass1"]),
+        )
+    return values, pending
 
 
 def split_tex_cells(body: str) -> list[str]:
-    r"""Split a tex row body on top-level '&' (ignoring '\&')."""
-    cells = []
-    cur = []
-    i = 0
-    while i < len(body):
-        ch = body[i]
-        if ch == "\\" and i + 1 < len(body) and body[i + 1] == "&":
-            cur.append(body[i:i + 2])
-            i += 2
-            continue
-        if ch == "&":
-            cells.append("".join(cur))
-            cur = []
-            i += 1
-            continue
-        cur.append(ch)
-        i += 1
-    cells.append("".join(cur))
+    r"""Split a TeX row body on ``&`` while retaining escaped ``\&``."""
+    cells: list[str] = []
+    current: list[str] = []
+    index = 0
+    while index < len(body):
+        if body[index : index + 2] == r"\&":
+            current.append(r"\&")
+            index += 2
+        elif body[index] == "&":
+            cells.append("".join(current))
+            current = []
+            index += 1
+        else:
+            current.append(body[index])
+            index += 1
+    cells.append("".join(current))
     return cells
 
 
-def join_cells(cells: list[str]) -> str:
-    return "&".join(cells)
+def locate_row(lines: list[str], row_key: str) -> tuple[int, int]:
+    starts = [
+        index
+        for index, line in enumerate(lines)
+        if line.strip().startswith(row_key)
+        and not line.lstrip().startswith("%")
+    ]
+    if len(starts) != 1:
+        raise ValueError(
+            f"Expected one row start containing {row_key!r}, found {len(starts)}"
+        )
+    start = starts[0]
+    for end in range(start, min(start + 8, len(lines))):
+        if r"\\" in lines[end]:
+            return start, end
+    raise ValueError(f"Could not find row terminator after {row_key!r}")
 
 
-def update_row(tex: str, row_key: str, pass1: dict[str, float]) -> tuple[str, list[tuple[str, str, str]]]:
-    """Return (new_tex, list_of (bench, old, new) for diff)."""
+def fmt_accuracy(value: float) -> str:
+    return f"{value:.1f}"
+
+
+def fmt_tokens(value: float) -> str:
+    return f"{round(value):,d}"
+
+
+def update_row(
+    tex: str,
+    row_key: str,
+    values: dict[str, tuple[float, float]],
+) -> tuple[str, list[tuple[str, str, str]]]:
     lines = tex.splitlines(keepends=True)
+    start, end = locate_row(lines, row_key)
+    block = "".join(lines[start : end + 1])
+    body, terminator = block.rsplit(r"\\", 1)
+    cells = split_tex_cells(body)
+    if len(cells) != 11:
+        raise ValueError(
+            f"Expected 11 cells in {row_key!r}, found {len(cells)}"
+        )
+    prefix = cells[0].strip()
+    output_cells = [cell.strip() for cell in cells[1:]]
     changes: list[tuple[str, str, str]] = []
-    out_lines = []
-    for line in lines:
-        stripped = line.rstrip("\r\n")
-        # Match any tex row whose first cell's text contains row_key.
-        if "&" not in stripped or stripped.lstrip().startswith("%") or stripped.lstrip().startswith("\\"):
-            # still might be a model row starting with \texttt{} etc.; accept
-            # lines whose first column text includes row_key
-            pass
-        # heuristic: skip lines that are clearly not data rows
-        if r"\multicolumn" in stripped or stripped.strip().startswith("\\midrule") or stripped.strip().startswith("\\bottomrule"):
-            out_lines.append(line)
+    for index, benchmark in enumerate(BENCHMARKS):
+        if benchmark not in values:
             continue
-        if "\\\\" not in stripped:
-            out_lines.append(line)
-            continue
-        # Separate the trailing \\ ... from the body
-        m = re.match(r"^(.*?)(\s*\\\\.*?)$", stripped)
-        if not m:
-            out_lines.append(line)
-            continue
-        body, trailer = m.group(1), m.group(2)
-        cells = split_tex_cells(body)
-        # first column identifies the row
-        first_col = re.sub(r"\\[a-zA-Z]+\{([^}]*)\}", r"\1", cells[0]).strip()
-        if row_key not in first_col:
-            out_lines.append(line)
-            continue
-        if len(cells) < 11:
-            out_lines.append(line)
-            continue
-        for bench, idx in BENCH_TO_COLUMN_IDX.items():
-            if bench not in pass1:
-                continue
-            old_cell = cells[idx]
-            new_val = fmt_cell(pass1[bench])
-            # preserve any trailing spaces but replace the core content
-            m2 = re.match(r"^(\s*)(.*?)(\s*)$", old_cell)
-            if m2:
-                leading, content, trailing = m2.group(1), m2.group(2), m2.group(3)
-            else:
-                leading, content, trailing = "", old_cell, ""
-            changes.append((bench, content.strip(), new_val))
-            cells[idx] = f"{leading}{new_val}{trailing}"
-        new_body = join_cells(cells)
-        # Preserve original line ending if any
-        end = line[len(line.rstrip("\r\n")):]
-        out_lines.append(new_body + trailer + end)
-    return "".join(out_lines), changes
+        accuracy, tokens = values[benchmark]
+        for cell_index, replacement, label in (
+            (2 * index, fmt_accuracy(accuracy), f"{benchmark}.acc"),
+            (2 * index + 1, fmt_tokens(tokens), f"{benchmark}.tok"),
+        ):
+            changes.append((label, output_cells[cell_index], replacement))
+            output_cells[cell_index] = replacement
+
+    if len(values) == len(BENCHMARKS):
+        macro_accuracy = sum(value[0] for value in values.values()) / len(values)
+        macro_tokens = sum(value[1] for value in values.values()) / len(values)
+        for cell_index, replacement, label in (
+            (8, fmt_accuracy(macro_accuracy), "macro.acc"),
+            (9, fmt_tokens(macro_tokens), "macro.tok"),
+        ):
+            changes.append((label, output_cells[cell_index], replacement))
+            output_cells[cell_index] = replacement
+
+    new_block = (
+        f"{prefix}\n"
+        f"& {output_cells[0]} & {output_cells[1]} "
+        f"& {output_cells[2]} & {output_cells[3]}\n"
+        f"& {output_cells[4]} & {output_cells[5]} "
+        f"& {output_cells[6]} & {output_cells[7]}\n"
+        f"& {output_cells[8]} & {output_cells[9]} \\\\{terminator}"
+    )
+    lines[start : end + 1] = [new_block]
+    return "".join(lines), changes
 
 
-def main(argv=None):
-    p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--label", required=True, help="Run label whose metrics to load.")
-    p.add_argument("--row", required=True,
-                   help="First-column identifier to match, e.g. 'Qwen3.5-9B (base)' or '+ SFT'.")
-    p.add_argument("--tex", default=TEX_PATH_DEFAULT)
-    p.add_argument("--eval_dir", default="output/eval")
-    p.add_argument("--write", action="store_true",
-                   help="Write changes back to the tex file (otherwise dry-run).")
-    args = p.parse_args(argv)
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--label", required=True)
+    parser.add_argument("--row", required=True)
+    parser.add_argument("--tex", type=Path, default=DEFAULT_TEX)
+    parser.add_argument("--eval-dir", type=Path, default=DEFAULT_EVAL_DIR)
+    parser.add_argument(
+        "--expected-prompt-role",
+        required=True,
+        choices=("system_user", "user_only"),
+    )
+    parser.add_argument("--expected-prompt-profile", required=True)
+    parser.add_argument(
+        "--expected-response-envelope",
+        required=True,
+        choices=("full_think", "prefilled_think", "plain_text"),
+    )
+    parser.add_argument("--write", action="store_true")
+    args = parser.parse_args(argv)
 
-    tex_path = Path(args.tex)
-    if not tex_path.exists():
-        print(f"[error] tex not found: {tex_path}", file=sys.stderr)
-        return 2
-    pass1 = load_pass1(args.label, Path(args.eval_dir))
-    if not pass1:
-        print(f"[warn] no metrics.json found for label={args.label} under {args.eval_dir}")
+    values, pending = load_canonical_metrics(
+        args.label,
+        args.eval_dir,
+        args.expected_prompt_role,
+        args.expected_prompt_profile,
+        args.expected_response_envelope,
+    )
+    if not values:
+        print(f"[pending] no complete canonical artifacts for {args.label}")
         return 1
-    tex = tex_path.read_text(encoding="utf-8")
-    new_tex, changes = update_row(tex, args.row, pass1)
-    if not changes:
-        print(f"[warn] no row matching '{args.row}' updated; is the row label correct?")
-        print("available benches with pass@1:")
-        for b, v in pass1.items():
-            print(f"  {b:<15} {v:5.1f}%")
-        return 1
-    print(f"label={args.label} row='{args.row}' tex={tex_path}")
-    for bench, old, new in changes:
-        print(f"  {bench:<15} {old:>10}  ->  {new}")
+    tex = args.tex.read_text(encoding="utf-8")
+    updated, changes = update_row(tex, args.row, values)
+    print(f"label={args.label} row={args.row!r} tex={args.tex}")
+    for label, old, new in changes:
+        print(f"  {label:<22} {old:>24} -> {new}")
+    if pending:
+        print("  pending: " + ", ".join(pending))
     if args.write:
-        tex_path.write_text(new_tex, encoding="utf-8")
-        print(f"[write] updated {tex_path}")
+        temporary = args.tex.with_suffix(args.tex.suffix + ".partial")
+        temporary.write_text(updated, encoding="utf-8")
+        temporary.replace(args.tex)
+        print(f"[write] updated {args.tex}")
     else:
         print("(dry-run; pass --write to apply)")
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        raise SystemExit(main())
+    except (OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
+        print(f"[error] {exc}", file=sys.stderr)
+        raise SystemExit(2)

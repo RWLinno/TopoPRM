@@ -1,0 +1,113 @@
+% Four EMNLP-submission result tables whose filenames are reused by the ICLR main study.
+% Numeric cells are preserved verbatim; labels and retired terminology are updated only to avoid conflicts.
+\begin{table*}[!htb]
+\centering
+\caption{Archived EMNLP Table 1: results on nine public benchmarks across four task categories (Elementary: GSM8K, MATH-500; Olympiad: OlympiadBench, Omni-Math; Competition: AIME'24, AIME'25, CNMO'24; General: MMLU, GPQA-Diamond). All numbers are the originally submitted pass@5 accuracies (\%).}
+\label{tab:legacy_main_accuracy}
+\setlength{\tabcolsep}{4.5pt}
+\renewcommand{\arraystretch}{1.18}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}l c cc cc ccc cc c@{}}
+\toprule
+ & & \multicolumn{2}{c}{\textbf{Elementary}} & \multicolumn{2}{c}{\textbf{Olympiad}} & \multicolumn{3}{c}{\textbf{Competition}} & \multicolumn{2}{c}{\textbf{General}} & \\
+\cmidrule(lr){3-4} \cmidrule(lr){5-6} \cmidrule(lr){7-9} \cmidrule(lr){10-11}
+\textbf{Model} & \textbf{Params} & GSM8K & MATH & Olympiad & Omni & AIME'24 & AIME'25 & CNMO'24 & MMLU & GPQA-D & \textbf{Avg.} \\
+\midrule
+\rowcolor{gray!10}
+\multicolumn{12}{@{}l}{\textit{Reference open-source models}} \\
+Qwen3.5-2B & 2B & 77.2 & 60.8 & 48.5 & 13.3 & 6.7 & 13.3 & 36.1 & 32.8 & 37.9 & 36.3 \\
+Qwen3.5-4B & 4B & 85.1 & 55.8 & 32.8 & 43.4 & 0.0 & 13.3 & 10.0 & 67.4 & 29.8 & 37.5 \\
+Qwen2.5-Math-7B-Instruct~\citep{yang2024qwen2} & 7B & 95.2 & 73.8 & 38.0 & 22.0 & 13.0 & 10.0 & 13.3 & 54.8 & 28.3 & 38.7 \\
+Llama-3.1-8B-Instruct~\citep{grattafiori2024llama} & 8B & 84.5 & 52.2 & 15.0 & 10.0 & 3.0 & 2.0 & 3.0 & 68.0 & 30.0 & 29.7 \\
+DeepSeek-R1-Distill-Llama-8B~\citep{deepseekr1} & 8B & 83.0 & 89.1 & 48.0 & 25.0 & 50.4 & 35.0 & 25.0 & 52.0 & 49.0 & 50.7 \\
+\midrule
+\rowcolor{gray!10}
+Qwen2.5-7B (Base)~\citep{yang2024qwen2_5} & 7B & 85.4 & 49.8 & 25.0 & 18.0 & 7.0 & 5.0 & 8.0 & \underline{74.2} & 36.4 & 34.3 \\
+\quad + SFT & 7B & 91.3 & 65.4 & \underline{42.5} & \underline{54.2} & 16.7 & 12.2 & \underline{16.7} & 70.1 & 28.3 & 44.2 \\
+\quad + SimpleRL-Zoo~\citep{zeng2025simplerlzoo} & 7B & \underline{91.7} & \underline{78.2} & \underline{38.6} & 40.4 & \textbf{20.0} & \underline{15.6} & \underline{15.0} & 62.5 & \textbf{55.2} & \underline{46.4} \\
+\quad + Open-Reasoner-Zero~\citep{hu2026open} & 7B & 89.0 & \textbf{81.4} & 47.9 & 38.4 & 17.9 & 15.6 & 13.3 & 62.5 & 36.6 & 44.6 \\
+\rowcolor{blue!6}
+\quad + TopoPRM (Ours) & 7B & \textbf{95.8} & 72.6 & \textbf{47.8} & \textbf{57.2} & \underline{16.7} & \textbf{26.7} & \textbf{47.0} & \textbf{82.7} & \underline{51.0} & \textbf{55.3} \\
+\midrule
+\rowcolor{gray!10}
+DeepSeek-R1-Distill-Qwen-7B (Base)~\citep{deepseekr1} & 7B & 73.8 & 36.8 & 25.8 & 28.0 & 46.7 & 30.0 & 22.9 & 23.7 & 12.6 & 33.4 \\
+\quad + SFT & 7B & \textbf{86.0} & \textbf{92.8} & 52.0 & 48.0 & \underline{55.5} & 40.0 & 30.0 & 50.0 & \textbf{49.1} & \underline{55.9} \\
+\quad + GRPO~\citep{shao2024deepseekmath} & 7B & \underline{85.1} & \textbf{67.4} & \underline{56.2} & \underline{72.0} & 50.0 & \underline{40.0} & \textbf{57.8} & \underline{50.1} & 17.7 & 55.1 \\
+\rowcolor{blue!6}
+\quad + TopoPRM (Ours) & 7B & 84.3 & \underline{66.6} & \textbf{56.4} & \textbf{72.2} & \textbf{55.5} & \textbf{40.0} & \underline{55.4} & \textbf{60.3} & \underline{34.3} & \textbf{58.3} \\
+\midrule
+\rowcolor{gray!10}
+Qwen3.5-9B (Base) & 9B & 69.5 & 66.6 & 55.2 & 61.5 & 16.7 & 21.1 & 16.7 & 28.6 & 37.4 & 41.5 \\
+\quad + SFT & 9B & \underline{94.1} & \underline{68.2} & 44.0 & 53.8 & 30.0 & 15.6 & 30.0 & \underline{78.4} & \textbf{47.0} & 51.2 \\
+\quad + GRPO~\citep{shao2024deepseekmath} & 9B & 93.3 & 63.0 & \underline{56.2} & \textbf{72.0} & \textbf{46.7} & \textbf{30.0} & \textbf{57.8} & 63.0 & 17.7 & \underline{55.5} \\
+\rowcolor{blue!6}
+\quad + TopoPRM (Ours) & 9B & \textbf{97.9} & \textbf{81.9} & \textbf{56.2} & \underline{76.2} & \underline{43.3} & \underline{18.9} & \underline{47.0} & \textbf{86.4} & \underline{40.4} & \textbf{60.9} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+\begin{table}[!t]
+\centering
+\caption{Archived EMNLP Table 3: reward component ablation on Qwen3.5-9B. Avg is the originally submitted unweighted mean pass@1 across eight benchmarks.}
+\label{tab:legacy_ablation_compact}
+\setlength{\tabcolsep}{3.5pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}l ccccc@{}}
+\toprule
+\textbf{Reward Config.} & \textbf{Avg (\%)} & $\boldsymbol{\Delta}$ & \textbf{Tok} & \textbf{Acc/kTok}$\uparrow$ & \textbf{Collapse\%}$\downarrow$ \\
+\midrule
+\rowcolor{blue!6}
+TopoPRM (Full) & 45.6 & --- & 1692 & 26.9 & 37.9 \\
+\quad w/o ACE & 41.7 & $-$3.8 & 1958 & 21.3 & 42.1 \\
+\quad w/o Topology & 41.8 & $-$3.8 & 1943 & 21.5 & 44.6 \\
+\quad w/o Continuity & 16.3 & $-$29.3 & 2047 & \phantom{0}8.0 & 68.8 \\
+Outcome Only & 40.8 & $-$4.7 & 1823 & 22.4 & 57.8 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\begin{table}[!t]
+\centering
+\caption{Archived EMNLP Table 4: cross-scale distillation from the 9B TopoPRM teacher. Token Ratio is mean generation length relative to the teacher; Structural Retention aggregates the originally submitted DAG-profile metrics on MATH-500.}
+\label{tab:legacy_compression}
+\setlength{\tabcolsep}{5pt}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Scale} & \textbf{GSM8K} & \textbf{MATH} & \textbf{Tok} & \textbf{Ratio} & \textbf{Struct. Ret.} \\
+\midrule
+9B (Teacher) & 84.3 & 66.6 & 679 & 1.00$\times$ & 1.00$\times$ \\
+\midrule
+\rowcolor{blue!6}
+4B & 82.8 & 61.5 & 382 & 0.56$\times$ & 0.93$\times$ \\
+\rowcolor{blue!6}
+2B & 78.9 & 57.1 & 305 & 0.45$\times$ & 0.88$\times$ \\
+\rowcolor{blue!6}
+0.8B & 73.6 & 52.4 & 244 & 0.36$\times$ & 0.81$\times$ \\
+\midrule
+4B (SFT-distill) & 79.4 & 58.2 & 438 & 0.64$\times$ & 0.86$\times$ \\
+4B (Off-policy KL) & 76.8 & 49.3 & 4096 & $>$1.0$\times$ & 0.41$\times$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Archived EMNLP Table 9: reward aggregation comparison on the in-domain critique set. All numeric values are retained from the submission.}
+\label{tab:legacy_aggregation_ablation}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}l ccccc@{}}
+\toprule
+\textbf{Strategy} & \textbf{Mid} & \textbf{High} & \textbf{Fmt\%} & \textbf{Len} & \textbf{Collapse\%}$\downarrow$ \\
+\midrule
+Linear (weighted sum) & 37.2 & 22.3 & 94.6 & 364 & 75.1 \\
+Clipped linear & 29.0 & 21.5 & 93.0 & 382 & 67.7 \\
+\rowcolor{blue!6}
+Legacy hierarchical aggregation & 37.2 & 22.3 & 94.6 & 364 & 37.9 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,69 @@
+\begin{table}[!t]
+\centering
+\caption{Main results on four math benchmarks, \reused{reused from the earlier EMNLP-protocol runs} (teal cells) and \emph{not} the ICLR canonical protocol. Every numeric cell is a reused EMNLP-protocol measurement; the complete eight-benchmark version with p@5, maj@5, and wall-clock time is Table~\ref{tab:main_detailed}.}
+\label{tab:main_emnlp_promoted}
+\vspace{2pt}
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}l ccc ccc ccc ccc@{}}
+\toprule
+& \multicolumn{3}{c}{\textbf{GSM8K}}
+& \multicolumn{3}{c}{\textbf{MATH-500}}
+& \multicolumn{3}{c}{\textbf{OlympiadBench}}
+& \multicolumn{3}{c}{\textbf{AIME 2024}} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}\cmidrule(lr){11-13}
+\textbf{Method}
+& p@1 & Tok. & \makecell{Acc/\\kTok}
+& p@1 & Tok. & \makecell{Acc/\\kTok}
+& p@1 & Tok. & \makecell{Acc/\\kTok}
+& p@1 & Tok. & \makecell{Acc/\\kTok} \\
+\midrule
+\textit{Base (Qwen3.5-9B)}
+& \reused{55.2} & \reused{1{,}536} & \reused{35.9}
+& \reused{19.8} & \reused{1{,}536} & \reused{12.9}
+& \reused{11.2} & \reused{2{,}560} & \reused{4.4}
+& \reused{16.7} & \reused{4{,}083} & \reused{4.1} \\
+\midrule
+Outcome Only
+& \reused{93.3} & \reused{1{,}047} & \reused{89.1}
+& \reused{\underline{50.8}} & \reused{1{,}511} & \reused{33.6}
+& \reused{31.3} & \reused{\underline{2{,}043}} & \reused{\underline{15.3}}
+& \reused{16.7} & \reused{\underline{2{,}546}} & \reused{6.6} \\
+w/o Topology
+& \reused{93.0} & \reused{\underline{946}} & \reused{\underline{98.3}}
+& \reused{\underline{51.0}} & \reused{\underline{1{,}506}} & \reused{\underline{33.9}}
+& \reused{29.8} & \reused{2{,}468} & \reused{12.1}
+& \reused{\underline{20.0}} & \reused{2{,}560} & \reused{\underline{7.8}} \\
+w/o Continuity
+& \reused{51.0} & \reused{1{,}528} & \reused{33.4}
+& \reused{21.6} & \reused{1{,}536} & \reused{14.1}
+& \reused{8.2} & \reused{2{,}560} & \reused{3.2}
+& \reused{6.7} & \reused{2{,}560} & \reused{2.6} \\
+w/o ACE
+& \reused{\underline{93.8}} & \reused{1{,}006} & \reused{93.2}
+& \reused{\underline{50.8}} & \reused{1{,}515} & \reused{33.5}
+& \reused{32.8} & \reused{2{,}491} & \reused{13.2}
+& \reused{\underline{20.0}} & \reused{2{,}560} & \reused{\underline{7.8}} \\
+\rowcolor{blue!6}
+$\bigstar$~\textbf{\method (Full)}
+& \reused{\textbf{94.1}} & \reused{\textbf{796}} & \reused{\textbf{118.2}}
+& \reused{\textbf{51.0}} & \reused{\textbf{1{,}454}} & \reused{\textbf{35.1}}
+& \reused{\textbf{32.8}} & \reused{\textbf{1{,}768}} & \reused{\textbf{18.6}}
+& \reused{\textbf{30.0}} & \reused{\textbf{2{,}431}} & \reused{\textbf{12.3}} \\
+\bottomrule
+\end{tabular}
+
+\vspace{3pt}
+\parbox{\textwidth}{\footnotesize
+\emph{Protocol.} The EMNLP protocol draws \textbf{5 samples per item} and p@1 is the
+mean over those 5 samples, whereas the ICLR protocol uses \textbf{1 seed-0 sample per
+item}. The EMNLP protocol also applied \textbf{per-benchmark generation caps
+(2,560 tokens on most sets)} rather than the ICLR \textbf{4,096-token cap}.
+Tok.\ is the mean generated tokens and
+Acc/kTok $=$ p@1$/(\overline{\text{tokens}}/1000)$.
+One training run per variant; \textbf{bold}\,/\,\underline{underline} $=$ best\,/\,second
+best among the six rows.
+\needcheck{The AIME 2024 base row's 4{,}083-token mean exceeds the 2{,}560-token cap used on the other sets, so that benchmark ran under a larger cap; the exact per-benchmark caps need author confirmation.}
+\par}
+\end{table}

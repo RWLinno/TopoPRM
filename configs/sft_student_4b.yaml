@@ -1,0 +1,32 @@
+model: Qwen/Qwen3.5-4B
+
+dataset:
+  - data/sft_ready/train_augmented.jsonl
+
+train_type: lora
+lora_rank: 64
+lora_alpha: 128
+target_modules: all-linear
+lora_dropout: 0.05
+
+per_device_train_batch_size: 4
+gradient_accumulation_steps: 8
+learning_rate: 5e-5
+num_train_epochs: 2
+lr_scheduler_type: cosine
+warmup_ratio: 0.03
+weight_decay: 0.01
+max_length: 4096
+bf16: true
+gradient_checkpointing: true
+
+eval_strategy: steps
+eval_steps: 50
+save_steps: 50
+save_total_limit: 3
+report_to:
+  - tensorboard
+  - wandb
+logging_steps: 5
+
+output_dir: output/sft_student_4b

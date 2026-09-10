@@ -1,0 +1,45 @@
+# GRPO length-aware baseline (DR1-7B): outcome + format + length, NO topology.
+# Rebuttal baseline isolating topology gains from brevity pressure
+# (HxUk W2, B5w7 W3). Matched to grpo_topoprm_deepseek_r1_7b.yaml (same SFT
+# init, same 200 steps, same data/protocol) except the reward function.
+model: ${MODEL_ROOT}/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
+# model_type auto-detected by swift (DR1-Distill-Qwen-7B -> qwen2)
+
+tuner_type: lora
+lora_rank: 64
+lora_alpha: 128
+target_modules: all-linear
+
+# SFT adapter as init (downloaded from HF anonymous/topoprm-ckpts)
+adapters:
+  - rebuttal/ckpts/sft-dr1-7b-final
+
+rlhf_type: grpo
+num_generations: 4
+max_completion_length: 4096
+
+external_plugins: src/reward/ablation_rewards.py
+reward_funcs: ablation_outcome_length
+
+dataset:
+  - data/grpo_ready/train_public_swift.jsonl
+
+max_steps: 200
+learning_rate: 5.0e-6
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 4
+beta: 0.04
+temperature: 0.8
+top_p: 0.95
+# vLLM disabled: the installed vllm 0.6.0 is a broken stub (EngineArgs has no
+# __init__); use the native PT rollout backend instead (slower but correct).
+use_vllm: false
+bf16: true
+gradient_checkpointing: true
+save_steps: 50
+save_total_limit: 3
+output_dir: output/grpo_outcome_length_dr1_7b
+report_to:
+  - tensorboard
+  - wandb
+logging_steps: 5

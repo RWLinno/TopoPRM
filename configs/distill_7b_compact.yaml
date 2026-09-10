@@ -1,0 +1,35 @@
+# Online reverse-KL distillation: teacher 32B -> student 8B (7B-level)
+teacher_model: Qwen/Qwen3-32B
+teacher_adapter: output/grpo_main/v3-20260318-211524/checkpoint-79
+student_model: ${MODEL_ROOT}/Qwen3-8B
+
+# No teacher-trace filtering pipeline. Directly use existing training corpus.
+dataset:
+  - data/sft_ready/train_augmented.jsonl
+
+# LoRA for student
+lora_rank: 64
+lora_alpha: 128
+target_modules: all-linear
+lora_dropout: 0.05
+
+# Reverse-KL objective
+temperature: 1.0
+rkl_weight: 1.0
+ce_weight: 0.05
+
+# Training
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+learning_rate: 2e-5
+num_train_epochs: 1
+warmup_ratio: 0.05
+weight_decay: 0.01
+max_length: 2048
+max_train_samples: 4000
+bf16: true
+gradient_checkpointing: true
+
+logging_steps: 10
+save_steps: 100
+output_dir: output/distill_7b_compact_rkl

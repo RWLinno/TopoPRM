@@ -1,0 +1,4 @@
+Step 1: Let f(x)=x^2-4x+3.
+Step 2: Factor f(x) as (x-1)(x-3).
+Step 3: Set f(x)=0 to get roots x=1 and x=3.
+Step 4: Hence the solution set is {1,3}.

@@ -1,0 +1,58 @@
+# ─── GRPO: topo_composite_clipped ───
+model: Qwen/Qwen3-32B
+adapters:
+  - output/sft/v0-20260318-040154/checkpoint-120
+
+dataset:
+  - data/grpo_ready/train.jsonl   # 637 critique prompts
+
+# Reward
+external_plugins:
+  - src/reward/composite_reward.py
+reward_funcs:
+  - topo_composite_clipped
+
+# Generation
+num_generations: 8                # completions per prompt for GRPO
+temperature: 0.7
+max_completion_length: 2048       # max tokens per completion
+top_p: 0.95
+
+# vLLM acceleration (colocate: vLLM engine runs inside training process)
+use_vllm: true
+vllm_mode: colocate
+vllm_gpu_memory_utilization: 0.5  # fraction of GPU memory for vLLM KV cache
+vllm_max_model_len: 4096          # max sequence length for vLLM engine
+vllm_enable_prefix_caching: false # MUST be false to prevent SHM leak
+sleep_level: 1                    # offload vLLM weights between generation rounds
+offload_model: true               # offload training model during generation
+offload_optimizer: true            # offload optimizer states during generation
+
+# LoRA
+train_type: lora
+lora_rank: 64
+lora_alpha: 128
+target_modules: all-linear
+lora_dropout: 0.05
+
+# Training
+per_device_train_batch_size: 2
+gradient_accumulation_steps: 4    # effective batch = 2 * 4 * num_gpus
+learning_rate: 5e-6
+num_train_epochs: 1
+lr_scheduler_type: cosine
+warmup_ratio: 0.05
+weight_decay: 0.01
+max_length: 8192
+bf16: true
+gradient_checkpointing: true
+
+# Checkpointing & logging
+save_steps: 50
+save_total_limit: 5
+report_to:
+  - tensorboard
+  - wandb
+logging_steps: 5
+
+output_dir: output/grpo_clipped

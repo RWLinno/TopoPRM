@@ -1,0 +1,86 @@
+# ─── Model weights & checkpoints ───────────────────────────────────────────
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.gguf
+*.onnx
+*.msgpack
+*.h5
+checkpoints/
+checkpoint-*/
+
+# ─── Run artifacts (never committed: may embed absolute paths) ─────────────
+output/
+runs/
+wandb/
+mlruns/
+*.log
+nohup.out
+
+# ─── Large / generated data ───────────────────────────────────────────────
+data/hf_download/
+data/test/
+data/grpo_ready/
+data/sft_ready/
+data/distill_ready/
+data/cache/
+*.arrow
+*.parquet
+
+# ─── Python ───────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+/build/
+/dist/
+pip-wheel-metadata/
+
+# ─── Virtual environments ─────────────────────────────────────────────────
+.venv/
+venv/
+/env/
+/ENV/
+.conda/
+.python-version
+
+# ─── LaTeX build products (contain absolute paths — anonymity risk) ───────
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.lot
+*.out
+*.synctex.gz
+*.toc
+*.nav
+*.snm
+*.vrb
+
+# ─── Editors / IDEs / OS ──────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ─── Local secrets & machine-specific overrides ───────────────────────────
+.env
+.env.*
+*.local.sh
+*.local.env
+secrets.yaml
+*.pem
+*.key

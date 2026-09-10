@@ -1,0 +1,18 @@
+# Ablation: GAT topology scorer (hybrid mode)
+ablation:
+  reward_aggregation: hierarchical
+  topo_scorer: hybrid
+  use_topo_reward: true
+  use_continuity_reward: true
+  use_format_reward: true
+  use_length_reward: true
+  alpha: 0.60
+  reward_noise_eps: 0.01
+  min_reward_std: 0.005
+  reward_temperature: 2.0
+  gat:
+    pe_k: 8
+    step_embed_dim: 8
+    hidden_dim: 64
+    heads: 4
+    hybrid_weight: 0.5

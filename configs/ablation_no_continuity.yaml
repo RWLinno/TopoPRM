@@ -1,0 +1,12 @@
+# Ablation: No continuity reward
+ablation:
+  reward_aggregation: hierarchical
+  topo_scorer: rule_based
+  use_topo_reward: true
+  use_continuity_reward: false
+  use_format_reward: true
+  use_length_reward: true
+  alpha: 0.60
+  reward_noise_eps: 0.01
+  min_reward_std: 0.005
+  reward_temperature: 2.0

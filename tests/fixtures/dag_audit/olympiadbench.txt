@@ -1,0 +1,4 @@
+Step 1: Assume triangle ABC is right at C, so AB^2=AC^2+BC^2.
+Step 2: Substitute AC=3 and BC=4 into the identity.
+Step 3: Compute AB^2=3^2+4^2=25.
+Step 4: Therefore AB=5.

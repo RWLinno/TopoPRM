@@ -1,0 +1,25 @@
+# GAT Topological Scorer Configuration
+# Used by src/reward/gat_topo_reward.py
+
+gat_topo:
+  # Position encoding
+  pe_k: 8                    # Number of Laplacian eigenvectors
+  step_embed_dim: 8          # Step-level feature dimension
+
+  # GAT architecture
+  hidden_dim: 64
+  heads: 4
+  dropout: 0.1
+
+  # Scoring mode: rule_based | gat | hybrid
+  # Also controllable via TOPO_SCORER env var
+  mode: hybrid
+
+  # Hybrid mode weight: score = weight * gat + (1-weight) * rule
+  hybrid_weight: 0.5
+
+  # Checkpoint path for pretrained GAT weights (optional)
+  checkpoint_path: null
+
+  # Device for GAT inference
+  device: cpu

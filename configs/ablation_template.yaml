@@ -1,0 +1,47 @@
+# ─── TopoPRM Ablation Configuration Template ───
+# Copy this file and modify for each ablation experiment.
+# All switches are read by the reward pipeline at runtime.
+
+# --- Reward aggregation strategy ---
+ablation:
+  # Aggregation mode: linear | hierarchical | mulgate | confgate | scae
+  reward_aggregation: hierarchical
+
+  # Topology scorer: rule_based | gat | hybrid
+  topo_scorer: rule_based
+
+  # Component switches (set false to disable)
+  use_topo_reward: true
+  use_continuity_reward: true
+  use_format_reward: true
+  use_length_reward: true
+
+  # Hierarchical reward parameters
+  alpha: 0.60                  # topo vs continuity balance in gain term
+  reward_noise_eps: 0.01       # anti-collapse noise magnitude
+  min_reward_std: 0.005        # minimum batch reward std before noise injection
+  reward_temperature: 2.0      # amplify reward differences
+
+  # GAT scorer parameters (only used when topo_scorer=gat or hybrid)
+  gat:
+    pe_k: 8
+    step_embed_dim: 8
+    hidden_dim: 64
+    heads: 4
+    dropout: 0.1
+    hybrid_weight: 0.5
+    checkpoint_path: null
+
+  # Base weights for hierarchical/mulgate modes
+  base_weights:
+    outcome: 0.70
+    format: 0.15
+    length: 0.15
+
+  # Linear weights (only used when reward_aggregation=linear)
+  linear_weights:
+    outcome: 0.40
+    format: 0.15
+    topo: 0.20
+    continuity: 0.15
+    length: 0.10

@@ -1,0 +1,14 @@
+torch>=2.1
+transformers>=4.40
+trl>=0.28
+peft>=0.18
+datasets>=2.19
+networkx>=3.0
+matplotlib>=3.7
+sympy>=1.12
+tqdm
+regex
+pytest
+streamlit
+huggingface_hub
+safetensors

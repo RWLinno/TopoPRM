@@ -1,0 +1,68 @@
+# [2026-04-23 KILLED at step 134/400]
+#   Killed after confirming D1 BASE_FLOOR fix worked
+#   (frac_reward_zero_std 0.36 -> 0, reward_std 5e-4 -> 0.155) but the
+#   remaining 15h wall-time was not worth the marginal AIME +3pp gain versus
+#   the compression-by-design narrative from 7B TopoPRM. See
+#   the experiment observation notes for the full decision log.
+#   Last saved LoRA: output/grpo_hierarchical_qwen35_9b_mcl4096_continue/v0-20260423-135530/checkpoint-100
+#
+# GRPO continue training: resume from hier-9B checkpoint-79 with the
+# 2026-04-23 reward fixes (BASE_FLOOR + std-floor noise injection in
+# Hierarchical/Gated/Composite, weighted orphan ratio).
+#
+# Goal (original): lift Olympiad/Omni stay >= 32.8/42.8 and AIME2024 from
+# 26.7 -> >= 30 (see the handoff notes, Part D.4).
+model: Qwen/Qwen3.5-9B
+
+dataset:
+  - data/grpo_ready/train.jsonl
+
+external_plugins:
+  - src/reward/composite_reward.py
+reward_funcs:
+  - topo_hierarchical
+
+# Bumped from 2 -> 4 to widen intra-group variance even before BASE_FLOOR kicks in.
+num_generations: 4
+temperature: 0.8
+max_completion_length: 4096
+top_p: 0.95
+
+use_vllm: true
+vllm_mode: colocate
+vllm_gpu_memory_utilization: 0.6
+vllm_max_model_len: 8192
+vllm_enable_prefix_caching: false
+sleep_level: 1
+offload_model: true
+offload_optimizer: true
+
+train_type: lora
+lora_rank: 64
+lora_alpha: 128
+target_modules: all-linear
+lora_dropout: 0.05
+
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 16
+learning_rate: 5e-6
+# Hard step cap: 79 (already done) + ~321 = 400 total.  num_train_epochs is
+# nominal; max_steps is what actually controls run length.
+# v2 ran 79 steps = 1 epoch on 6 GPUs.  At 2 GPUs each epoch is ~237 steps,
+# so num_train_epochs: 3 is enough for max_steps: 400 to be the binding cap.
+num_train_epochs: 3
+max_steps: 400
+lr_scheduler_type: cosine
+warmup_ratio: 0.0
+weight_decay: 0.01
+max_length: 8192
+bf16: true
+gradient_checkpointing: true
+
+save_steps: 40
+save_total_limit: 5
+report_to:
+  - tensorboard
+logging_steps: 5
+
+output_dir: output/grpo_hierarchical_qwen35_9b_mcl4096_continue

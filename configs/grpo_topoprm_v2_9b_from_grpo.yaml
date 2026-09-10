@@ -1,0 +1,34 @@
+# TopoPRM v2 + ACE (SCAE) for Qwen3.5-9B
+# Strategy: Direct training with correctness-first hierarchical reward
+# Key: max_completion_length=4096 for competition math, SCAE for advantage estimation
+model: ${MODEL_ROOT}/Qwen/Qwen3.5-9B
+
+tuner_type: lora
+lora_rank: 64
+lora_alpha: 128
+
+rlhf_type: grpo
+num_generations: 4
+max_completion_length: 4096
+beta: 0.04
+use_vllm: false
+gradient_checkpointing: true
+bf16: true
+
+external_plugins:
+  - src/reward/composite_reward.py
+reward_funcs:
+  - topo_composite_scae
+
+dataset:
+  - data/grpo_ready/train_public_swift.jsonl
+
+max_steps: 200
+learning_rate: 5.0e-6
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 4
+save_steps: 50
+output_dir: output/grpo_topoprm_v2_9b
+report_to:
+  - tensorboard
+logging_steps: 5

@@ -1,0 +1,36 @@
+# TVSD Phase III-A: Self-Revision Training for Qwen3.5-9B
+# Input: data/srt_ready/train.jsonl (output of src/distill/build_srt_data.py)
+# - Each record is a full chat turn with either revision or generation loss tag
+# - Both loss types are summed per Eq. eq:srt (equal weight)
+model: ${MODEL_ROOT}/Qwen/Qwen3.5-9B
+resume_from_checkpoint: ""
+
+dataset:
+  - data/srt_ready/train.jsonl
+
+train_type: lora
+lora_rank: 64
+lora_alpha: 128
+target_modules: all-linear
+lora_dropout: 0.05
+
+per_device_train_batch_size: 2
+gradient_accumulation_steps: 8
+learning_rate: 5e-5
+num_train_epochs: 2
+lr_scheduler_type: cosine
+warmup_ratio: 0.03
+weight_decay: 0.01
+max_length: 4096
+bf16: true
+gradient_checkpointing: true
+
+eval_strategy: "no"
+save_steps: 100
+save_total_limit: 3
+report_to:
+  - tensorboard
+  - wandb
+logging_steps: 10
+
+output_dir: output/srt_9b

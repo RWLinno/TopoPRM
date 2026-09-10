@@ -1,0 +1,4 @@
+Step 1: Let n be even, write n=2k.
+Step 2: Then n^2=4k^2 from substitution.
+Step 3: Since 4k^2 is divisible by 4, n^2 is divisible by 4.
+Step 4: Therefore the required divisibility condition holds.

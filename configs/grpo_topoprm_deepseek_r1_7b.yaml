@@ -1,0 +1,38 @@
+# GRPO + TopoPRM config for DeepSeek-R1-Distill-Qwen-7B
+# Uses hierarchical reward aggregation with large-scale public DAG data
+
+model: ${MODEL_ROOT}/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
+model_type: qwen2_5
+
+train_type: lora
+lora_rank: 64
+lora_alpha: 128
+lora_target_modules: ALL
+
+# SFT adapter as init
+adapters:
+  - output/sft_deepseek_r1_7b/final
+
+rlhf_type: grpo
+num_generations: 4
+group_size: 4
+max_completion_length: 4096
+
+external_plugins: src/reward/composite_reward.py
+reward_funcs: topo_hierarchical
+
+dataset:
+  - type: jsonl
+    path: data/grpo_ready/train_public.jsonl
+
+max_steps: 200
+learning_rate: 5.0e-6
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 4
+kl_coeff: 0.04
+save_steps: 50
+output_dir: output/grpo_topoprm_deepseek_r1_7b
+report_to:
+  - tensorboard
+  - wandb
+logging_steps: 5

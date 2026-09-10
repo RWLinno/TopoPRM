@@ -1,0 +1,21 @@
+#TASK_ID	LABEL	ADAPTER	SFT_STYLE	BENCHMARKS	NUM_SAMPLES	MAX_ITEMS	NOTES
+# Tab-separated. Lines starting with '#' are comments and not counted in task ids.
+# MODEL is fixed to DeepSeek-R1-Distill-Qwen-7B for the DR1-7B family.
+# ADAPTER == "-" means use the raw base model (no LoRA adapter).
+# SFT_STYLE: 0|1.
+# BENCHMARKS: '+' separated list, will be passed to bench_transformers.py.
+# NUM_SAMPLES: --num_samples_per_item.
+# MAX_ITEMS: --max_items (0 = full set).
+#
+# === Wave A: fast public benches for DR1-7B family (table fill) ===
+0	baseline_dr1_7b_chat	-	0	aime2025+amc23+gpqa_diamond	5	0	wave_a_baseline_no_adapter
+1	sft_dr1_7b	output/sft_deepseek_r1_7b/final	1	aime2025+amc23+gpqa_diamond	5	0	wave_a_sft
+2	grpo_outcome_only	output/grpo_outcome_only_dr1_7b/final	1	aime2025+amc23+gpqa_diamond	5	0	wave_a_outcome
+3	grpo_no_topo	output/grpo_no_topo_dr1_7b/final	1	aime2025+amc23+gpqa_diamond	5	0	wave_a_no_topo
+4	grpo_no_continuity	output/grpo_no_continuity_dr1_7b/final	1	aime2025+amc23+gpqa_diamond	5	0	wave_a_no_cont
+5	topoprm_full_dr1_7b	output/grpo_topoprm_deepseek_r1_7b/final	1	aime2025+amc23+gpqa_diamond	5	0	wave_a_topoprm_hier
+# === Wave B: slow public benches for 4 key rows (filled after Wave A) ===
+6	baseline_dr1_7b_chat	-	0	olympiadbench+omni_math	1	500	wave_b_baseline
+7	sft_dr1_7b	output/sft_deepseek_r1_7b/final	1	olympiadbench+omni_math	1	500	wave_b_sft
+8	grpo_outcome_only	output/grpo_outcome_only_dr1_7b/final	1	olympiadbench+omni_math	1	500	wave_b_outcome
+9	topoprm_full_dr1_7b	output/grpo_topoprm_deepseek_r1_7b/final	1	olympiadbench+omni_math	1	500	wave_b_topoprm_hier

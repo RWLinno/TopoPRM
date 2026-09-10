@@ -1,0 +1,29 @@
+# OPSD student distillation: teacher = 9B SRT, student = Qwen3.5-0.8B
+student_base: Qwen/Qwen3.5-0.8B
+student_adapter: ""
+
+teacher_base: Qwen/Qwen3.5-9B
+teacher_adapter: output/srt_9b/final
+
+dataset: data/grpo_ready/train.jsonl
+dataset_split: D2
+
+num_train_epochs: 3
+per_device_train_batch_size: 8
+gradient_accumulation_steps: 2
+learning_rate: 1e-4
+lr_scheduler_type: cosine
+warmup_ratio: 0.05
+max_length: 4096
+max_new_tokens: 1024
+bf16: true
+gradient_checkpointing: true
+
+kl_temperature: 1.0
+topo_threshold: 0.5
+use_topo_aware_pr: true
+
+logging_steps: 10
+save_steps: 100
+save_total_limit: 3
+output_dir: output/opsd_student_0p8b

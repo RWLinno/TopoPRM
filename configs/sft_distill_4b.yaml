@@ -1,0 +1,39 @@
+# Canonical Stage-III 9B-to-4B Topology-Guided Distillation run.
+model: ${MODEL_ROOT}/Qwen3.5-4B
+
+dataset:
+  - ${EXP_ROOT}/canonical/distill_data/topology/train.jsonl
+val_dataset:
+  - ${EXP_ROOT}/canonical/distill_data/topology/validation.jsonl
+
+tuner_type: lora
+lora_rank: 64
+lora_alpha: 128
+target_modules: all-linear
+lora_dropout: 0.05
+torch_dtype: bfloat16
+
+per_device_train_batch_size: 2
+per_device_eval_batch_size: 2
+gradient_accumulation_steps: 4
+learning_rate: 2e-5
+num_train_epochs: 1
+lr_scheduler_type: cosine
+warmup_ratio: 0.03
+weight_decay: 0.01
+max_length: 4096
+gradient_checkpointing: true
+deepspeed: zero2
+
+eval_strategy: steps
+eval_steps: 100
+save_steps: 100
+save_total_limit: 2
+report_to:
+  - tensorboard
+logging_steps: 10
+seed: 0
+data_seed: 0
+add_version: false
+
+output_dir: /tmp/TopoPRM_ICLR27/canonical/distill_topology_qwen35_4b

@@ -1,0 +1,42 @@
+# TVSD Phase III-B: On-Policy Self-Distillation for Qwen3.5-9B
+# Generator (student) = Qwen3.5-9B + sft_qwen35_9b/checkpoint-626 (initial)
+# Reviser (teacher)   = output/srt_9b/best_checkpoint
+#
+# For each x in D2:
+#   y ~ pi_theta(.|x)                    # student on-policy
+#   P_r built from (r_out, r_topo, r_cont) of y
+#   teacher_logits = pi_SRT(.|x, y, P_r, y_{<t})
+#   L = sum_t KL( pi_theta(.|x, y_{<t})  ||  teacher_logits )
+
+# Used by src/distill/opsd_trainer.py
+student_base: Qwen/Qwen3.5-9B
+student_adapter: output/sft_qwen35_9b/v0-20260407-011328/checkpoint-626
+
+teacher_base: Qwen/Qwen3.5-9B
+teacher_adapter: output/srt_9b/final
+
+dataset: data/grpo_ready/train.jsonl
+dataset_split: D2  # use second half not used in Phase III-A
+
+num_train_epochs: 1
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 16
+learning_rate: 1e-5
+lr_scheduler_type: cosine
+warmup_ratio: 0.05
+max_length: 4096
+max_new_tokens: 1024
+bf16: true
+gradient_checkpointing: true
+
+# KL loss temperature
+kl_temperature: 1.0
+
+# Topology signals at training time
+topo_threshold: 0.5
+use_topo_aware_pr: true
+
+logging_steps: 10
+save_steps: 100
+save_total_limit: 3
+output_dir: output/opsd_9b

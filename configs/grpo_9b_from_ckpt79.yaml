@@ -1,0 +1,37 @@
+# TopoPRM v2: Continue from ckpt79 (the "GRPO" row in table)
+# Goal: Beat ckpt79 on Olympiad/Omni/AIME/CNMO while maintaining GSM8K/MATH/MMLU/GPQA
+# Key changes vs ckpt79: more steps, SCAE preserve_outcome, reference_dag in data
+model: ${MODEL_ROOT}/Qwen/Qwen3.5-9B
+
+tuner_type: lora
+lora_rank: 64
+lora_alpha: 128
+adapters:
+  - output/hf_ckpts/grpo_hier_9b_ckpt79
+
+rlhf_type: grpo
+num_generations: 2
+temperature: 0.8
+max_completion_length: 4096
+beta: 0.04
+use_vllm: false
+gradient_checkpointing: true
+bf16: true
+
+external_plugins:
+  - src/reward/composite_reward.py
+reward_funcs:
+  - topo_hierarchical
+
+dataset:
+  - data/grpo_ready/train_9b_swift.jsonl
+
+max_steps: 120
+learning_rate: 3.0e-6
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 16
+save_steps: 40
+output_dir: output/grpo_9b_from_ckpt79
+report_to:
+  - tensorboard
+logging_steps: 5

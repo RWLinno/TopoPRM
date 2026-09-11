@@ -84,3 +84,8 @@ Thumbs.db
 secrets.yaml
 *.pem
 *.key
+
+# Research records are planned for release after acceptance.
+/results/
+/data/**
+!/data/README.md

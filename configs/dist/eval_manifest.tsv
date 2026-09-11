@@ -1,21 +1,10 @@
 #TASK_ID	LABEL	ADAPTER	SFT_STYLE	BENCHMARKS	NUM_SAMPLES	MAX_ITEMS	NOTES
-# Tab-separated. Lines starting with '#' are comments and not counted in task ids.
-# MODEL is fixed to DeepSeek-R1-Distill-Qwen-7B for the DR1-7B family.
-# ADAPTER == "-" means use the raw base model (no LoRA adapter).
-# SFT_STYLE: 0|1.
-# BENCHMARKS: '+' separated list, will be passed to bench_transformers.py.
-# NUM_SAMPLES: --num_samples_per_item.
-# MAX_ITEMS: --max_items (0 = full set).
-#
-# === Wave A: fast public benches for DR1-7B family (table fill) ===
-0	baseline_dr1_7b_chat	-	0	aime2025+amc23+gpqa_diamond	5	0	wave_a_baseline_no_adapter
-1	sft_dr1_7b	output/sft_deepseek_r1_7b/final	1	aime2025+amc23+gpqa_diamond	5	0	wave_a_sft
-2	grpo_outcome_only	output/grpo_outcome_only_dr1_7b/final	1	aime2025+amc23+gpqa_diamond	5	0	wave_a_outcome
-3	grpo_no_topo	output/grpo_no_topo_dr1_7b/final	1	aime2025+amc23+gpqa_diamond	5	0	wave_a_no_topo
-4	grpo_no_continuity	output/grpo_no_continuity_dr1_7b/final	1	aime2025+amc23+gpqa_diamond	5	0	wave_a_no_cont
-5	topoprm_full_dr1_7b	output/grpo_topoprm_deepseek_r1_7b/final	1	aime2025+amc23+gpqa_diamond	5	0	wave_a_topoprm_hier
-# === Wave B: slow public benches for 4 key rows (filled after Wave A) ===
-6	baseline_dr1_7b_chat	-	0	olympiadbench+omni_math	1	500	wave_b_baseline
-7	sft_dr1_7b	output/sft_deepseek_r1_7b/final	1	olympiadbench+omni_math	1	500	wave_b_sft
-8	grpo_outcome_only	output/grpo_outcome_only_dr1_7b/final	1	olympiadbench+omni_math	1	500	wave_b_outcome
-9	topoprm_full_dr1_7b	output/grpo_topoprm_deepseek_r1_7b/final	1	olympiadbench+omni_math	1	500	wave_b_topoprm_hier
+# Shared-stage DR1-Qwen-7B suite: base + shared SFT + GRPO adapter, merged in that order.
+# Checkpoint hashes identify private final adapters; per-item records are planned for release after acceptance.
+# Historical source revisions and original answer extraction are not fully recoverable from a checkpoint hash.
+# checkpoint grpo_outcome_only_dr1_7b/final sha256=1cf8284bedf8d32a8857036260fda7bfcd197cadbc387a71125ece5e1cc7a076
+# checkpoint grpo_outcome_length_dr1_7b/final sha256=f8832ea7089b170bacd80f3ca9b75178fe1297adfb4b266a127ba3c1f9562c9b
+# checkpoint grpo_topo_hier_dr1_7b/final sha256=a15d76a020521db5aac9ec8377c56da05b83fd7dded4b0a901cbf944b20c45b5
+0	outcome_only_matched	output/grpo_outcome_only_dr1_7b/final	1	gsm8k	1	200	shared_SFT_GRPO200_no_TGD_cap4096
+1	outcome_length_matched	output/grpo_outcome_length_dr1_7b/final	1	gsm8k	1	200	shared_SFT_GRPO200_no_TGD_cap4096
+2	topo_hier_matched	output/grpo_topo_hier_dr1_7b/final	1	gsm8k	1	200	shared_SFT_GRPO200_no_TGD_cap4096

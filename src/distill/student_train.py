@@ -1,4 +1,4 @@
-"""Online reverse-KL distillation trainer (teacher 32B -> student ~7/8B)."""
+"""Fixed-corpus reverse-KL distillation; prefixes come from the saved dataset."""
 
 from __future__ import annotations
 
@@ -333,7 +333,7 @@ def run_online_reverse_kl(config_path: Path, gpus: str, project_root: Path) -> i
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Online reverse-KL distillation trainer")
+    parser = argparse.ArgumentParser(description="Fixed-corpus reverse-KL distillation trainer")
     parser.add_argument("--config", type=Path, default=Path("configs/distill_7b_compact.yaml"))
     parser.add_argument("--gpus", type=str, default="0,1")
     parser.add_argument("--project_root", type=Path, default=Path("."))

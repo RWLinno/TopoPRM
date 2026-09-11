@@ -1,101 +1,160 @@
 #!/usr/bin/env python3
-"""GRPO ablation training — same as train_grpo.py but with selectable reward function.
+"""Shared-stage GRPO comparison for the paper's forward hierarchical reward.
 
-Usage:
-    CUDA_VISIBLE_DEVICES=4 python3 scripts/train_grpo_ablation.py \
-        --reward outcome_only --output_dir output/grpo_outcome_only_dr1_7b
+Select outcome_only, outcome_length, or topo_hierarchical. All variants share
+the same trainer and default 200-update budget. Saved legacy results are not
+regenerated merely by running this entrypoint with new checkpoints or software.
 """
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
 import json
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 
-import torch
-from datasets import Dataset
-from peft import LoraConfig, PeftModel, TaskType
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from trl import GRPOConfig, GRPOTrainer
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from src.reward.composite_reward import (
-    OutcomeOnlyReward, NoTopoReward, NoContinuityReward, TopoHierarchicalReward,
-)
-from src.training.accuracy_callback import (
-    EvalAccuracyCallback,
-    build_eval_subset,
-)
+REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO))
 
-MODEL_ID = os.getenv(
-    "TOPOPRM_BASE_MODEL",
-    os.path.expandvars("${MODEL_ROOT}/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"),
-)
-DATA_PATH = "data/grpo_ready/train_public.jsonl"
-
-REWARD_MAP = {
-    "outcome_only": OutcomeOnlyReward,
-    "no_topo": NoTopoReward,
-    "no_continuity": NoContinuityReward,
-    "hierarchical": TopoHierarchicalReward,
-}
+DEFAULT_BASE = "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
+DATA_PATH = "data/grpo_ready/train_public_swift.jsonl"
+SYSTEM = "Solve the math problem step by step. Put the final answer in \\boxed{}."
 
 
-def load_grpo_dataset(path: str) -> Dataset:
+def load_dataset(path: str):
+    from datasets import Dataset
     records = []
     with open(path, encoding="utf-8") as f:
         for line in f:
+            if not line.strip():
+                continue
             d = json.loads(line)
+            # swift-format record: messages / solution / reference_dag
+            if "messages" in d:
+                user = next((m["content"] for m in d["messages"] if m["role"] == "user"), "")
+                prompt = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}]
+            else:
+                prompt = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": d["question"]}]
             records.append({
-                "prompt": d["question"],
-                "solution": d.get("final_answer", ""),
+                "prompt": prompt,
+                "solution": str(d.get("solution", d.get("final_answer", ""))),
                 "reference_dag": d.get("reference_dag", ""),
             })
     return Dataset.from_list(records)
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model", default=MODEL_ID)
-    parser.add_argument("--sft_adapter", default="output/sft_deepseek_r1_7b/final")
-    parser.add_argument("--reward", required=True, choices=list(REWARD_MAP.keys()))
-    parser.add_argument("--output_dir", required=True)
-    parser.add_argument("--max_steps", type=int, default=200)
-    parser.add_argument("--num_generations", type=int, default=4)
-    parser.add_argument("--max_completion_len", type=int, default=4096)
-    parser.add_argument(
-        "--eval_every",
-        type=int,
-        default=20,
-        help="Run lightweight accuracy eval every N gradient steps; set 0 to disable.",
-    )
-    parser.add_argument("--eval_size", type=int, default=32,
-                        help="Number of held-out prompts used by the in-training eval.")
-    parser.add_argument("--eval_max_new_tokens", type=int, default=512,
-                        help="Per-sample generation cap during in-training eval.")
-    parser.add_argument("--eval_jsonl", default=DATA_PATH,
-                        help="JSONL with question / final_answer used to build the eval subset.")
-    args = parser.parse_args()
+def build_reward(name: str):
+    if name == "outcome_length":
+        from src.reward.ablation_rewards import OutcomeLengthReward
+        impl = OutcomeLengthReward()
+    elif name == "outcome_only":
+        from src.reward.ablation_rewards import OutcomeOnlyReward
+        impl = OutcomeOnlyReward()
+    elif name == "topo_hierarchical":
+        from src.reward.composite_reward import TopoHierarchicalReward
+        impl = TopoHierarchicalReward()
+    else:
+        raise ValueError(f"unknown reward {name}")
 
-    reward_cls = REWARD_MAP[args.reward]
-    reward_fn = reward_cls()
-    run_name = f"grpo_dr1_7b_{args.reward}_{datetime.now().strftime('%m%d')}"
+    def reward_function(completions, **kwargs):
+        solution = kwargs.get("solution", [None] * len(completions))
+        reference_dag = kwargs.get("reference_dag", [None] * len(completions))
+        if isinstance(solution, str):
+            solution = [solution] * len(completions)
+        if isinstance(reference_dag, str):
+            reference_dag = [reference_dag] * len(completions)
+        # ORM classes accept solution/reference_dag kwargs; pass through.
+        try:
+            return impl(completions, solution=solution, reference_dag=reference_dag)
+        except TypeError:
+            return impl(completions, solution=solution)
 
-    print(f"Reward: {args.reward} ({reward_cls.__name__})")
-    print(f"Loading tokenizer: {args.model}")
+    reward_function.__name__ = f"reward_{name}"
+    return reward_function
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--reward", default="outcome_length",
+                    choices=["outcome_length", "outcome_only", "topo_hierarchical"])
+    ap.add_argument("--model", default=DEFAULT_BASE)
+    ap.add_argument("--sft_adapter", required=True)
+    ap.add_argument("--data", default=DATA_PATH)
+    ap.add_argument("--output_dir", default="output/grpo_outcome_length_dr1_7b")
+    ap.add_argument("--max_steps", type=int, default=200)
+    ap.add_argument("--num_generations", type=int, default=4)
+    ap.add_argument("--max_completion_len", type=int, default=2048)
+    ap.add_argument("--report_to", default="none")
+    ap.add_argument("--seed", type=int, default=42)
+    args = ap.parse_args()
+
+    # Pin the forward hierarchical specification, including optional reference scoring.
+    os.environ.update({
+        'TOPO_DAG_RAW_DIRECTED': '0',
+        'TOPO_DAG_LLM_REFINE': '0',
+        'TOPO_DAG_EDGE_CHECKPOINT': '',
+        'TOPO_DAG_EDGE_REQUIRED': '0',
+        'TOPO_DISABLE_EDGE_ENCODER': '1',
+        'TOPO_ABLATION_CONFIG': '',
+        'TOPO_DAG_SENTENCE_FALLBACK': '0',
+        'TOPO_DAG_EXTRA_STEP_MARKERS': '0',
+        'TOPO_DAG_LATEX_EXPR': '0',
+        'TOPO_DAG_BARRIER_STRICT': '0',
+        'TOPO_DAG_FILTER_FORMATTING': '0',
+        'TOPO_DAG_SEQ_WHEN_NO_DEP_ONLY': '0',
+        'TOPO_VAR_REF_REQUIRE_MULTI': '0',
+        'TOPO_VAR_REF_DISTINCTIVE': '0',
+        'TOPO_SEQ_REQUIRE_OVERLAP': '0',
+        'TOPO_ORDER_REQUIRE_NUMERIC': '0',
+        'TOPO_ENABLE_SEQUENTIAL_WEAK_EDGE': '1',
+        'TOPO_SEQ_WEAK_EDGE_MODE': 'adaptive',
+        'TOPO_NO_THINK_FALLBACK': '0',
+        'TOPO_CONT_REQUIRE_EVIDENCE': '0',
+        'TOPO_CONTINUITY_BROKEN_CHAIN_PENALTY': '0.8',
+        'TOPO_ORPHAN_LEGACY': '0',
+        'TOPO_ORPHAN_W_VIRTUAL': '1',
+        'TOPO_ORPHAN_W_DOUBLE_BARRIER': '0.5',
+        'TOPO_ORPHAN_W_SOLID': '0.3',
+        'TOPO_REQUIRE_VALID_DAG': '1',
+        'TOPO_QTOPO_SELF_NORM': '0',
+        'TOPO_HIER_ALPHA': '0.60',
+        'TOPO_HIER_BASE_FLOOR': '0.05',
+        'TOPO_HIER_AGG': 'additive',
+        'TOPO_HIER_NOISE_EPS': '0',
+        'TOPO_DYNAMIC_REWARD': '0',
+        'TOPO_HIER_REWARD_TEMP': '1',
+        'TOPO_RESCALE_PATCH': '0',
+        'TOPO_LENGTH_UNIT': 'chars',
+        'TOPO_LENGTH_LOW': '2000',
+        'TOPO_LENGTH_HIGH': '4000',
+        'TOPO_LAMBDA_BASE': '0.20',
+        'TOPO_LAMBDA_ACYCLIC': '0.15',
+        'TOPO_LAMBDA_ORPHAN': '0.15',
+        'TOPO_LAMBDA_DELTA': '0.15',
+        'TOPO_LAMBDA_KAPPA': '0.25',
+    })
+    if not Path(args.sft_adapter).is_dir():
+        raise FileNotFoundError(f"SFT adapter not found: {args.sft_adapter}")
+
+    import torch
+    from peft import LoraConfig, PeftModel, TaskType
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from trl import GRPOConfig, GRPOTrainer
+
+    run_name = f"grpo_{args.reward}_{datetime.now().strftime('%m%d_%H%M')}"
+    print(f"[train] reward={args.reward} model={args.model} steps={args.max_steps}")
+
     tokenizer = AutoTokenizer.from_pretrained(args.model, trust_remote_code=True)
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
 
-    print(f"Loading model: {args.model}")
     model = AutoModelForCausalLM.from_pretrained(
-        args.model, torch_dtype=torch.bfloat16, device_map="auto", trust_remote_code=True,
+        args.model, torch_dtype=torch.bfloat16, device_map=None, trust_remote_code=True
     )
-
     if args.sft_adapter and Path(args.sft_adapter).is_dir():
-        print(f"Loading SFT adapter: {args.sft_adapter}")
+        print(f"[train] merging SFT adapter: {args.sft_adapter}")
         model = PeftModel.from_pretrained(model, args.sft_adapter)
         model = model.merge_and_unload()
 
@@ -104,72 +163,44 @@ def main():
         target_modules="all-linear", lora_dropout=0.05,
     )
 
-    dataset = load_grpo_dataset(DATA_PATH)
-    print(f"  {len(dataset)} prompts loaded")
+    dataset = load_dataset(args.data)
+    print(f"[train] {len(dataset)} prompts")
 
-    def reward_function(completions: list[str], **kwargs) -> list[float]:
-        solution = kwargs.get("solution", [None] * len(completions))
-        reference_dag = kwargs.get("reference_dag", [None] * len(completions))
-        if isinstance(solution, str):
-            solution = [solution] * len(completions)
-        if isinstance(reference_dag, str):
-            reference_dag = [reference_dag] * len(completions)
-        return reward_fn(completions, solution=solution, reference_dag=reference_dag)
-
-    grpo_config = GRPOConfig(
+    cfg = GRPOConfig(
         output_dir=args.output_dir,
         max_completion_length=args.max_completion_len,
         num_generations=args.num_generations,
         max_steps=args.max_steps,
-        per_device_train_batch_size=1,
+        per_device_train_batch_size=args.num_generations,
         gradient_accumulation_steps=4,
         learning_rate=5e-6,
         beta=0.04,
+        temperature=0.8,
+        top_p=0.95,
         logging_steps=5,
         save_steps=50,
+        save_total_limit=3,
         bf16=True,
         gradient_checkpointing=True,
-        report_to="wandb",
+        use_vllm=False,
+        seed=args.seed,
+        report_to=args.report_to,
         run_name=run_name,
         remove_unused_columns=False,
     )
 
     trainer = GRPOTrainer(
-        model=model, args=grpo_config, train_dataset=dataset,
-        reward_funcs=reward_function, peft_config=lora_config,
+        model=model,
+        args=cfg,
+        train_dataset=dataset,
+        reward_funcs=build_reward(args.reward),
+        peft_config=lora_config,
         processing_class=tokenizer,
     )
-
-    if args.eval_every and args.eval_size > 0:
-        eval_subset = build_eval_subset(
-            Path(args.eval_jsonl),
-            size=args.eval_size,
-            sources=("gsm8k", "math"),
-            seed=13,
-        )
-        if eval_subset:
-            print(
-                f"Eval callback: {len(eval_subset)} held-out prompts, "
-                f"every {args.eval_every} steps, "
-                f"max_new_tokens={args.eval_max_new_tokens}"
-            )
-            trainer.add_callback(
-                EvalAccuracyCallback(
-                    tokenizer=tokenizer,
-                    eval_examples=eval_subset,
-                    eval_every=args.eval_every,
-                    max_new_tokens=args.eval_max_new_tokens,
-                )
-            )
-        else:
-            print("Eval callback skipped: subset builder returned 0 rows.")
-    else:
-        print("Eval callback disabled (--eval_every=0 or --eval_size=0).")
-
-    print(f"Starting GRPO ablation ({args.reward})...")
+    print("[train] starting GRPO ...")
     trainer.train()
     trainer.save_model(f"{args.output_dir}/final")
-    print(f"Done. Saved to {args.output_dir}/final")
+    print(f"[train] done -> {args.output_dir}/final")
 
 
 if __name__ == "__main__":

@@ -1,29 +1,15 @@
-"""TopoPRM composite rewards for ms-swift GRPO.
+"""Reward aggregators for TopoPRM post-training experiments.
 
-This module implements the reward aggregators used by current and legacy runs:
+TopoHierarchicalReward is the forward-graph reward in the submission's shared
+200-update comparison. TopoCompositeReward, TopoGatedReward, and
+TopoChoquetReward implement alternative experimental aggregators; their results
+must be attributed to their own graph, source, and training configurations.
 
-* :class:`TopoCompositeReward` -- linear mix of outcome/format/topo/continuity/length.
-* :class:`TopoHierarchicalReward` -- legacy multiplicative baseline.
-* :class:`TopoGatedReward` -- lexicographic "outcome first, process tie-break" form.
-* :class:`TopoChoquetReward` -- main ICLR candidate: non-additive topology interaction reward.
-
-Principal hyperparameters (the only knobs appearing in the paper equations):
-
-* ``alpha`` (``TOPO_HIER_ALPHA``): topology vs continuity mix weight (Eq. R_hier).
-* ``BASE_WEIGHTS`` class constants (0.70/0.15/0.15 for outcome/format/length).
-* ``TopoReward`` internal weights for the five DAG indicators
-  (valid / acyclic / no_orphan / direction / step_align / ref_edge_f1).
-* Orphan-support edge weights (virtual=1.0, double_barrier=0.5, solid=0.3) in
-  :func:`src.reward.topo_reward.TopoReward._orphan_conclusion_ratio`.
-* ``TOPO_HIER_BASE_FLOOR`` (0.05): a bug-fix floor documented in the paper
-  appendix; prevents zero-variance rollout groups when the outcome reward is 0.
-
-Everything else (``TOPO_*_NOISE_EPS``, ``TOPO_*_MIN_STD``, ``TOPO_HIER_REWARD_TEMP``,
-``TOPO_DYNAMIC_*``) is ablation-only: defaults are set so that these are no-ops,
-and the main results in the paper are reproduced without any of them.  GRPO
-already performs group-wise advantage normalization via ms-swift
-(``scale_rewards='group'`` by default); duplicating that with explicit std-floor
-noise injection was deprecated in the 2026-04-23 cleanup pass.
+The paper-facing hierarchy uses base weights 0.70/0.15/0.15 for
+outcome/format/length, a 0.05 base floor, a 0.60 topology mixture weight,
+and reward-call batch min-max scaling. The floor keeps a nonzero base;
+it does not guarantee within-group variance. Noise, adaptive reweighting,
+and temperature rescaling are disabled in the paper entrypoint.
 """
 
 from __future__ import annotations

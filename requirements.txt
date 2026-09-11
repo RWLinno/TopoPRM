@@ -12,3 +12,6 @@ pytest
 streamlit
 huggingface_hub
 safetensors
+math-verify>=0.9
+PyYAML>=6.0
+ms-swift>=4.0

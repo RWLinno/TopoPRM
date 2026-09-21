@@ -1,17 +1,8 @@
 #!/usr/bin/env python3
-"""Generate topology-guided teacher revisions from compact-student traces.
+"""Generate fixed-corpus teacher revisions of Stage-II policy traces.
 
-For each problem, a compact student produces an initial trace. The frozen
-Stage-II teacher then revises a localized backward, cyclic, orphan, or
-continuity defect. Raw candidates are filtered by build_srt_data.py.
-
-Usage:
-    python -m scripts.rollout_srt \
-        --student_model /path/to/Qwen3.5-4B \
-        --teacher_model /path/to/Qwen3.5-9B \
-        --teacher_adapter /path/to/stage2-adapter \
-        --input data/grpo_ready/train_public_swift.jsonl \
-        --output ${EXP_ROOT}/.../distill_candidates.jsonl
+The paper uses forward, typed support extraction. Initial traces and teacher
+revisions remain ordinary text; accepted targets are filtered separately.
 """
 from __future__ import annotations
 
@@ -26,6 +17,10 @@ import networkx as nx
 import torch
 from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
+
+from scripts.train_grpo_ablation import configure_paper_reward
+
+configure_paper_reward()
 
 from src.distill.build_srt_data import (
     SYSTEM_PROMPT,
@@ -91,7 +86,7 @@ def score_trace(text: str, solution: str, reference_dag=None) -> dict:
         r_out = 0.0
     topo_diag: dict[str, float] = {}
     try:
-        r_topo = float(topo_rw(completions, reference_dag=reference_dag)[0])
+        r_topo = float(topo_rw(completions, reference_dag=None)[0])
         if topo_rw.last_diagnostics:
             topo_diag = topo_rw.last_diagnostics[0]
     except Exception:
@@ -139,13 +134,14 @@ def score_trace(text: str, solution: str, reference_dag=None) -> dict:
                 node = dag.nodes[sid]
                 if node.step_type != StepType.CONCLUSION:
                     continue
-                has_virtual_pred = any(
-                    dag.is_virtual_edge(
-                        dag.graph.edges[u, sid].get("edge_type", "")
-                    )
+                support = sum(
+                    1.0 if dag.is_virtual_edge(dag.graph.edges[u, sid].get("edge_type", ""))
+                    else 0.5 if dag.is_barrier_edge(dag.graph.edges[u, sid].get("edge_type", ""))
+                    else 0.3 if dag.is_solid_edge(dag.graph.edges[u, sid].get("edge_type", ""))
+                    else 0.0
                     for u in dag.graph.predecessors(sid)
                 )
-                if not has_virtual_pred:
+                if support < 1.0 - 1e-12:
                     defect["orphan_steps"].append(int(sid))
     except Exception:
         pass

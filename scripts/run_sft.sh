@@ -1,60 +1,20 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
-###############################################################################
-# SFT Training — Qwen3-32B
-#
-# Usage: bash scripts/run_sft.sh [extra swift args...]
-#
-# Env vars:
-#   CUDA_VISIBLE_DEVICES  — GPUs to use (default: 0,1,2,3,4,5,6,7)
-#   NPROC_PER_NODE        — number of training processes (default: 8)
-#   SKIP_PREFLIGHT        — set 1 to skip GPU health check
-###############################################################################
-
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-cd "$PROJECT_ROOT"
-source "$SCRIPT_DIR/gpu_guard.sh"
-
-export PYTHONPATH="${PROJECT_ROOT}:${PYTHONPATH:-}"
-export PATH="${PYTHON_ENV_BIN}:$PATH"
-export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1,2,3,4,5,6,7}"
-export NPROC_PER_NODE="${NPROC_PER_NODE:-8}"
-
-CONFIG="configs/sft.yaml"
-[ ! -f "$CONFIG" ] && echo "[ERROR] Config not found: $CONFIG" && exit 1
-mkdir -p output
-
-# Safety: env + pre-flight + cleanup
-export_safe_env
-[ "${SKIP_PREFLIGHT:-0}" != "1" ] && { gpu_preflight || exit 1; }
-shm_cleanup
-
-# Auto-resume from latest checkpoint
-OUTPUT_DIR=$(grep -E '^\s*output_dir:' "$CONFIG" | awk '{print $2}' | tr -d '"' | tr -d "'")
-RESUME_ARG=""
-if [ -n "$OUTPUT_DIR" ] && [ -d "$OUTPUT_DIR" ]; then
-    LATEST=$(ls -d "${OUTPUT_DIR}"/checkpoint-* 2>/dev/null | sort -t- -k2 -n | tail -1)
-    [ -n "$LATEST" ] && RESUME_ARG="--resume_from_checkpoint $LATEST" && echo "[run_sft] Resuming from $LATEST"
+cd "$SCRIPT_DIR/.."
+TOPOPRM_ENV_BIN="${TOPOPRM_ENV_BIN:-${PYTHON_ENV_BIN:-}}"
+TOPOPRM_SWIFT="${TOPOPRM_ENV_BIN:+${TOPOPRM_ENV_BIN}/}swift"
+export NPROC_PER_NODE="${NPROC_PER_NODE:-1}"
+cmd=("$TOPOPRM_SWIFT" sft
+     --model "${SFT_MODEL:-Qwen/Qwen3.5-9B}"
+     --dataset "${SFT_DATA:-data/sft_ready/train_public_swift.jsonl}"
+     --output_dir "${SFT_OUTPUT_DIR:-output/topoprm_stage1}"
+     --tuner_type lora --lora_rank 64 --lora_alpha 128 --lora_dropout 0.05
+     --target_modules all-linear --learning_rate 5e-5
+     --lr_scheduler_type cosine --warmup_ratio 0.03 --num_train_epochs 2
+     --per_device_train_batch_size 2 --gradient_accumulation_steps 8
+     --max_length 4096 --torch_dtype bfloat16 "$@")
+if [ "${TOPOPRM_DRY_RUN:-0}" = "1" ]; then
+    printf '%q ' "${cmd[@]}"; printf '\n'; exit 0
 fi
-
-LOG="output/sft_$(date +%Y%m%d_%H%M%S).log"
-register_cleanup "sft"
-
-echo "══════════════════════════════════════════"
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] SFT Training"
-echo "  GPUs: $CUDA_VISIBLE_DEVICES  NPROC: $NPROC_PER_NODE"
-echo "  Log:  $LOG"
-echo "══════════════════════════════════════════"
-
-setsid swift sft --config "$CONFIG" $RESUME_ARG "$@" 2>&1 | tee "$LOG" &
-GUARDED_PID=$!
-save_pid_file "sft" "$GUARDED_PID"
-start_shm_watchdog "$GUARDED_PID"
-start_gpu_watchdog "$GUARDED_PID"
-
-wait $GUARDED_PID
-EXIT_CODE=$?
-GUARDED_PID=""
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] SFT exited with code $EXIT_CODE"
-exit $EXIT_CODE
+exec "${cmd[@]}"

@@ -57,14 +57,21 @@ def _load_yaml(path: Path) -> dict[str, Any]:
 
 
 def _normalize_config(raw: dict[str, Any]) -> TrainConfig:
-    teacher_model = raw.get("teacher_model", "Qwen/Qwen3-32B")
-    student_model = raw.get("student_model", raw.get("model", os.path.expandvars("${MODEL_ROOT}/Qwen3-8B")))
+    if not raw.get("teacher_model") or not raw.get("student_model"):
+        raise ValueError("Specify teacher_model and student_model explicitly")
+    teacher_model = raw["teacher_model"]
+    student_model = raw["student_model"]
     dataset = raw.get("dataset", [])
     if isinstance(dataset, str):
         dataset = [dataset]
     if not dataset:
-        dataset = ["data/sft_ready/train_augmented.jsonl"]
-    output_dir = raw.get("output_dir", "output/distill_rkl_8b")
+        raise ValueError("Specify an accepted-revision dataset")
+    output_dir = raw.get("output_dir", "output/distill_topology")
+    epochs = float(raw.get("num_train_epochs", 1))
+    if not epochs.is_integer() or epochs < 1:
+        raise ValueError("This fixed-corpus trainer requires positive integer epochs")
+    if int(raw.get("gradient_accumulation_steps", 4)) < 1:
+        raise ValueError("gradient_accumulation_steps must be positive")
     return TrainConfig(
         teacher_model=teacher_model,
         student_model=student_model,
@@ -171,7 +178,7 @@ def _build_lora_config(cfg: TrainConfig) -> LoraConfig:
     )
 
 
-def run_online_reverse_kl(config_path: Path, gpus: str, project_root: Path) -> int:
+def run_fixed_corpus_reverse_kl(config_path: Path, gpus: str, project_root: Path) -> int:
     raw = _load_yaml(config_path)
     cfg = _normalize_config(raw)
     output_dir = project_root / cfg.output_dir
@@ -179,7 +186,7 @@ def run_online_reverse_kl(config_path: Path, gpus: str, project_root: Path) -> i
 
     gpu_list = [x.strip() for x in gpus.split(",") if x.strip()]
     if not torch.cuda.is_available():
-        raise RuntimeError("CUDA is required for 32B teacher online reverse-KL training.")
+        raise RuntimeError("CUDA is required for teacher/target reverse-KL training.")
     teacher_gpu = gpu_list[0] if gpu_list else "0"
     student_gpu = gpu_list[1] if len(gpu_list) > 1 else teacher_gpu
     teacher_device = f"cuda:{teacher_gpu}"
@@ -200,11 +207,22 @@ def run_online_reverse_kl(config_path: Path, gpus: str, project_root: Path) -> i
         torch_dtype=dtype,
         device_map={"": student_device},
     )
+    if cfg.student_init_adapter:
+        student_adapter_path = (project_root / cfg.student_init_adapter).resolve()
+        if not student_adapter_path.is_dir():
+            raise FileNotFoundError(f"Student initialization adapter not found: {student_adapter_path}")
+        student = PeftModel.from_pretrained(student, str(student_adapter_path), is_trainable=False)
+        student = student.merge_and_unload()
+        student.to(student_device)
     if cfg.gradient_checkpointing:
         student.gradient_checkpointing_enable()
     student.enable_input_require_grads()
     student = get_peft_model(student, _build_lora_config(cfg))
     student.train()
+
+    teacher_tokenizer = AutoTokenizer.from_pretrained(cfg.teacher_model, trust_remote_code=True)
+    if tokenizer.get_vocab() != teacher_tokenizer.get_vocab():
+        raise ValueError("Teacher and target must use the same token-to-ID vocabulary for token-level reverse KL")
 
     teacher = AutoModelForCausalLM.from_pretrained(
         cfg.teacher_model,
@@ -220,7 +238,7 @@ def run_online_reverse_kl(config_path: Path, gpus: str, project_root: Path) -> i
             teacher.to(teacher_device)
             print(f"[distill.rkl] loaded teacher adapter={teacher_adapter_path}", flush=True)
         else:
-            print(f"[distill.rkl] teacher adapter not found, ignore: {teacher_adapter_path}", flush=True)
+            raise FileNotFoundError(f"Teacher adapter not found: {teacher_adapter_path}")
     teacher.eval()
     for p in teacher.parameters():
         p.requires_grad_(False)
@@ -243,7 +261,7 @@ def run_online_reverse_kl(config_path: Path, gpus: str, project_root: Path) -> i
 
     trainable_params = [p for p in student.parameters() if p.requires_grad]
     optimizer = AdamW(trainable_params, lr=cfg.learning_rate, weight_decay=cfg.weight_decay)
-    total_steps = math.ceil(len(loader) * cfg.num_train_epochs / max(cfg.gradient_accumulation_steps, 1))
+    total_steps = math.ceil(len(loader) / cfg.gradient_accumulation_steps) * cfg.num_train_epochs
     warmup_steps = int(total_steps * cfg.warmup_ratio)
     scheduler = get_linear_schedule_with_warmup(optimizer, warmup_steps, total_steps)
 
@@ -279,12 +297,14 @@ def run_online_reverse_kl(config_path: Path, gpus: str, project_root: Path) -> i
                 )
                 ce = (ce.reshape(labels.shape) * token_mask).sum() / token_mask.sum().clamp_min(1.0)
             else:
-                ce = torch.zeros((), device=student_device, dtype=s_logits.dtype)
+                ce = s_logits.new_zeros(())
 
             loss = cfg.rkl_weight * rkl + cfg.ce_weight * ce
-            (loss / cfg.gradient_accumulation_steps).backward()
+            window_start = (it // cfg.gradient_accumulation_steps) * cfg.gradient_accumulation_steps
+            window_size = min(cfg.gradient_accumulation_steps, len(loader) - window_start)
+            (loss / window_size).backward()
 
-            if (it + 1) % cfg.gradient_accumulation_steps == 0:
+            if (it + 1) % cfg.gradient_accumulation_steps == 0 or it + 1 == len(loader):
                 optimizer.step()
                 scheduler.step()
                 optimizer.zero_grad(set_to_none=True)
@@ -332,14 +352,17 @@ def run_online_reverse_kl(config_path: Path, gpus: str, project_root: Path) -> i
     return 0
 
 
+# Backward-compatible callable name; this procedure uses saved prefixes.
+run_online_reverse_kl = run_fixed_corpus_reverse_kl
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Fixed-corpus reverse-KL distillation trainer")
-    parser.add_argument("--config", type=Path, default=Path("configs/distill_7b_compact.yaml"))
+    parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--gpus", type=str, default="0,1")
     parser.add_argument("--project_root", type=Path, default=Path("."))
     args = parser.parse_args()
 
-    rc = run_online_reverse_kl(args.config, args.gpus, args.project_root.resolve())
+    rc = run_fixed_corpus_reverse_kl(args.config, args.gpus, args.project_root.resolve())
     if rc != 0:
         raise SystemExit(rc)
 

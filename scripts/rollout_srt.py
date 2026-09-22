@@ -73,7 +73,7 @@ def load_prompts(path: Path, max_n: int = 0) -> list[dict[str, Any]]:
     return out
 
 
-def score_trace(text: str, solution: str, reference_dag=None) -> dict:
+def score_trace(text: str, solution: str, reference_dag=None, *, strict: bool = False) -> dict:
     """Compute r_out / r_topo / r_cont for a single completion."""
     completions = [[{"role": "assistant", "content": text}]]
     out_rw = OutcomeReward()
@@ -83,6 +83,8 @@ def score_trace(text: str, solution: str, reference_dag=None) -> dict:
     try:
         r_out = float(out_rw(completions, solution=solution)[0])
     except Exception:
+        if strict:
+            raise
         r_out = 0.0
     topo_diag: dict[str, float] = {}
     try:
@@ -90,12 +92,16 @@ def score_trace(text: str, solution: str, reference_dag=None) -> dict:
         if topo_rw.last_diagnostics:
             topo_diag = topo_rw.last_diagnostics[0]
     except Exception:
+        if strict:
+            raise
         r_topo = 0.0
     continuity_breaks: list[int] = []
     try:
         r_cont, continuity_breaks = cont_rw.diagnose(text)
         r_cont = float(r_cont)
     except Exception:
+        if strict:
+            raise
         r_cont = 0.0
 
     # Binary r_out
@@ -130,6 +136,7 @@ def score_trace(text: str, solution: str, reference_dag=None) -> dict:
                 for component in nx.strongly_connected_components(raw_graph)
                 if len(component) > 1
             ]
+            defect["step_text"] = {int(sid): node.raw_text for sid, node in dag.nodes.items()}
             for sid in sorted(dag.nodes.keys()):
                 node = dag.nodes[sid]
                 if node.step_type != StepType.CONCLUSION:
@@ -144,6 +151,8 @@ def score_trace(text: str, solution: str, reference_dag=None) -> dict:
                 if support < 1.0 - 1e-12:
                     defect["orphan_steps"].append(int(sid))
     except Exception:
+        if strict:
+            raise
         pass
 
     return {

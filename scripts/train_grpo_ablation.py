@@ -29,6 +29,7 @@ SYSTEM = "Solve the math problem step by step in <think>...</think>, then give t
 def configure_paper_reward() -> None:
     # Pin the forward hierarchical specification, including optional reference scoring.
     os.environ.update({
+        'TOPO_FORMAT_PROTOCOL': 'legacy',
         'TOPO_DAG_RAW_DIRECTED': '0',
         'TOPO_DAG_LLM_REFINE': '0',
         'TOPO_DAG_EDGE_CHECKPOINT': '',
@@ -96,7 +97,7 @@ def load_dataset(path: str):
     return Dataset.from_list(records)
 
 
-def build_reward(name: str, *, collect_ace: bool = False):
+def build_reward(name: str, *, collect_ace: bool = False, tokenizer=None):
     if collect_ace and name != "topo_hierarchical":
         raise ValueError("ACE requires the hierarchical topology/continuity reward")
     if name == "outcome_length":
@@ -110,44 +111,44 @@ def build_reward(name: str, *, collect_ace: bool = False):
         impl = NoTopoReward() if name == "no_topology" else NoContinuityReward()
     elif name == "topo_hierarchical":
         from src.reward.composite_reward import TopoHierarchicalReward
-        if collect_ace:
-            class CapturedHierarchicalReward(TopoHierarchicalReward):
-                def _components(self, *args, **kwargs):
-                    self.last_components = super()._components(*args, **kwargs)
-                    return self.last_components
+        class CapturedHierarchicalReward(TopoHierarchicalReward):
+            def _components(self, *args, **kwargs):
+                self.last_components = super()._components(*args, **kwargs)
+                return self.last_components
 
-            impl = CapturedHierarchicalReward()
-        else:
-            impl = TopoHierarchicalReward()
+        impl = CapturedHierarchicalReward()
     else:
         raise ValueError(f"unknown reward {name}")
 
     def reward_function(completions, **kwargs):
         reward_function.ace_batch = None
+        if tokenizer is not None:
+            from src.reward.utils import restore_response_prefix
+            ids = kwargs.get("completion_ids")
+            prompts = kwargs.get("prompts")
+            if ids is None or prompts is None or len(prompts) != len(completions):
+                raise ValueError("Paper reward requires aligned prompts and generated token IDs")
+            texts = tokenizer.batch_decode(ids, skip_special_tokens=True)
+            completions = [restore_response_prefix(
+                tokenizer.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
+                if isinstance(prompt, list) else prompt, text
+            ) for prompt, text in zip(prompts, texts, strict=True)]
         solution = kwargs.get("solution", [None] * len(completions))
         reference_dag = None  # Rollout and reference step indices are not aligned.
         if isinstance(solution, str):
             solution = [solution] * len(completions)
         if isinstance(reference_dag, str):
             reference_dag = [reference_dag] * len(completions)
-        if collect_ace:
-            # The paper's generated and reference steps are not aligned.
-            # Capture components from exactly the call producing these returns.
+        if name == "topo_hierarchical":
+            # Raw components must be gathered before rescaling: a prompt group
+            # can cross a device boundary, and a call can contain many groups.
             result = impl(completions, solution=solution, reference_dag=None)
-            outcome, _, topology, continuity, _ = impl.last_components
-            alpha = impl._clip01(impl.ALPHA)
-            auxiliary = [
-                alpha * topo + (1.0 - alpha) * cont
-                for topo, cont in zip(
-                    impl._batch_rescale(topology), impl._batch_rescale(continuity), strict=True
-                )
-            ]
             completion_ids = kwargs.get("completion_ids")
             reward_function.ace_batch = (
                 tuple(tuple(ids) for ids in completion_ids) if completion_ids is not None else None,
-                list(outcome), auxiliary,
+                list(zip(*impl.last_components, strict=True)),
             )
-            return result
+            return result  # The trainer replaces local-call scores with group scores.
         # ORM classes accept solution/reference_dag kwargs; pass through.
         try:
             return impl(completions, solution=solution, reference_dag=reference_dag)
@@ -157,6 +158,7 @@ def build_reward(name: str, *, collect_ace: bool = False):
     reward_function.__name__ = f"reward_{name}"
     reward_function.ace_batch = None
     reward_function.collect_ace = collect_ace
+    reward_function.collect_components = name == "topo_hierarchical"
     return reward_function
 
 
@@ -198,7 +200,30 @@ def ace_advantages(standardized_returns, correctness, auxiliary, num_generations
     ).reshape(-1)
 
 
-def build_ace_trainer_class(clip_lower=-1.0, clip_upper=1.0):
+def group_hierarchical_rewards(components, num_generations):
+    """Eq. (3), with min–max scaling over each complete global prompt group."""
+    import torch
+
+    if components.ndim != 2 or components.shape[1] != 5:
+        raise ValueError("Expected [rollouts, outcome/format/topology/continuity/length]")
+    if num_generations < 2 or components.shape[0] % num_generations:
+        raise ValueError("Hierarchical reward requires complete groups of at least two")
+    if not torch.isfinite(components).all() or not ((components >= 0) & (components <= 1)).all():
+        raise ValueError("Reward components must be finite and in [0, 1]")
+    if not ((components[:, 0] == 0) | (components[:, 0] == 1)).all():
+        raise ValueError("Outcome must be binary")
+    structural = components[:, 2:4].reshape(-1, num_generations, 2)
+    lo = structural.amin(dim=1, keepdim=True)
+    span = structural.amax(dim=1, keepdim=True) - lo
+    scaled = torch.where(span > 0, (structural - lo) / span.clamp_min(1e-8), 0.5)
+    scaled = scaled.reshape(-1, 2)
+    auxiliary = 0.6 * scaled[:, 0] + 0.4 * scaled[:, 1]
+    base = 0.7 * components[:, 0] + 0.15 * components[:, 1] + 0.15 * components[:, 4]
+    rewards = (base.clamp_min(0.05) * (1 + auxiliary)).clamp(0, 1)
+    return rewards, auxiliary
+
+
+def build_ace_trainer_class(clip_lower=-1.0, clip_upper=1.0, *, use_ace=True):
     """Subclass the verified TRL 0.28.0 generation/scoring boundary.
 
     Official source: https://github.com/huggingface/trl/blob/v0.28.0/trl/trainer/grpo_trainer.py
@@ -217,8 +242,8 @@ def build_ace_trainer_class(clip_lower=-1.0, clip_upper=1.0):
             super().__init__(*args, **kwargs)
             if self.scale_rewards != "group" or self.multi_objective_aggregation != "sum_then_normalize":
                 raise ValueError("ACE requires group-scaled, sum-then-normalize GRPO returns")
-            if len(self.reward_funcs) != 1 or not getattr(self.reward_funcs[0], "collect_ace", False):
-                raise ValueError("ACE requires one reward callable built with collect_ace=True")
+            if len(self.reward_funcs) != 1 or not getattr(self.reward_funcs[0], "collect_components", False):
+                raise ValueError("Paper reward requires one callable capturing raw components")
             if self.args.use_liger_kernel:
                 raise ValueError("The ACE boundary is validated with the standard GRPO loss")
             self._ace_global_batch = None
@@ -230,25 +255,32 @@ def build_ace_trainer_class(clip_lower=-1.0, clip_upper=1.0):
             captured = self.reward_funcs[0].ace_batch
             if captured is None:
                 raise RuntimeError("The current reward call did not capture ACE metadata")
-            ids, correct, auxiliary = captured
+            ids, components = captured
             if ids != tuple(tuple(tokens) for tokens in completion_ids_list):
                 raise RuntimeError("ACE metadata does not match the current completion order")
-            if len(correct) != len(prompts) or len(auxiliary) != len(prompts):
+            if len(components) != len(prompts):
                 raise RuntimeError("ACE metadata has an incorrect local batch size")
-            local = torch.tensor(list(zip(correct, auxiliary, strict=True)),
+            local = torch.tensor(components,
                                  dtype=torch.float32, device=self.accelerator.device)
             # Same gather and rank-major order as TRL's rewards. In particular,
             # do not center strata locally: one prompt group may span devices.
             global_batch = gather(local)
-            if global_batch.shape != (rewards.shape[0], 2):
+            if global_batch.shape != (rewards.shape[0], 5):
                 raise RuntimeError("ACE metadata and gathered rewards are misaligned")
-            self._ace_global_batch = global_batch
+            mode = "train" if self.model.training else "eval"
+            group_size = self.num_generations if mode == "train" else self.num_generations_eval
+            group_rewards, auxiliary = group_hierarchical_rewards(global_batch, group_size)
+            rewards[:, 0] = group_rewards
+            self._ace_global_batch = torch.stack((global_batch[:, 0], auxiliary), dim=1)
             self.reward_funcs[0].ace_batch = None
             return rewards
 
         def _generate_and_score_completions(self, inputs):
             self._ace_global_batch = None
             output = super()._generate_and_score_completions(inputs)
+            if not use_ace:
+                self._ace_global_batch = None
+                return output
             metadata = self._ace_global_batch
             if metadata is None:
                 raise RuntimeError("ACE metadata is missing for the generated batch")
@@ -322,8 +354,9 @@ def main() -> None:
     from transformers import AutoModelForCausalLM, AutoTokenizer
     from trl import GRPOConfig, GRPOTrainer
 
-    trainer_class = (build_ace_trainer_class(args.clip_coeff_lower, args.clip_coeff_upper)
-                     if args.advantage_mode == "ace" else GRPOTrainer)
+    trainer_class = (build_ace_trainer_class(
+        args.clip_coeff_lower, args.clip_coeff_upper, use_ace=args.advantage_mode == "ace"
+    ) if args.reward == "topo_hierarchical" else GRPOTrainer)
     run_name = f"{args.advantage_mode}_{args.reward}_{datetime.now().strftime('%m%d_%H%M')}"
     print(f"[train] reward={args.reward} advantages={args.advantage_mode} "
           f"model={args.model} steps={args.max_steps} epochs={args.num_train_epochs}")
@@ -350,7 +383,7 @@ def main() -> None:
     # prompt budget, so generation respects the declared total sequence cap.
     count_before = len(dataset)
     dataset = dataset.filter(lambda row: len(tokenizer.apply_chat_template(
-        row["prompt"], tokenize=True, add_generation_prompt=True
+        row["prompt"], tokenize=True, add_generation_prompt=True, return_dict=False
     )) <= args.max_prompt_length)
     if not len(dataset):
         raise ValueError("No complete prompts fit --max_prompt_length")
@@ -388,7 +421,7 @@ def main() -> None:
         model=model,
         args=cfg,
         train_dataset=dataset,
-        reward_funcs=build_reward(args.reward, collect_ace=args.advantage_mode == "ace"),
+        reward_funcs=build_reward(args.reward, collect_ace=args.advantage_mode == "ace", tokenizer=tokenizer),
         peft_config=lora_config,
         processing_class=tokenizer,
     )

@@ -1,9 +1,10 @@
-"""Build topology-guided teacher revisions for compact-student distillation."""
+"""Revision prompts and acceptance gates; optional fixed-snapshot data export."""
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
+import math
 import re
 from collections import Counter
 from dataclasses import dataclass
@@ -103,7 +104,7 @@ def build_prompt_dispatch(
     """Return a localized defect type and teacher revision instruction.
 
     The positional arguments remain compatible with the released dispatcher.
-    Canonical distillation passes the full raw/projected-graph defect record.
+    The paper entrypoint passes defects from the forward support graph.
     """
     defect = defect or {}
     cycles = defect.get("cycle_components") or []
@@ -135,6 +136,11 @@ def build_prompt_dispatch(
         kind = "compact"
         prompt = REVISION_PROMPTS[kind]
 
+    if kind in {"orphan", "continuity"}:
+        step = _first(orphan) if kind == "orphan" and orphan else orphan_step if kind == "orphan" else _first(continuity)
+        evidence = defect.get("step_text", {}).get(step, "")
+        if evidence:
+            prompt += f" The extracted step is: {evidence}"
     if int(r_out) == 0 and kind not in {"answer"}:
         prompt = "The final answer is also incorrect. " + prompt
     return kind, prompt
@@ -173,8 +179,8 @@ def _has_closed_boxed(text: str) -> bool:
 
 
 def format_ok(text: str) -> bool:
-    lowered = text.lower()
-    return "<think>" in lowered and "</think>" in lowered and _has_closed_boxed(text)
+    block = re.search(r"<think>\s*(.+?)\s*</think>", text, flags=re.I | re.S)
+    return bool(block and _has_closed_boxed(text[block.end():]))
 
 
 def revision_rejection_reason(
@@ -187,6 +193,11 @@ def revision_rejection_reason(
 ) -> str:
     if selection not in {"topology", "basic"}:
         raise ValueError(f"Unknown selection contract: {selection}")
+    scores = (record.q_topo_init, record.q_topo_revised, record.q_cont_init,
+              record.q_cont_revised, record.q_dir_init, record.q_dir_revised,
+              record.q_acyc_init, record.q_acyc_revised)
+    if not all(math.isfinite(score) and 0 <= score <= 1 for score in scores):
+        return "invalid_diagnostic"
     if record.r_out_revised != 1:
         return "incorrect_answer"
     if not record.format_ok_revised:
@@ -194,6 +205,10 @@ def revision_rejection_reason(
     if selection == "topology":
         if record.q_topo_revised + tolerance < topo_threshold:
             return "topology_below_threshold"
+        if record.q_topo_revised + tolerance < record.q_topo_init:
+            return "topology_degraded"
+        if record.q_cont_revised + tolerance < record.q_cont_init:
+            return "continuity_degraded"
         if record.q_dir_revised + tolerance < record.q_dir_init:
             return "direction_degraded"
         if record.q_acyc_revised + tolerance < record.q_acyc_init:

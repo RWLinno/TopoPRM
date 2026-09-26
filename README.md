@@ -1,17 +1,19 @@
 # TopoPRM
 
-**Rewarding the Graph Behind the Chain: Topology-Aware Process Supervision for RL and Reasoning Distillation**
+**Rewarding the Graph Behind the Chain**
 
-TopoPRM uses the dependency structure behind a reasoning trace to guide post-training. A deterministic extractor recovers a typed support graph from ordinary text; the same evidence informs reinforcement learning and targeted teacher revision.
+*Topology-Aware Process Supervision for RL and Reasoning Distillation*
 
-- **Structural supervision:** recovered conclusion support and local continuity complement final-answer rewards.
-- **Correctness-constrained credit:** hierarchical reward shaping and asymmetric credit estimation guide policy updates.
-- **Topology-guided distillation:** graph diagnostics localize teacher revisions, which supply filtered reasoning targets.
+TopoPRM uses the implicit dependencies between reasoning steps as a shared representation for process rewards and online distillation. A frozen extractor recovers a typed forward graph from ordinary reasoning text.
 
-The resulting policy generates ordinary reasoning text without a graph decoder or an auxiliary verifier at inference.
+| Component | Contribution |
+| :--- | :--- |
+| **Hierarchical process rewards** | Combine answer correctness, conclusion support, and local continuity |
+| **Asymmetric credit estimation (ACE)** | Assign structural credit under correctness constraints |
+| **Topology-guided distillation (TGD)** | Guide a fixed teacher to revise current student traces and distill accepted responses |
 
-## Release plan
+The deployed policy generates ordinary reasoning text. Direction and acyclicity are enforced by graph construction.
 
-The full implementation, training and evaluation scripts, model weights, training logs, research datasets, and per-item evaluation records will be released after acceptance.
+## Availability
 
-This page will be updated with the release and usage instructions when the materials are available.
+The anonymous implementation snapshot and compact launchers are maintained on the `iclr_anonymous` branch. Model artifacts are distributed separately. Training logs, research datasets, and per-item evaluation records are not included on this project page.

@@ -6,9 +6,11 @@ only over revised response tokens, with different teacher and target contexts.
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import random
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
+from collections import Counter
 from pathlib import Path
 
 import torch
@@ -41,8 +43,12 @@ class TrainConfig:
     top_p: float = 0.95
     seed: int = 0
     gradient_checkpointing: bool = True
+    revision_strategy: str = "topology"
+    selection: str = "topology"
 
     def validate(self):
+        if self.revision_strategy not in {"topology", "generic"} or self.selection not in {"topology", "basic"}:
+            raise ValueError("Invalid revision instruction or acceptance control")
         if min(self.num_train_epochs, self.gradient_accumulation_steps, self.token_budget) < 1:
             raise ValueError("Epochs, accumulation and response budget must be positive")
         if self.max_length <= self.token_budget or self.max_prompts < 0:
@@ -55,6 +61,41 @@ class TrainConfig:
             raise ValueError("Sampling temperatures must be finite and nonnegative")
 
 
+def _architecture_config(config):
+    # Loading/saving metadata and execution dtypes do not define architecture.
+    # Keep attention heads, activation, RoPE, tying and all other model settings:
+    # matching parameter shapes alone does not establish matching computation.
+    metadata = {
+        "_name_or_path", "_commit_hash", "transformers_version", "architectures",
+        "torch_dtype", "dtype", "_attn_implementation", "_attn_implementation_internal",
+        "_attn_implementation_autoset", "auto_map", "use_cache", "return_dict",
+        "output_attentions", "output_hidden_states", "gradient_checkpointing",
+        "chunk_size_feed_forward", "id2label", "label2id", "problem_type",
+        "finetuning_task", "task_specific_params",
+    }
+
+    def normalize(value):
+        if isinstance(value, dict):
+            return {key: normalize(item) for key, item in value.items() if key not in metadata}
+        if isinstance(value, (list, tuple)):
+            return [normalize(item) for item in value]
+        return value
+
+    return normalize(config.to_dict())
+
+
+def _tokenization_rules(tokenizer):
+    backend = getattr(tokenizer, "backend_tokenizer", None)
+    if backend is None or not hasattr(backend, "to_str"):
+        raise ValueError("TGD requires fast tokenizers with inspectable tokenization rules")
+    rules = json.loads(backend.to_str())
+    # Tokenization calls can change these transient batching settings. Neither
+    # changes the unpadded, untruncated chat prefixes used for TGD.
+    for key in ("padding", "truncation", "version"):
+        rules.pop(key, None)
+    return rules
+
+
 def validate_matching_models(student, teacher, tokenizer, teacher_tokenizer):
     """Check merged checkpoints before adding the target's trainable adapter."""
     if type(student) is not type(teacher):
@@ -62,11 +103,18 @@ def validate_matching_models(student, teacher, tokenizer, teacher_tokenizer):
     shapes = lambda model: {n: tuple(p.shape) for n, p in model.named_parameters()}
     if shapes(student) != shapes(teacher):
         raise ValueError("TGD requires matching parameter shapes and parameter counts")
+    if _architecture_config(student.config) != _architecture_config(teacher.config):
+        raise ValueError("TGD requires matching architecture settings, including attention and RoPE")
     if tokenizer.get_vocab() != teacher_tokenizer.get_vocab():
         raise ValueError("TGD requires identical token-to-ID vocabularies")
+    if _tokenization_rules(tokenizer) != _tokenization_rules(teacher_tokenizer):
+        raise ValueError("TGD requires identical tokenizer normalization, splitting and encoding rules")
+    if tokenizer.special_tokens_map != teacher_tokenizer.special_tokens_map:
+        raise ValueError("TGD requires matching special-token roles")
     if tokenizer.chat_template != teacher_tokenizer.chat_template:
         raise ValueError("TGD requires the same chat serialization for teacher and target")
-    for key in ("bos_token_id", "eos_token_id", "pad_token_id"):
+    for key in ("bos_token_id", "eos_token_id", "pad_token_id",
+                "clean_up_tokenization_spaces", "split_special_tokens"):
         if getattr(tokenizer, key) != getattr(teacher_tokenizer, key):
             raise ValueError(f"TGD requires matching {key}")
 
@@ -117,7 +165,7 @@ def response_logits(model, prefix, response):
         raise ValueError("A nonempty prefix and response are required")
     # The final sampled token needs a prediction but no subsequent context.
     ids = torch.tensor([prefix + response[:-1]], dtype=torch.long, device=model.device)
-    kwargs = dict(input_ids=ids, attention_mask=torch.ones_like(ids), use_cache=False)
+    kwargs = dict(input_ids=ids, attention_mask=torch.ones_like(ids), use_cache=False, return_dict=True)
     base = model.get_base_model() if hasattr(model, "get_base_model") else model
     if "logits_to_keep" in inspect.signature(base.forward).parameters:
         kwargs["logits_to_keep"] = len(response)
@@ -134,6 +182,8 @@ def revision_loss(student, teacher, student_prefix, teacher_prefix, response):
 
 def run_online_reverse_kl(cfg: TrainConfig) -> int:
     cfg.validate()
+    if (cfg.output_dir / "final").exists():
+        raise FileExistsError("Choose a fresh output directory; its final checkpoint already exists")
     # This import pins the forward extractor before importing its reward classes.
     from scripts.rollout_srt import _load_model, load_prompts, score_trace
     from src.distill.build_srt_data import (
@@ -175,6 +225,21 @@ def run_online_reverse_kl(cfg: TrainConfig) -> int:
         num_training_steps=total_batches,
     )
     attempted = accepted = updates = 0
+    cfg.output_dir.mkdir(parents=True, exist_ok=True)
+    (cfg.output_dir / "run_arguments.json").write_text(
+        json.dumps(asdict(cfg), default=str, indent=2), encoding="utf-8")
+    rejection_counts = Counter()
+    records_path = cfg.output_dir / "revisions.jsonl"
+    if records_path.exists():
+        raise FileExistsError("Refusing to mix independent distillation runs")
+
+    def record_attempt(example, **fields):
+        with records_path.open("a", encoding="utf-8") as out:
+            out.write(json.dumps({"attempt": attempted, "updates_before": updates,
+                                  "record_id": example["record_id"],
+                                  "problem": example["problem"], "solution": example["solution"],
+                                  **fields}, ensure_ascii=False) + "\n")
+
     rng = random.Random(cfg.seed)
     for epoch in range(cfg.num_train_epochs):
         rng.shuffle(prompts)
@@ -191,16 +256,21 @@ def run_online_reverse_kl(cfg: TrainConfig) -> int:
                 # This is the live target, including every preceding optimizer update.
                 initial_ids = sample_tokens(student, tokenizer, s_prefix, cfg, cfg.student_temperature)
                 if not initial_ids:
+                    rejection_counts["initial_context_budget"] += 1
+                    record_attempt(example, keep=False, rejection_reason="initial_context_budget")
                     continue
                 y_init = trace_text(tokenizer, s_prefix, initial_ids)
                 original = score_trace(y_init, str(example["solution"]), strict=True)
                 kind, instruction = build_revision_instruction(
-                    "topology", score=original, token_budget=cfg.token_budget,
+                    cfg.revision_strategy, score=original, token_budget=cfg.token_budget,
                 )
                 teacher_messages = revision_messages(messages, y_init, instruction)
                 t_prefix = prefix_ids(tokenizer, teacher_messages)
                 response = sample_tokens(teacher, tokenizer, t_prefix, cfg, cfg.teacher_temperature)
                 if not response:
+                    rejection_counts["teacher_context_budget"] += 1
+                    record_attempt(example, keep=False, rejection_reason="teacher_context_budget",
+                                   y_init=y_init, original=original, instruction=instruction)
                     continue
                 revised_text = trace_text(tokenizer, t_prefix, response)
                 revised = score_trace(revised_text, str(example["solution"]), strict=True)
@@ -214,7 +284,14 @@ def run_online_reverse_kl(cfg: TrainConfig) -> int:
                     q_acyc_init=original["q_acyc"], q_acyc_revised=revised["q_acyc"],
                     revised_tokens=len(response), format_ok_revised=format_ok(revised_text),
                 )
-                if revision_rejection_reason(record, topo_threshold=0.0, token_budget=cfg.token_budget):
+                reason = revision_rejection_reason(record, topo_threshold=0.0,
+                    token_budget=cfg.token_budget, selection=cfg.selection)
+                record_attempt(example, keep=not reason, rejection_reason=reason,
+                               y_init=y_init, y_revised=revised_text, original=original,
+                               revised=revised, instruction=instruction, defect_type=kind,
+                               initial_tokens=len(initial_ids), revised_tokens=len(response))
+                if reason:
+                    rejection_counts[reason] += 1
                     continue
                 student.train()
                 loss = revision_loss(student, teacher, s_prefix, t_prefix, response)
@@ -233,13 +310,18 @@ def run_online_reverse_kl(cfg: TrainConfig) -> int:
                 accepted += kept
             print(f"[tgd] epoch={epoch + 1} attempts={attempted} accepted={accepted} "
                   f"updates={updates} batch_loss={loss_sum / len(batch):.6f}", flush=True)
+            summary = {"attempted": attempted, "accepted": accepted, "updates": updates,
+                       "acceptance_rate": accepted / attempted,
+                       "rejections": dict(rejection_counts)}
+            tmp = cfg.output_dir / "summary.tmp"
+            tmp.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+            tmp.replace(cfg.output_dir / "summary.json")
     if not updates:
         raise RuntimeError("No revision passed the gate; no trained checkpoint was saved")
     destination = cfg.output_dir / "final"
-    destination.mkdir(parents=True, exist_ok=True)
-    student.save_pretrained(destination)
-    tokenizer.save_pretrained(destination)
-    print(f"[tgd] final adapter -> {destination}", flush=True)
+    from src.training import save_merged_checkpoint
+    save_merged_checkpoint(student, tokenizer, destination)
+    print(f"[tgd] final merged checkpoint -> {destination}", flush=True)
     return 0
 
 
@@ -260,6 +342,8 @@ def main():
                           ("student_temperature", 0.7), ("teacher_temperature", 0.0), ("top_p", 0.95)):
         parser.add_argument("--" + name, type=float, default=default)
     parser.add_argument("--gradient_checkpointing", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--revision_strategy", choices=["topology", "generic"], default="topology")
+    parser.add_argument("--selection", choices=["topology", "basic"], default="topology")
     raise SystemExit(run_online_reverse_kl(TrainConfig(**vars(parser.parse_args()))))
 
 

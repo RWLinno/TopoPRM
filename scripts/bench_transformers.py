@@ -1075,15 +1075,10 @@ def run_benchmark(
             try:
                 outputs = model.generate(**inputs, **gen_kwargs)
             except Exception as exc:
-                print(f"    generate failed batch {i}: {exc}")
-                outputs = None
-
-            if outputs is None:
-                # Fill empty predictions so indexing stays consistent
-                for j in range(len(batch)):
-                    predictions_per_item[i + j].append("")
-                    token_counts_per_item[i + j].append(0)
-                continue
+                raise RuntimeError(
+                    f"Generation failed at batch {i}, sample {sample_idx}; "
+                    "refusing to count an execution failure as an incorrect answer"
+                ) from exc
 
             for j, out_ids in enumerate(outputs):
                 prompt_len = inputs["input_ids"][j].shape[0]
@@ -1197,6 +1192,10 @@ def run_benchmark(
     metrics["correct_count"] = metrics["correct"]
     metrics["error_count"] = metrics["error"]
     metrics["num_samples"] = total
+    metrics["num_items"] = total
+    metrics["samples_per_item"] = num_samples_per_item
+    metrics["any_correct_count"] = sum(bool(any(flags)) for flags in correct_flags_per_item)
+    metrics["any_correct_denominator"] = total
     metrics["pass_at_k"] = {str(k): metrics.get(f"pass@{k}", 0.0) for k in k_values}
     metrics["maj_at_k"] = {str(k): metrics.get(f"maj@{k}", 0.0) for k in k_values}
     if score_topology:
@@ -1502,16 +1501,18 @@ def main():
     )
     model_default_use_cache = getattr(model.config, "use_cache", None)
 
-    if args.adapter and Path(args.adapter).is_dir():
+    if args.adapter:
+        from src.training import load_and_merge_adapter
         print(f"Loading adapter: {args.adapter}")
-        patched_adapter = patch_swift_adapter_namespace(Path(args.adapter))
-        model = PeftModel.from_pretrained(model, str(patched_adapter))
-        shutil.rmtree(patched_adapter.parent, ignore_errors=True)
-        model = model.merge_and_unload()
+        model = load_and_merge_adapter(model, args.adapter)
 
     model.eval()
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
+    for key in ("eos_token_id", "pad_token_id"):
+        value = getattr(tokenizer, key)
+        setattr(model.config, key, value)
+        setattr(model.generation_config, key, value)
 
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)

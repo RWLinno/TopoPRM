@@ -1,58 +1,92 @@
 # TopoPRM
 
-**Rewarding the Graph Behind the Chain: Topology-Aware Process Supervision for RL and Reasoning Distillation**
+**Rewarding the Graph Behind the Chain**
 
-TopoPRM extracts a typed forward support DAG from ordinary reasoning text and reuses its evidence for reinforcement learning and targeted teacher revision. The deployed policy emits ordinary text, with no graph decoder or auxiliary verifier.
+*Topology-Aware Process Supervision for RL and Reasoning Distillation*
 
-## Method
-
-- **Stage I — SFT:** a shared supervised warm start makes reasoning traces segmentable.
-- **Stage II — GRPO + ACE:** an outcome-anchored hierarchical reward combines recovered conclusion support and local continuity. ACE constrains the final advantage coefficients after group standardization: correct completions receive non-negative coefficients and incorrect completions non-positive coefficients.
-- **Stage III — TGD:** a frozen teacher with matching architecture and parameter count revises fresh traces from the current target. The target starts at Stage II and is updated online. Reverse KL is summed over teacher-revised response tokens; only the teacher sees the initial trace and revision instruction.
-
-Forward extraction restricts edges to `i < j`, making direction and acyclicity construction guards. On a valid nonempty graph, the reference-free topology score is `(0.50 + 0.15 * no_orphan) / 0.65`. This is a recovered-support gate, not proof that every necessary premise was recovered. Reference-edge F1 is an offline diagnostic and is excluded from policy rewards.
+TopoPRM uses the implicit dependencies between reasoning steps to guide both **structural credit assignment** and **online teacher revision**. A frozen extractor maps ordinary reasoning text to a typed, forward dependency graph. The trained policy generates ordinary text.
 
 ```text
-base   = 0.70 * outcome + 0.15 * format + 0.15 * length
-u      = 0.60 * scale(topology) + 0.40 * scale(continuity)
-reward = clip(max(base, 0.05) * (1 + u), 0, 1)
+Stage I                  Stage II                         Stage III
+Supervised warm start ──► Hierarchical rewards + ACE ──► Online TGD
+                                 ▲                         ▲
+                         Typed dependency graph ───────────┘
 ```
 
-`scale` is min–max rescaling within each complete prompt group after gathering across devices; constant components map to 0.5. ACE uses prompt-group sample standard deviation plus `1e-4`, centers `u` within correctness strata, then applies one-sided adjustments and coefficient bounds `[-1, 1]` without recentering. The pinned TRL 0.28.0 trainer consumes these coefficients directly.
+| Component | Role | Implementation |
+| :--- | :--- | :--- |
+| **TopoPRM** | Combine answer correctness, conclusion support, and local continuity | `src/reward/composite_reward.py` |
+| **ACE** | Assign one-sided structural credit within correctness strata | `scripts/train_grpo_ablation.py` |
+| **TGD** | Diagnose current student traces, guide a fixed teacher's revisions, and distill accepted responses | `src/distill/student_train.py` |
 
-## Run
+## Method contract
 
-Install `requirements.txt`. The paper launchers specify their defaults directly and do not load stored training configurations or infer checkpoints from logs. Supply your data and checkpoints explicitly.
+Edges satisfy `i < j`. Direction and acyclicity are construction invariants. On a nonempty valid graph, the reference-free topology score is `(0.50 + 0.15 * no_orphan) / 0.65`. Reference-edge F1 is used for offline analysis and does not enter policy rewards.
+
+```text
+base   = 0.70 × outcome + 0.15 × format + 0.15 × length
+u      = 0.60 × scale(topology) + 0.40 × scale(continuity)
+reward = clip(max(base, 0.05) × (1 + u), 0, 1)
+```
+
+`scale` is min–max normalization within each complete prompt group, gathered across devices. Constant channels map to 0.5. ACE standardizes scalar rewards using the group sample standard deviation plus `1e-4`, centers `u` within correctness strata, and applies one-sided adjustments with bounds `[-1, 1]`. Correct completions receive nonnegative coefficients and incorrect completions nonpositive coefficients. The coefficients enter the policy loss without recentering.
+
+TGD samples from the **current student** at each update. The frozen teacher receives the problem, complete student trace, and localized revision instruction. Acceptance requires answer correctness, valid formatting, the response budget, and nondecreasing topology and continuity scores. Reverse KL is summed over the revised response tokens and averaged over all revision attempts, including zero contributions from rejected revisions. Teacher and student use the teacher-revised response prefixes. Only the teacher also receives the original trace and revision request.
+
+## Run the three stages
+
+Use Python with the dependencies in `requirements.txt`. The implementation pins Transformers 5.5.4 and TRL 0.28.0. Supply checkpoints and data explicitly.
 
 ```bash
 pip install -r requirements.txt
 
+# I. Supervised initialization
 SFT_MODEL=/path/to/Qwen3.5-9B SFT_DATA=/path/to/sft.jsonl \
   bash scripts/run_sft.sh
 
+# II. Hierarchical process rewards and ACE
 bash scripts/run_grpo.sh full \
-  --model /path/to/Qwen3.5-9B \
-  --sft_adapter /path/to/stage1_adapter \
-  --data /path/to/rl.jsonl --output_dir output/topoprm_stage2
+  --model /path/to/Qwen3.5-9B --sft_adapter /path/to/stage1_adapter \
+  --data /path/to/rl.jsonl --output_dir output/stage2
 
-STUDENT_MODEL=/path/to/merged_stage1_model \
-STUDENT_ADAPTER=/path/to/stage2_adapter \
-TEACHER_MODEL=/path/to/teacher_base \
-TEACHER_ADAPTER=/path/to/fixed_teacher_adapter \
-PROMPT_DATA=/path/to/rl.jsonl \
+# III. Online topology-guided distillation
+STUDENT_MODEL=/path/to/stage2/final \
+TEACHER_MODEL=/path/to/Qwen3.5-9B \
+TEACHER_ADAPTER=/path/to/stage1_adapter \
+PROMPT_DATA=/path/to/revision_prompts.jsonl \
+DISTILL_OUTPUT_DIR=output/stage3 \
   bash scripts/run_topology_distill.sh
 ```
 
-The Stage-II adapter is trained on the base **after merging the SFT adapter**; Stage III therefore requires that merged Stage-I model plus the Stage-II adapter. Stage III checks matching model architecture, parameter shapes, vocabulary and chat serialization before adding a fresh target LoRA adapter. A revision must be correct, correctly formatted, within budget, and nondecreasing in both topology and continuity. The loss averages gated token sums over all attempted examples, including zero contributions from rejected revisions; sampling and gates are treated as stop-gradient operations. Only generated revised-response positions contribute, with no cross-entropy term. Template-prefilled reasoning tags are restored only for scoring; the complete initial trace is preserved in the teacher prompt even for templates that strip historical assistant reasoning. The launcher requires `DISTILL_PHASE=online` and `DISTILL_VARIANT=topology` if those variables are set. `TOKEN_BUDGET`, `DISTILL_MAX_LENGTH`, `DISTILL_EPOCHS`, and `DISTILL_ACCUMULATION` control runtime budgets. Fully merged checkpoints can be supplied without adapter paths.
+The Stage-II and Stage-III `final/` exports are fully merged checkpoints. For adapter inputs, supply the corresponding base and adapter separately. A Stage-II adapter requires the already merged Stage-I base. Loading checks all adapter tensor names and shapes. TGD additionally checks architecture settings, parameter shapes, tokenization rules, vocabulary, and chat serialization.
 
-Stage I defaults: LoRA 64/128, learning rate `5e-5`, cosine schedule, 3% warmup, two epochs, microbatch 2, accumulation 8, sequence cap 4096. Stage II defaults: LoRA 64/128, learning rate `5e-6`, cosine schedule, 5% warmup, one epoch, microbatch 1, accumulation 16, two completions, temperature 0.8, top-p 0.95, completion cap 4096. Complete prompts exceeding 4096 tokens are excluded. Set `NPROC_PER_NODE` for distributed training. `TOPOPRM_DRY_RUN=1` or `DISTILL_DRY_RUN=1` prints a launch summary without starting training.
+| Default | Stage I | Stage II | Stage III |
+| :--- | :---: | :---: | :---: |
+| Learning rate | `5e-5` | `5e-6` | `2e-5` |
+| LoRA rank / alpha | 64 / 128 | 64 / 128 | 64 / 128 |
+| Response or sequence cap | 4,096 sequence | 4,096 response | 2,048 response |
+| Accumulation | 8 | 16 | 8 attempts |
 
-The GRPO launcher also accepts `without_ace`, `outcome_only`, `outcome_length`, `no_topology`, and `no_continuity`. Full and w/o ACE include a subsequent TGD stage in the paper; source-removal rows stop after Stage II. No-continuity uses a 1024-token completion cap. These are pipeline comparisons, not isolated causal estimates of topology or continuity. Fixed-snapshot export and alternative distillation utilities are separate from this paper path and do not imply that the reported no-topology checkpoint underwent TGD.
+`NPROC_PER_NODE` controls distributed Stage-I/II training. Stage-III device placement uses `STUDENT_DEVICE` and `TEACHER_DEVICE`. Set `TOPOPRM_ENV_BIN` to a virtual environment's `bin` directory if needed. `TOPOPRM_DRY_RUN=1` and `DISTILL_DRY_RUN=1` print commands without starting training. Launchers read arguments and environment variables, not stored training configurations.
 
-The canonical launchers are `run_sft.sh`, `run_grpo.sh` (also `run_iclr27_stage2.sh`), and `run_topology_distill.sh`. Other experimental orchestration scripts and reward backends are not the paper entrypoints.
+### Supplementary mechanism comparison
 
-For evaluation, merge the adapters in training order and run `scripts/bench_transformers.py --help` for the benchmark, sampling, and output options. Pass@1 and pass@5 require their corresponding sample counts and must be kept separate.
+For the seed-42 suite, add `--max_steps 200 --num_generations 2 --generation_batch_size 16 --seed 42` to Stage II. For each Stage-III arm, use the same resulting student, fixed Stage-I teacher, and the same ordered 512-prompt file:
 
-## Availability
+```bash
+# Add these variables to the Stage-III command above.
+DISTILL_SEED=42 MAX_PROMPTS=512 TOKEN_BUDGET=2048 \
+DISTILL_MAX_LENGTH=8192 DISTILL_ACCUMULATION=8 \
+REVISION_STRATEGY=topology REVISION_SELECTION=topology \
+  bash scripts/run_topology_distill.sh
+```
 
-The full source release, trained weights, training logs, research datasets, and per-item evaluation records will be made public after acceptance. The submission project page is maintained separately on `comingsoon`.
+Repeat with `REVISION_STRATEGY=generic` and a fresh output directory to change only the revision instruction. Keep `REVISION_SELECTION=topology` for the shared acceptance gate. The loop records accepted and rejected attempts in the local output directory.
+
+The historical ablation launchers also support `without_ace`, `outcome_only`, `outcome_length`, `no_topology`, and `no_continuity`. Full and w/o ACE include TGD. Historical source-removal rows stop after Stage II, and no-continuity uses a shorter cap. The supplementary `--structural_ablation` option instead neutralizes a structural channel at 0.5 while preserving the reward mixture. These are distinct protocols.
+
+## Evaluation and repository scope
+
+Run `python scripts/bench_transformers.py --help` for benchmark and decoding options. Set `--num_samples_per_item` and `--k_values` explicitly. Evaluation exports the number of items, samples per item, and correctness counts. Generation failures stop evaluation instead of being counted as wrong answers.
+
+This anonymous branch contains the implementation and compact launchers. Training configurations, logs, datasets, and model weights are excluded from Git. Model artifacts are maintained separately from this anonymous source snapshot.

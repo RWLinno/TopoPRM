@@ -89,3 +89,6 @@ secrets.yaml
 /results/
 /data/**
 !/data/README.md
+
+# Training configurations stay local. Launchers expose paper defaults.
+/configs/

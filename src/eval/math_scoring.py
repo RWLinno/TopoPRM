@@ -55,6 +55,9 @@ def extract_explicit_final_answer(text: str) -> str | None:
 
 def parse_answer_candidate(value: str) -> list:
     candidate = str(value).strip()
+    # A sentence-ending full stop is punctuation, not part of the math value.
+    # Preserve ellipses such as repeating decimals rather than rstrip('.') them.
+    candidate = re.sub(r"(?<!\.)\.$", "", candidate).rstrip()
     if not candidate:
         return []
     configs = [LatexExtractionConfig(boxed_match_priority=0), ExprExtractionConfig()]

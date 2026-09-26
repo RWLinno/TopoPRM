@@ -9,13 +9,11 @@ from __future__ import annotations
 import argparse
 import json
 import random
-import shutil
 from pathlib import Path
 from typing import Any
 
 import networkx as nx
 import torch
-from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from scripts.train_grpo_ablation import configure_paper_reward
@@ -31,7 +29,7 @@ from src.distill.build_srt_data import (
 from src.reward.outcome_reward import OutcomeReward
 from src.reward.topo_reward import TopoReward
 from src.reward.continuity_reward import ContinuityReward
-from scripts.bench_transformers import patch_swift_adapter_namespace
+from src.training import load_and_merge_adapter
 
 
 def _set_record_seed(seed: int, record_id: str, stream: str) -> int:
@@ -60,12 +58,15 @@ def load_prompts(path: Path, max_n: int = 0) -> list[dict[str, Any]]:
             if not user_text:
                 # Support public GRPO records with a direct "question" field.
                 user_text = d.get("question", "")
-            if not user_text:
-                continue
+            solution = d.get("solution", d.get("standard_answer", d.get("final_answer")))
+            if not isinstance(user_text, str) or not user_text.strip():
+                raise ValueError("Every distillation prompt must contain a nonempty problem")
+            if solution is None or not str(solution).strip():
+                raise ValueError("Every distillation prompt must contain a reference answer")
             out.append({
                 "record_id": str(d.get("record_id", f"record_{len(out)}")),
                 "problem": user_text,
-                "solution": d.get("solution", d.get("standard_answer", d.get("final_answer", ""))),
+                "solution": str(solution),
                 "reference_dag": d.get("reference_dag"),
             })
             if max_n and len(out) >= max_n:
@@ -81,7 +82,13 @@ def score_trace(text: str, solution: str, reference_dag=None, *, strict: bool = 
     cont_rw = ContinuityReward()
 
     try:
-        r_out = float(out_rw(completions, solution=solution)[0])
+        if strict:
+            from src.eval.math_scoring import verify_math_response
+            if solution is None or not str(solution).strip():
+                raise ValueError("TGD scoring requires a nonempty reference answer")
+            r_out = float(verify_math_response(text, str(solution)))
+        else:
+            r_out = float(out_rw(completions, solution=solution)[0])
     except Exception:
         if strict:
             raise
@@ -197,13 +204,17 @@ def _load_model(model_name: str, adapter: str, device: str):
     if adapter:
         if not Path(adapter).is_dir():
             raise FileNotFoundError(f"Adapter not found: {adapter}")
-        patched = patch_swift_adapter_namespace(Path(adapter))
-        model = PeftModel.from_pretrained(model, str(patched))
-        shutil.rmtree(patched.parent, ignore_errors=True)
-        model = model.merge_and_unload()
+        model = load_and_merge_adapter(model, adapter)
     model.eval()
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
+    # Match the tokenizer synchronization performed by Transformers Trainer.
+    # Otherwise a merged Stage-II model and the original teacher can stop on
+    # different tokens despite using exactly the same tokenizer.
+    for key in ("eos_token_id", "pad_token_id"):
+        value = getattr(tokenizer, key)
+        setattr(model.config, key, value)
+        setattr(model.generation_config, key, value)
     return model, tokenizer
 
 

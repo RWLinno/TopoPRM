@@ -88,10 +88,16 @@ def load_dataset(path: str):
                 user = next((m["content"] for m in d["messages"] if m["role"] == "user"), "")
                 prompt = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}]
             else:
-                prompt = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": d["question"]}]
+                prompt = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": d.get("question", "")}]
+            problem = prompt[-1]["content"]
+            answer = d.get("solution", d.get("final_answer"))
+            if not isinstance(problem, str) or not problem.strip():
+                raise ValueError("Every GRPO prompt must contain a nonempty problem")
+            if answer is None or not str(answer).strip():
+                raise ValueError("Every GRPO prompt must contain a nonempty reference answer")
             records.append({
                 "prompt": prompt,
-                "solution": str(d.get("solution", d.get("final_answer", ""))),
+                "solution": str(answer),
                 "reference_dag": d.get("reference_dag", ""),
             })
     return Dataset.from_list(records)
@@ -112,13 +118,56 @@ def build_reward(name: str, *, collect_ace: bool = False, tokenizer=None):
     elif name == "topo_hierarchical":
         from src.reward.composite_reward import TopoHierarchicalReward
         class CapturedHierarchicalReward(TopoHierarchicalReward):
-            def _components(self, *args, **kwargs):
-                self.last_components = super()._components(*args, **kwargs)
+            def _components(self, completions, solution=None, reference_dag=None, **kwargs):
+                # The paper path must not turn a failed scorer into a valid
+                # zero: in particular, zero outcome assigns the wrong ACE stratum.
+                self.last_components = None
+                raw = (
+                    ("outcome", self._outcome(completions, solution=solution, **kwargs)),
+                    ("format", self._format(completions, **kwargs)),
+                    ("topology", self._topo(completions, reference_dag=reference_dag, **kwargs)),
+                    ("continuity", self._continuity(completions, **kwargs)),
+                    ("length", self._length(completions, **kwargs)),
+                )
+                checked = []
+                for component, values in raw:
+                    if not isinstance(values, (list, tuple)) or len(values) != len(completions):
+                        raise ValueError(f"Paper {component} scores must have one value per completion")
+                    scores = []
+                    for value in values:
+                        try:
+                            score = float(value)
+                        except (TypeError, ValueError, OverflowError) as exc:
+                            raise ValueError(f"Paper {component} scorer returned a nonnumeric value") from exc
+                        if not math.isfinite(score) or not 0 <= score <= 1:
+                            raise ValueError(f"Paper {component} scores must be finite and in [0, 1]")
+                        if component == "outcome" and score not in (0, 1):
+                            raise ValueError("Paper outcome scores must be binary")
+                        scores.append(score)
+                    checked.append(scores)
+                self.last_components = tuple(checked)
                 return self.last_components
 
         impl = CapturedHierarchicalReward()
     else:
         raise ValueError(f"unknown reward {name}")
+
+    # Use the same explicit-final-answer verifier as evaluation. The legacy
+    # research backend also accepts intermediate numeric statements; those
+    # must not determine the paper path's correctness strata.
+    from src.eval.math_scoring import verify_math_response
+    from src.reward.utils import completion_to_text
+
+    def paper_outcome(completions, solution=None, **kwargs):
+        solutions = solution if isinstance(solution, list) else [solution] * len(completions)
+        if len(solutions) != len(completions):
+            raise ValueError("Paper outcome scoring requires one answer per completion")
+        if any(value is None or not str(value).strip() for value in solutions):
+            raise ValueError("Paper outcome scoring requires nonempty reference answers")
+        return [float(verify_math_response(completion_to_text(completion), str(answer)))
+                for completion, answer in zip(completions, solutions, strict=True)]
+
+    impl._outcome = paper_outcome
 
     def reward_function(completions, **kwargs):
         reward_function.ace_batch = None
@@ -143,6 +192,7 @@ def build_reward(name: str, *, collect_ace: bool = False, tokenizer=None):
             # Raw components must be gathered before rescaling: a prompt group
             # can cross a device boundary, and a call can contain many groups.
             result = impl(completions, solution=solution, reference_dag=None)
+            reward_function.latest_texts = [completion_to_text(value) for value in completions]
             completion_ids = kwargs.get("completion_ids")
             reward_function.ace_batch = (
                 tuple(tuple(ids) for ids in completion_ids) if completion_ids is not None else None,
@@ -200,7 +250,7 @@ def ace_advantages(standardized_returns, correctness, auxiliary, num_generations
     ).reshape(-1)
 
 
-def group_hierarchical_rewards(components, num_generations):
+def group_hierarchical_rewards(components, num_generations, structural_ablation="none"):
     """Eq. (3), with min–max scaling over each complete global prompt group."""
     import torch
 
@@ -217,13 +267,22 @@ def group_hierarchical_rewards(components, num_generations):
     span = structural.amax(dim=1, keepdim=True) - lo
     scaled = torch.where(span > 0, (structural - lo) / span.clamp_min(1e-8), 0.5)
     scaled = scaled.reshape(-1, 2)
+    if structural_ablation not in {"none", "topology", "continuity", "both"}:
+        raise ValueError("Unknown matched structural ablation")
+    # Neutralize information at the constant-component value, keeping mixture
+    # weights, base reward, ACE, rollout budget and training stage unchanged.
+    if structural_ablation in {"topology", "both"}:
+        scaled[:, 0] = 0.5
+    if structural_ablation in {"continuity", "both"}:
+        scaled[:, 1] = 0.5
     auxiliary = 0.6 * scaled[:, 0] + 0.4 * scaled[:, 1]
     base = 0.7 * components[:, 0] + 0.15 * components[:, 1] + 0.15 * components[:, 4]
     rewards = (base.clamp_min(0.05) * (1 + auxiliary)).clamp(0, 1)
     return rewards, auxiliary
 
 
-def build_ace_trainer_class(clip_lower=-1.0, clip_upper=1.0, *, use_ace=True):
+def build_ace_trainer_class(clip_lower=-1.0, clip_upper=1.0, *, use_ace=True,
+                            structural_ablation="none"):
     """Subclass the verified TRL 0.28.0 generation/scoring boundary.
 
     Official source: https://github.com/huggingface/trl/blob/v0.28.0/trl/trainer/grpo_trainer.py
@@ -269,16 +328,28 @@ def build_ace_trainer_class(clip_lower=-1.0, clip_upper=1.0, *, use_ace=True):
                 raise RuntimeError("ACE metadata and gathered rewards are misaligned")
             mode = "train" if self.model.training else "eval"
             group_size = self.num_generations if mode == "train" else self.num_generations_eval
-            group_rewards, auxiliary = group_hierarchical_rewards(global_batch, group_size)
+            group_rewards, auxiliary = group_hierarchical_rewards(
+                global_batch, group_size, structural_ablation)
             rewards[:, 0] = group_rewards
             self._ace_global_batch = torch.stack((global_batch[:, 0], auxiliary), dim=1)
+            start = self.accelerator.process_index * len(prompts)
+            self._audit_pending = [{
+                "prompt": prompts[i], "solution": inputs[i].get("solution"),
+                "response": self.reward_funcs[0].latest_texts[i],
+                "tokens": len(completion_ids_list[i]),
+                "components": dict(zip(("outcome", "format", "topology", "continuity", "length"), row)),
+                "reward": group_rewards[start + i].item(),
+                "auxiliary": auxiliary[start + i].item(),
+            } for i, row in enumerate(components)]
             self.reward_funcs[0].ace_batch = None
             return rewards
 
         def _generate_and_score_completions(self, inputs):
             self._ace_global_batch = None
             output = super()._generate_and_score_completions(inputs)
+            standard = output["advantages"].detach().clone()
             if not use_ace:
+                self._write_rollout_audit(standard, standard)
                 self._ace_global_batch = None
                 return output
             metadata = self._ace_global_batch
@@ -296,6 +367,7 @@ def build_ace_trainer_class(clip_lower=-1.0, clip_upper=1.0, *, use_ace=True):
             )
             start = self.accelerator.process_index * local_z.numel()
             output["advantages"] = coefficients[start:start + local_z.numel()].detach()
+            self._write_rollout_audit(standard, output["advantages"])
             # Replace the base trainer's just-recorded z values so displayed
             # advantages agree with the coefficients actually used by its loss.
             logged = self._logs["advantages"]
@@ -304,6 +376,17 @@ def build_ace_trainer_class(clip_lower=-1.0, clip_upper=1.0, *, use_ace=True):
             logged.extend(coefficients.tolist())
             self._ace_global_batch = None
             return output
+
+        def _write_rollout_audit(self, standard, advantages):
+            path = Path(self.args.output_dir) / f"rollouts_rank{self.accelerator.process_index}.jsonl"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("a", encoding="utf-8") as out:
+                for row, z, advantage in zip(self._audit_pending, standard.tolist(), advantages.tolist(), strict=True):
+                    out.write(json.dumps({"step": self.state.global_step,
+                        "structural_ablation": structural_ablation,
+                        "standardized_return": z, "advantage": advantage, **row},
+                        ensure_ascii=False) + "\n")
+            self._audit_pending = None
 
     return ACEGRPOTrainer
 
@@ -325,6 +408,10 @@ def main() -> None:
                     help="Per-device optimizer microbatch")
     ap.add_argument("--gradient_accumulation_steps", type=int, default=16)
     ap.add_argument("--advantage_mode", choices=["grpo", "ace"], default="ace")
+    ap.add_argument("--structural_ablation", choices=["none", "topology", "continuity", "both"],
+                    default="none", help="Matched information removal; neutralize a channel at 0.5")
+    ap.add_argument("--generation_batch_size", type=int, default=0,
+                    help="Bound rollout memory independently of optimizer accumulation")
     ap.add_argument("--clip_coeff_lower", type=float, default=-1.0)
     ap.add_argument("--clip_coeff_upper", type=float, default=1.0)
     ap.add_argument("--max_prompt_length", type=int, default=4096)
@@ -333,6 +420,11 @@ def main() -> None:
     args = ap.parse_args()
     if args.advantage_mode == "ace" and args.reward != "topo_hierarchical":
         ap.error("--advantage_mode ace requires --reward topo_hierarchical")
+    if args.structural_ablation != "none" and args.reward != "topo_hierarchical":
+        ap.error("Matched structural ablation requires the hierarchical reward")
+    if args.generation_batch_size and (args.generation_batch_size < args.num_generations
+                                      or args.generation_batch_size % args.num_generations):
+        ap.error("generation_batch_size must contain complete prompt groups")
     if not (math.isfinite(args.clip_coeff_lower) and math.isfinite(args.clip_coeff_upper)
             and args.clip_coeff_lower <= 0 <= args.clip_coeff_upper):
         ap.error("ACE clip bounds must be finite and satisfy lower <= 0 <= upper")
@@ -345,17 +437,21 @@ def main() -> None:
     if args.num_train_epochs <= 0 or args.max_steps == 0 or args.max_steps < -1:
         ap.error("Use positive epochs and either positive max_steps or --max_steps=-1")
 
+    if (Path(args.output_dir) / "final").exists():
+        raise FileExistsError("Choose a fresh output directory; its final checkpoint already exists")
     configure_paper_reward()
     if not Path(args.sft_adapter).is_dir():
         raise FileNotFoundError(f"SFT adapter not found: {args.sft_adapter}")
 
     import torch
-    from peft import LoraConfig, PeftModel, TaskType
+    from peft import LoraConfig, TaskType
+    from src.training import load_and_merge_adapter, save_merged_checkpoint
     from transformers import AutoModelForCausalLM, AutoTokenizer
     from trl import GRPOConfig, GRPOTrainer
 
     trainer_class = (build_ace_trainer_class(
-        args.clip_coeff_lower, args.clip_coeff_upper, use_ace=args.advantage_mode == "ace"
+        args.clip_coeff_lower, args.clip_coeff_upper, use_ace=args.advantage_mode == "ace",
+        structural_ablation=args.structural_ablation,
     ) if args.reward == "topo_hierarchical" else GRPOTrainer)
     run_name = f"{args.advantage_mode}_{args.reward}_{datetime.now().strftime('%m%d_%H%M')}"
     print(f"[train] reward={args.reward} advantages={args.advantage_mode} "
@@ -365,13 +461,16 @@ def main() -> None:
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
 
+    local_device = None
+    if torch.cuda.is_available():
+        torch.cuda.set_device(int(os.environ.get("LOCAL_RANK", "0")))
+        local_device = {"": torch.cuda.current_device()}
     model = AutoModelForCausalLM.from_pretrained(
-        args.model, torch_dtype=torch.bfloat16, device_map=None, trust_remote_code=True
+        args.model, torch_dtype=torch.bfloat16, device_map=local_device, trust_remote_code=True
     )
     if args.sft_adapter and Path(args.sft_adapter).is_dir():
         print(f"[train] merging SFT adapter: {args.sft_adapter}")
-        model = PeftModel.from_pretrained(model, args.sft_adapter)
-        model = model.merge_and_unload()
+        model = load_and_merge_adapter(model, args.sft_adapter)
 
     lora_config = LoraConfig(
         task_type=TaskType.CAUSAL_LM, r=64, lora_alpha=128,
@@ -399,6 +498,7 @@ def main() -> None:
         num_train_epochs=args.num_train_epochs,
         per_device_train_batch_size=args.per_device_train_batch_size or args.num_generations,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
+        generation_batch_size=args.generation_batch_size or None,
         learning_rate=5e-6,
         beta=0.04,
         temperature=0.8,
@@ -413,6 +513,7 @@ def main() -> None:
         report_to=args.report_to,
         run_name=run_name,
         remove_unused_columns=False,
+        loss_type="grpo",
         scale_rewards="group",
         multi_objective_aggregation="sum_then_normalize",
     )
@@ -425,9 +526,18 @@ def main() -> None:
         peft_config=lora_config,
         processing_class=tokenizer,
     )
+    if trainer.accelerator.is_main_process:
+        Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+        (Path(args.output_dir) / "run_arguments.json").write_text(
+            json.dumps(vars(args), indent=2), encoding="utf-8")
     print("[train] starting GRPO ...")
     trainer.train()
-    trainer.save_model(f"{args.output_dir}/final")
+    trainer.accelerator.wait_for_everyone()
+    if trainer.accelerator.is_main_process:
+        save_merged_checkpoint(
+            trainer.accelerator.unwrap_model(trainer.model), tokenizer, f"{args.output_dir}/final"
+        )
+    trainer.accelerator.wait_for_everyone()
     print(f"[train] done -> {args.output_dir}/final")
 
 

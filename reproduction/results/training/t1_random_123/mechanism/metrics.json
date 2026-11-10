@@ -1,0 +1,57 @@
+{
+  "scope": "offline signal comparison on one online policy cohort, not training-effect estimate",
+  "rollouts": 800,
+  "groups": 400,
+  "input": "${WORKSPACE}/TopoPRM/rebuttal/results/t1_random_123/rollouts_rank0.jsonl",
+  "input_sha256": "d30f37ad96a494ad8c3b8a3bc75bdf63083921af3860e836e601a36b7056ef8f",
+  "script_sha256": "1df323fab8d195724247f941f7b6f81c638b8ebd380df4f2303ada4ba4575489",
+  "mode_used_for_online_loss": "ace",
+  "recompute_max_error": {
+    "reward": 0.0,
+    "auxiliary": 0.0,
+    "standardized_return": 1.1920928955078125e-07,
+    "actual_coefficient": 1.1920928955078125e-07
+  },
+  "saturated_rollouts": 340,
+  "tied_return_groups": 154,
+  "tied_groups_with_nonzero_ace": 76,
+  "all_correct_groups": 127,
+  "all_wrong_groups": 151,
+  "mixed_groups": 122,
+  "coefficient_comparisons": {
+    "ace": {
+      "differs_from_ace_rollouts": 0,
+      "mean_abs_difference": 0.0,
+      "nonzero_rollouts": 444,
+      "correct_negative": 0,
+      "wrong_positive": 0
+    },
+    "clip_only": {
+      "differs_from_ace_rollouts": 195,
+      "mean_abs_difference": 0.06090383231639862,
+      "nonzero_rollouts": 368,
+      "correct_negative": 0,
+      "wrong_positive": 0
+    },
+    "scae": {
+      "differs_from_ace_rollouts": 370,
+      "mean_abs_difference": 0.16237835586071014,
+      "nonzero_rollouts": 441,
+      "correct_negative": 0,
+      "wrong_positive": 0
+    },
+    "ace_without_saturation": {
+      "differs_from_ace_rollouts": 282,
+      "mean_abs_difference": 0.06269016861915588,
+      "nonzero_rollouts": 444,
+      "correct_negative": 0,
+      "wrong_positive": 0
+    }
+  },
+  "graph_intervention": {
+    "rollouts_with_changed_edges": 298,
+    "rollouts_with_changed_raw_topology": 30,
+    "rollouts_with_changed_total_reward": 43,
+    "rollouts_with_changed_coefficient": 43
+  }
+}

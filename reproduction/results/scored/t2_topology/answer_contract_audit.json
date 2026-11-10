@@ -1,0 +1,59 @@
+{
+  "version": "final-answer-contract-v3-20261108",
+  "source_predictions_unchanged": true,
+  "benchmarks": {
+    "gsm8k": {
+      "n": 1319,
+      "recorded_correct": 1131,
+      "corrected_correct": 1131.0,
+      "changed_items": [],
+      "answer_sources": {
+        "terminal_answer_tag": 976,
+        "frozen_box_or_explicit_final": 343
+      }
+    },
+    "math500": {
+      "n": 500,
+      "recorded_correct": 311,
+      "corrected_correct": 311.0,
+      "changed_items": [],
+      "answer_sources": {
+        "terminal_answer_tag": 385,
+        "frozen_box_or_explicit_final": 115
+      }
+    },
+    "olympiadbench": {
+      "n": 675,
+      "recorded_correct": 163,
+      "corrected_correct": 165.0,
+      "changed_items": [
+        {
+          "item_id": "1e827498ee976cbbd21a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "420f20795897e4303012",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        }
+      ],
+      "answer_sources": {
+        "terminal_answer_tag": 507,
+        "frozen_box_or_explicit_final": 168
+      }
+    },
+    "aime2024": {
+      "n": 30,
+      "recorded_correct": 2,
+      "corrected_correct": 2.0,
+      "changed_items": [],
+      "answer_sources": {
+        "terminal_answer_tag": 20,
+        "frozen_box_or_explicit_final": 10
+      }
+    }
+  }
+}

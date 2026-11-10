@@ -1,0 +1,160 @@
+{
+  "bindings": {
+    "judge": {
+      "input": "${WORKSPACE}/TopoPRM/rebuttal/data/semantic_judge_inputs.jsonl",
+      "input_sha256": "c43c0e83b514e8edbb9d4bffaca038a687a6d8908b8130efa1b4ad6f797342fe",
+      "predictions": "${WORKSPACE}/TopoPRM/rebuttal/results/semantic_judge/predictions.jsonl",
+      "predictions_sha256": "dfc5aee9de7094a0497d253fa2960ce3b2874b32fcb6bca0e5e2c2274047f5b1",
+      "protocol_sha256": "fa4d1fe3e6e3a35510413996c426a772287821ba59919ad28cf275a0ce48064e"
+    },
+    "mapping_sha256": "0308e95f83997ab5617be7897399a89e76f53627bf3a21bf8a4a2d4820cc42ed",
+    "${WORKSPACE}/TopoPRM/rebuttal/results/t2_topology/revisions.jsonl": "89a6ee0dd76c9cfd0bffe336ccb29cd206ef3e4dc33314f97f50e9a69a635cf7",
+    "${WORKSPACE}/TopoPRM/rebuttal/results/t2_continuity/revisions.jsonl": "e2e0714e81850355b9c33aad7d4790941774b6d124b245c2cc888c30920a8cbe",
+    "${WORKSPACE}/TopoPRM/rebuttal/results/t2_generic/revisions.jsonl": "6baf4908cd056203ca76b2f613c42b24e182f1d20f5d7d8dcc8cf19548b823fa"
+  },
+  "training_summaries": {
+    "topology": {
+      "attempted": 512,
+      "accepted": 324,
+      "updates": 64,
+      "acceptance_rate": 0.6328125,
+      "rejections": {
+        "incorrect_answer": 150,
+        "continuity_degraded": 35,
+        "invalid_format": 2,
+        "topology_degraded": 1
+      }
+    },
+    "continuity": {
+      "attempted": 512,
+      "accepted": 305,
+      "updates": 64,
+      "acceptance_rate": 0.595703125,
+      "rejections": {
+        "incorrect_answer": 166,
+        "continuity_degraded": 38,
+        "invalid_format": 2,
+        "topology_degraded": 1
+      }
+    },
+    "generic": {
+      "attempted": 512,
+      "accepted": 343,
+      "updates": 64,
+      "acceptance_rate": 0.669921875,
+      "rejections": {
+        "incorrect_answer": 166,
+        "invalid_format": 2,
+        "continuity_degraded": 1
+      }
+    }
+  },
+  "all_attempts": {
+    "continuity": {
+      "n": 512,
+      "means": {
+        "accepted": 0.595703125,
+        "accepted_changed": 0.24609375,
+        "accepted_semantic_repair": 0.005859375,
+        "answer_corrected": 0.00390625,
+        "answer_damaged": 0.005859375,
+        "changed": 0.39453125,
+        "continuity_improved": 0.00390625,
+        "judge_parse_failure": 0.01171875,
+        "judge_uncertain": 0.01171875,
+        "semantic_repair": 0.01171875,
+        "supervised_tokens": 65.38671875,
+        "topology_improved": 0.021484375
+      }
+    },
+    "generic": {
+      "n": 512,
+      "means": {
+        "accepted": 0.669921875,
+        "accepted_changed": 0.03125,
+        "accepted_semantic_repair": 0.005859375,
+        "answer_corrected": 0.00390625,
+        "answer_damaged": 0.0,
+        "changed": 0.060546875,
+        "continuity_improved": 0.001953125,
+        "judge_parse_failure": 0.001953125,
+        "judge_uncertain": 0.001953125,
+        "semantic_repair": 0.017578125,
+        "supervised_tokens": 89.19921875,
+        "topology_improved": 0.001953125
+      }
+    },
+    "topology": {
+      "n": 512,
+      "means": {
+        "accepted": 0.6328125,
+        "accepted_changed": 0.16796875,
+        "accepted_semantic_repair": 0.00390625,
+        "answer_corrected": 0.001953125,
+        "answer_damaged": 0.0078125,
+        "changed": 0.287109375,
+        "continuity_improved": 0.009765625,
+        "judge_parse_failure": 0.0078125,
+        "judge_uncertain": 0.0078125,
+        "semantic_repair": 0.0078125,
+        "supervised_tokens": 74.384765625,
+        "topology_improved": 0.00390625
+      }
+    }
+  },
+  "accepted_only": {
+    "continuity": {
+      "n": 305,
+      "means": {
+        "accepted": 1.0,
+        "accepted_changed": 0.4131147540983607,
+        "accepted_semantic_repair": 0.009836065573770493,
+        "answer_corrected": 0.003278688524590164,
+        "answer_damaged": 0.0,
+        "changed": 0.4131147540983607,
+        "continuity_improved": 0.003278688524590164,
+        "judge_parse_failure": 0.003278688524590164,
+        "judge_uncertain": 0.003278688524590164,
+        "semantic_repair": 0.009836065573770493,
+        "supervised_tokens": 109.76393442622951,
+        "topology_improved": 0.013114754098360656
+      }
+    },
+    "generic": {
+      "n": 343,
+      "means": {
+        "accepted": 1.0,
+        "accepted_changed": 0.04664723032069971,
+        "accepted_semantic_repair": 0.008746355685131196,
+        "answer_corrected": 0.0058309037900874635,
+        "answer_damaged": 0.0,
+        "changed": 0.04664723032069971,
+        "continuity_improved": 0.0,
+        "judge_parse_failure": 0.0,
+        "judge_uncertain": 0.0,
+        "semantic_repair": 0.008746355685131196,
+        "supervised_tokens": 133.14868804664724,
+        "topology_improved": 0.0029154518950437317
+      }
+    },
+    "topology": {
+      "n": 324,
+      "means": {
+        "accepted": 1.0,
+        "accepted_changed": 0.2654320987654321,
+        "accepted_semantic_repair": 0.006172839506172839,
+        "answer_corrected": 0.0030864197530864196,
+        "answer_damaged": 0.0,
+        "changed": 0.2654320987654321,
+        "continuity_improved": 0.006172839506172839,
+        "judge_parse_failure": 0.0,
+        "judge_uncertain": 0.0,
+        "semantic_repair": 0.006172839506172839,
+        "supervised_tokens": 117.54629629629629,
+        "topology_improved": 0.0030864197530864196
+      }
+    }
+  },
+  "semantic_judgment": "independent blinded model, not human",
+  "scoring_sha256": "74ce00fb060bbeb0cb88320f7400741cebc13058d79a7cda33b7b699de8ebb44"
+}

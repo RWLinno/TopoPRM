@@ -1,0 +1,281 @@
+{
+  "frozen_scientific_source_files": [
+    {
+      "path": "code/scripts/bench_transformers.py",
+      "sha256": "a64f660f7eb610d6cc4547f132b313a278500a4034c74e4c9b4e02a7b26b0436"
+    },
+    {
+      "path": "code/scripts/build_dag_public.py",
+      "sha256": "2f237fd2518bf8205141ee71f25cb6496299a163028af6766613b3b6e09fbef7"
+    },
+    {
+      "path": "code/scripts/build_dag_showcase_html.py",
+      "sha256": "215f2b16c4e51e69e873a2b342ce58a6b462164de4e479664cd48e32210b8057"
+    },
+    {
+      "path": "code/scripts/check_reward_invariants.py",
+      "sha256": "99f428ed816494f73f753941d85325a3cd98aa0fafbf833bb6aa7731583e9d07"
+    },
+    {
+      "path": "code/scripts/dag_quality_audit.py",
+      "sha256": "9b8bd7fa3a123bb70f4bd27f5239a0ced322e5579e8fcacb16b5175f9d3f6feb"
+    },
+    {
+      "path": "code/scripts/download_benchmarks.py",
+      "sha256": "c26e0e718425c1472856e2812317cdd8c1683a3bca508aa23667de4882e6a231"
+    },
+    {
+      "path": "code/scripts/generate_publicity_report.py",
+      "sha256": "6b8797ddf21fe5280ef868b4131a97b2fe5c7f612e22e45cc9a53e132914931e"
+    },
+    {
+      "path": "code/scripts/prepare_frontiermath_aime2026.py",
+      "sha256": "d38f85fcd0d18bae28051264d5377388499d7f434908d8e7aa0807d5935061a3"
+    },
+    {
+      "path": "code/scripts/preprocess_dag_cache.py",
+      "sha256": "9ed11b950c2cc56933f485d7b56a888fa927eeb580acd5c11e0b85b50969232b"
+    },
+    {
+      "path": "code/scripts/rollout_srt.py",
+      "sha256": "be1dd13c2c6b2c312afa08cc1b7131dac604af65d8464ca2a053159c1b9dfe8f"
+    },
+    {
+      "path": "code/scripts/train_edge_encoder.py",
+      "sha256": "cbb929719dd51bb42e6874a1b26c08d3617455920ae4abfce189fe4564d19208"
+    },
+    {
+      "path": "code/scripts/train_grpo_ablation.py",
+      "sha256": "60c582dc774b16d605e7f828172cd679bb1b7c497008ff6a3e276f4d082de083"
+    },
+    {
+      "path": "code/scripts/train_shared_sft.py",
+      "sha256": "24c8990e98690d0a324254485bed92b2b8f0402fbd32a1e79a09560be3535172"
+    },
+    {
+      "path": "code/src/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "code/src/capacity_profiles.py",
+      "sha256": "096c8eaf9075c0e0f8625d20aae448751a394e5cdc9250d0ef20ab73ea8c1f6c"
+    },
+    {
+      "path": "code/src/dag/__init__.py",
+      "sha256": "d06b2dde8c6937c15838f01ac41e79250c88705860ea28713dd219174212228f"
+    },
+    {
+      "path": "code/src/dag/compress.py",
+      "sha256": "b662bf4112e7f0200624df3de9504f71b647b97cfb49a6b2fa4e6c890153c410"
+    },
+    {
+      "path": "code/src/dag/edge_encoder.py",
+      "sha256": "f47d0b4b0925ce3ef6369f188b26cb3dccf7eb57b96532baed028bdf699acfce"
+    },
+    {
+      "path": "code/src/dag/graph.py",
+      "sha256": "b53f5ca9ab993cd586a661fe74b0b99ec9d907224f17403b92589e278ef9925e"
+    },
+    {
+      "path": "code/src/dag/interventions.py",
+      "sha256": "baed6152f41f87e42802770d191db1de2a91fd1f083ead12d6050d599df9a53f"
+    },
+    {
+      "path": "code/src/dag/node.py",
+      "sha256": "5154de93e89e59bad6fa775f9b0ff568f5dceaad665de02dca6d40e1d23203ed"
+    },
+    {
+      "path": "code/src/data/__init__.py",
+      "sha256": "edde9146286eaf38eb8659d7be2fd65f852760081fdcf9dac52b9da9fb08b0f9"
+    },
+    {
+      "path": "code/src/data/build_dag.py",
+      "sha256": "669de0dc592b6157f9cdfbab1931c0b4bd67083eebe1d41eb5ed7cf10de7ac79"
+    },
+    {
+      "path": "code/src/data/clean.py",
+      "sha256": "36879f688b08ca35eb755bd71e7d1abf4a626abc313d95f49bc393a6dd274169"
+    },
+    {
+      "path": "code/src/data/generate_distill_data.py",
+      "sha256": "f47211fddc9507e87258334f1c0005a81dc70f4a5d51cebdf947dac04565e5c2"
+    },
+    {
+      "path": "code/src/data/merge_datasets.py",
+      "sha256": "4d7aa64149f9803165a9c5f4e1380d944a9a93d25efe3a7e6d8292b90f80f895"
+    },
+    {
+      "path": "code/src/data/parse_raw.py",
+      "sha256": "4dc30aa1ed972930ce6b40e4241713a5321488728ec27b3838ee248ef63f3a6a"
+    },
+    {
+      "path": "code/src/data/prepare_grpo.py",
+      "sha256": "00c670d62fd2c662e82d07d38d1fead0cd4f83ea28f8a0a17e0be2620ca5ed5d"
+    },
+    {
+      "path": "code/src/data/prepare_sft.py",
+      "sha256": "9844d40b92a350966ea19b33cca9f8f5d58a59add3d883a9ed57f801a45ff9ad"
+    },
+    {
+      "path": "code/src/distill/__init__.py",
+      "sha256": "79c417afdd4e73ad1daa9ee8a26d071eac50bd52e55691688342923250150b16"
+    },
+    {
+      "path": "code/src/distill/build_srt_data.py",
+      "sha256": "c13a9bf33bc4d3a7f7582f9cc4625754e06446d21d65b101fcf70513ed345ed3"
+    },
+    {
+      "path": "code/src/distill/chain_compression_metrics.py",
+      "sha256": "f18475aec129007a0526486c9f0e9bf90c1627969967a31c7573c8e19008cf3b"
+    },
+    {
+      "path": "code/src/distill/opsd_trainer.py",
+      "sha256": "d4b0192b2d8f3668aaba1438f37cc72b86fe03ca203f95e76f7a90d082de5644"
+    },
+    {
+      "path": "code/src/distill/reverse_kl_loss.py",
+      "sha256": "c30d91a14ba846f9f078411ecc78c7f06e1e13e810273b0d2eeae1df1481613b"
+    },
+    {
+      "path": "code/src/distill/student_train.py",
+      "sha256": "0c843d70210c83c7bfa8186010d62d7901d68b037c1f96acfa03770517106adc"
+    },
+    {
+      "path": "code/src/distill/teacher_trace_filter.py",
+      "sha256": "3d4cf69c792ebc51b6bcc61a69992763acabafc75a80a315dcf63c7df5beea3b"
+    },
+    {
+      "path": "code/src/eval/__init__.py",
+      "sha256": "9598695b151e02ef285cf83b0ad46270f782d0fdc202a39f51f5f5a79a1c8839"
+    },
+    {
+      "path": "code/src/eval/benchmark_runner.py",
+      "sha256": "0cb2e6a946f899efc9e4b4ef1d7b34f182e125fdbf3cd2f218450bf2e1816b1f"
+    },
+    {
+      "path": "code/src/eval/collect_experiment_results.py",
+      "sha256": "087fb771fc52fe082f067d56563dde8f1119d27b198d88f32daf0b542c457d62"
+    },
+    {
+      "path": "code/src/eval/critique_eval.py",
+      "sha256": "db1bbcd0a35d0e45981c0cd5d25a820c19f100062cbd81d579b2765867714ff8"
+    },
+    {
+      "path": "code/src/eval/dag_metrics.py",
+      "sha256": "f0f37f20849c2638f5b9698bb05fffe6ed0aa3cfea29f4d8dd8fad00c50a0439"
+    },
+    {
+      "path": "code/src/eval/data_visualization_analysis.py",
+      "sha256": "cb6cc7a1e272722d78e1fd7424b9c5ec9c80aed0ab58c3aeaaefb9b0cc16499d"
+    },
+    {
+      "path": "code/src/eval/distill_analysis.py",
+      "sha256": "23624e1381db51c15d91392449f98f1c8edd0016c55f7be8ef5c8678ba167c59"
+    },
+    {
+      "path": "code/src/eval/export_paper_tables.py",
+      "sha256": "7fa61cdb715ade58b2e4609832aca701b5cfcf3b9c9b23f5b8fdba8863a1973c"
+    },
+    {
+      "path": "code/src/eval/math_scoring.py",
+      "sha256": "4a7626e59617f92406af94ff9dbf473a2661655b3ea91f17d01749fcea473dca"
+    },
+    {
+      "path": "code/src/eval/source_separation.py",
+      "sha256": "a5be6e1fc71972b41d92ab5216cb308a683f42d074333e988367f7b2f56ebfcb"
+    },
+    {
+      "path": "code/src/eval/structural_from_jsonl.py",
+      "sha256": "491cc33560150020174af27cf14f6e5e2197e8d2255454096c2bb39410c944a6"
+    },
+    {
+      "path": "code/src/eval/sync_paper_tables.py",
+      "sha256": "3750b312ae5a8ddc67db3f21cb756575b317274b636c353f32a6918698a404ab"
+    },
+    {
+      "path": "code/src/eval/unified_benchmark.py",
+      "sha256": "38aa29492db44beed9346b06f89197700971af8e147bb5d7eb7a6b7b5242dd06"
+    },
+    {
+      "path": "code/src/gui/dag_reward_viewer.py",
+      "sha256": "8b4b5de0d4af15ddf7913e4d76eb0b416cadb0799120ee6cd96ec7cbd7883b39"
+    },
+    {
+      "path": "code/src/prm/__init__.py",
+      "sha256": "8cef76665d695ca2cdfcafc80970051e99e9fa70d0c4a0a779543867aafbc051"
+    },
+    {
+      "path": "code/src/prm/model.py",
+      "sha256": "8be0cd17fbc1544c52c61ee1c8e1efe8bb547a1ee4f6ae2975219db1eafcaf69"
+    },
+    {
+      "path": "code/src/prm/parser/__init__.py",
+      "sha256": "dd0b729d3d8adfd823a780226ff98f790c1ec8b83e11579711675cece2f9e95c"
+    },
+    {
+      "path": "code/src/prm/rewards/__init__.py",
+      "sha256": "e417bc9d416b2026901af761a6146e36655c3dcbdc81468db0122cbdcf017e3b"
+    },
+    {
+      "path": "code/src/reward/__init__.py",
+      "sha256": "ce144d81ee0355589eb0ae5649a957261ffb771f39c45db5e893da6bb2279b1e"
+    },
+    {
+      "path": "code/src/reward/ablation_rewards.py",
+      "sha256": "12d41e0064dbc3d717c6916b4bb2f0af87d30b80ac9aaeb4a6a92c161e8a68df"
+    },
+    {
+      "path": "code/src/reward/composite_reward.py",
+      "sha256": "a218fafacb226c8bc806534878b6e96109cbb51a92c638efd47e864fb22b664d"
+    },
+    {
+      "path": "code/src/reward/continuity_reward.py",
+      "sha256": "501a6189eb7417f822b9fc16681e2576a368de43a473a320fb0af0629eddec17"
+    },
+    {
+      "path": "code/src/reward/format_reward.py",
+      "sha256": "ad7785d771dd5ec85f6826896821faf240ddaa8e00e436c5a82a37ad3248a36a"
+    },
+    {
+      "path": "code/src/reward/gat_topo_reward.py",
+      "sha256": "3e75d8864c2e629ac6ad18109b11079e76c9c5e0e7f6b0e4fb9abdf45388ec29"
+    },
+    {
+      "path": "code/src/reward/orm_compat.py",
+      "sha256": "306ca65c2f232c7e890e9ae582b3a4c67c766e0e5a0a3aab5137f94ff2c84fc6"
+    },
+    {
+      "path": "code/src/reward/outcome_reward.py",
+      "sha256": "2bbc560350e8c5793e324f9309629992824a55eae55d8f057934d30f20b134e0"
+    },
+    {
+      "path": "code/src/reward/reward_config.py",
+      "sha256": "485a29da4291f0c545271ebe046515280374da4ce0e95535edeb1d62bf553f32"
+    },
+    {
+      "path": "code/src/reward/sarl_reward.py",
+      "sha256": "daf8e0a95cdd630edfe8a93652727ed2ecdd431f995cfa83d73b3fc070be900a"
+    },
+    {
+      "path": "code/src/reward/topo_position_encoding.py",
+      "sha256": "b3995a1a3174591240d5b0615b507495b049fd3cfc3b4b42206e8e4f5cbffd5a"
+    },
+    {
+      "path": "code/src/reward/topo_reward.py",
+      "sha256": "6df697fcd8a5cdc101f493358788a8724b2f3ef261e51e5b44738977652ba4f1"
+    },
+    {
+      "path": "code/src/reward/utils.py",
+      "sha256": "a1266e2e3c344716e64f5d6778eac0156ca22b68ffe323b61a7e269125041618"
+    },
+    {
+      "path": "code/src/training/__init__.py",
+      "sha256": "fb36e39ccc4a1bb600d1f222a85bb6b3c47bced266e04d7535a986a1e116e73a"
+    },
+    {
+      "path": "code/src/training/accuracy_callback.py",
+      "sha256": "c8c81a2ffc3c0569f7e1e9c2e63f5c2187bd27895cb5c5f4c604ea2596400c97"
+    }
+  ],
+  "note": "Cloud-only launch wrappers are replaced by run_recorded.py. Scientific Python source is unchanged; original unredacted execution provenance is retained privately."
+}

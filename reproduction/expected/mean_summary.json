@@ -1,0 +1,33 @@
+{
+  "aggregation": "Within each seed: equal benchmark means; then equal mean over seeds 42 and 123. Not a pooled trajectory mean.",
+  "T1": {
+    "ace": {
+      "avg3": 53.333331461357744,
+      "tokens": 449.35555361104093
+    },
+    "clip": {
+      "avg3": 52.24807233313678,
+      "tokens": 493.9024308819813,
+      "ace_minus_avg3_pp": 1.0852591282209616,
+      "ace_length_reduction_pct": 9.019367892438023
+    },
+    "scae": {
+      "avg3": 53.68983142859817,
+      "tokens": 470.1043809423525,
+      "ace_minus_avg3_pp": -0.3564999672404241,
+      "ace_length_reduction_pct": 4.413663895179898
+    },
+    "local": {
+      "avg3": 53.24117129512632,
+      "tokens": 478.61445273495633,
+      "ace_minus_avg3_pp": 0.09216016623142309,
+      "ace_length_reduction_pct": 6.113250228178579
+    },
+    "random": {
+      "avg3": 53.221930194030264,
+      "tokens": 462.0609854056103,
+      "ace_minus_avg3_pp": 0.11140126732748001,
+      "ace_length_reduction_pct": 2.749730489237523
+    }
+  }
+}

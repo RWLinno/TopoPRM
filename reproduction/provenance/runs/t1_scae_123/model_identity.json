@@ -1,0 +1,88 @@
+{
+  "job": "t1_scae_123",
+  "completed_utc": "2026-11-08T13:36:37.158557+00:00",
+  "model": "${WORKSPACE}/TopoPRM/rebuttal/results/t1_scae_123/final",
+  "files": [
+    {
+      "path": "${WORKSPACE}/TopoPRM/rebuttal/results/t1_scae_123/final/chat_template.jinja",
+      "bytes": 7756,
+      "mtime_ns": 1794129722204711000,
+      "sha256": "a4aee8afcf2e0711942cf848899be66016f8d14a889ff9ede07bca099c28f715"
+    },
+    {
+      "path": "${WORKSPACE}/TopoPRM/rebuttal/results/t1_scae_123/final/config.json",
+      "bytes": 1983,
+      "mtime_ns": 1794129707543175894,
+      "sha256": "3dadf580685c487f235db253f34805fe6e228063f01ed72a44213be58dd9e847"
+    },
+    {
+      "path": "${WORKSPACE}/TopoPRM/rebuttal/results/t1_scae_123/final/generation_config.json",
+      "bytes": 163,
+      "mtime_ns": 1794129707543651656,
+      "sha256": "f3eaa40283c3d68eccb408a502250596c7c45c854c4ef367ad760b2868958a44"
+    },
+    {
+      "path": "${WORKSPACE}/TopoPRM/rebuttal/results/t1_scae_123/final/model.safetensors",
+      "bytes": 17907663008,
+      "mtime_ns": 1794129721438474790,
+      "sha256": "ac7615e02cac9a07f68b99ba4f27960b80d69e1251324a9f915898b4595b325c"
+    },
+    {
+      "path": "${WORKSPACE}/TopoPRM/rebuttal/results/t1_scae_123/final/tokenizer.json",
+      "bytes": 19989493,
+      "mtime_ns": 1794129722436263616,
+      "sha256": "b6d27c11283798debbfbcb1bd3bbdbcebac6c9b20d0be0c5b79231c97de97501"
+    },
+    {
+      "path": "${WORKSPACE}/TopoPRM/rebuttal/results/t1_scae_123/final/tokenizer_config.json",
+      "bytes": 1095,
+      "mtime_ns": 1794129722236461488,
+      "sha256": "4cf9d39d3e1c9ce0143dc9740951a63e83661298155648c99a0e1721734086f8"
+    }
+  ],
+  "training_input": {
+    "path": "${WORKSPACE}/TopoPRM/rebuttal/data/train.jsonl",
+    "bytes": 67358390,
+    "mtime_ns": 1794038763679933557,
+    "sha256": "d9a1d52041c93ea5b93fe36c5d0d4989e0670f4545a77c0555004222cc3892e8"
+  },
+  "job_state_sha256": "74b3dee0be92f2e0619786fadc17cf7017ad860682ea1a388dc00ca5c535ebad",
+  "preflight_sha256": "147538acdc02f63a6b04a962e990123d6848a9d8112a49dda40803c4a0c57c01",
+  "command": [
+    "${WORKSPACE}/rebuttal/runtime/topo_env/bin/python",
+    "scripts/train_grpo_ablation.py",
+    "--model",
+    "${WORKSPACE}/cache/Qwen3.5-9B-text",
+    "--sft_adapter",
+    "${WORKSPACE}/TopoPRM/rebuttal/results/shared_sft/adapter",
+    "--data",
+    "${WORKSPACE}/TopoPRM/rebuttal/data/train.jsonl",
+    "--output_dir",
+    "${WORKSPACE}/TopoPRM/rebuttal/results/t1_scae_123",
+    "--max_steps",
+    "200",
+    "--num_generations",
+    "2",
+    "--per_device_train_batch_size",
+    "1",
+    "--gradient_accumulation_steps",
+    "4",
+    "--generation_batch_size",
+    "4",
+    "--max_prompt_length",
+    "4096",
+    "--max_completion_len",
+    "2048",
+    "--advantage_mode",
+    "scae",
+    "--graph_intervention",
+    "none",
+    "--intervention_seed",
+    "123",
+    "--seed",
+    "123",
+    "--report_to",
+    "none"
+  ],
+  "script_sha256": "478154c4c78c259ca9614436262913ab3094ed49face5661ffe485805bf957d9"
+}

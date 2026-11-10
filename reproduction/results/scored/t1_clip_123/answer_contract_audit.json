@@ -1,0 +1,5414 @@
+{
+  "version": "final-answer-contract-v3-20261108",
+  "source_predictions_unchanged": true,
+  "benchmarks": {
+    "gsm8k": {
+      "n": 1319,
+      "recorded_correct": 245,
+      "corrected_correct": 1114.0,
+      "changed_items": [
+        {
+          "item_id": "97a72fcab84e772498f1",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "88f9f6d19b2587f333a1",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ff881f713ffc207bdfa0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "17b46b05e6fabbe8ea7b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "316b1ceb898b5cada2af",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "295ffdefef352f80d1f3",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5705514425f7a4a748df",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "99d94425996f98dddf09",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "af401d626101ef412071",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a864d93750e45b263120",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "79b2fe962abd2badfc50",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "847e55144224d8b6f8c4",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "77114f13b149740a61aa",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0974d70edab0b6ef4555",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8f0e6c718133ff8c59fe",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ab13f32b74d811013fa2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1a7d70e543f492c0dd69",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4db66eef0308ef2c4190",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d20cc7175d374c62d719",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c4f7ac4c3ffdc468787d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "be5753344ee5563143b9",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "278e1bfb782d4197284c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "386e0f2e6cf8153b5731",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ddb798f055b289f84009",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ab5c250a8e3a4f2b314f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a13422373ee475a878e6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2c10c0b69b7aa860c1c4",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8b98cc98e9bd96c625cd",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ae8c06183abdffc57858",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "dbcf03da3f3846c4654c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e3f0bd0a170594876989",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "151015cf9b8e8a03fbf0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d38f66f477a536614c3d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9f5219463f262418092a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9d1a672d633fbd925b10",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f9584331d320fe64f164",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "188c92dc5955cf6dbc48",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b5b740d5d51eef904aac",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f702d573b79f9dc8f222",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "930f976bf4d2bd6cf6da",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "67ac0edc30cd1c5af787",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8a28b3823a470ef2ab5f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "3c730d1dd2c344b721db",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4ccf4c29c6ce188d8551",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "53ea095565eca1f3ceb6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "019639d0a4a9e8bfc840",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e5ee29a04fbfca0811fe",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "09bdf27edd2c61fd5f6b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1f6a93247a914f8ccfe6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4149a50b45b1a4327dbd",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "190ae7aa68944d2aea8f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6cf35c29b6d53985166c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "18da39c854c6a4565e6e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a15ea916bb7a25e04481",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ea55ae956feb77bf59f0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "613c69ef6a77c529ff32",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5f1899944f83b7031c67",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0fae01159ca45f0971c1",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "bf3535d11611a32fc77c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "497e72d53469f2ba5c9a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "100afb764d75b1f6047b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c1750caeaa8c93988139",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7867a420af28c6c14d4f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "313bafc339400b5898a6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c2e87a7aee06aa2cb90d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9adb6558b3bda1ba2ecf",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "362d29be1a12493a4802",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6b6a8ac8a8bc9bd145ee",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f8bd7d2d83a3e8b1291b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d434af230275375948e7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b21218d9b8669d3f77be",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "24cb7a3b1673eb7495e4",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6ff923f599f555a05c83",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "cc87d102548ed9a15f65",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "faa748942e349f626362",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d71ab1c2cc732fad5810",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "932ccd545cbff4f0a5e5",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "32e945a3d0e920c37e72",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f6be85c9673b642db330",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7f36b7ac7c4feb12d4b5",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d08b5ddaaf2d5486b323",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e1f75868b9fdfc1d0335",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "53c3c072075cc38936fc",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "cf472dd6acd61752fa07",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "018f7f22400d565d3602",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a41cbeaeb8863be1364d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "18ac0b0c0459ac5c71a6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "47014cb4c44160e62df7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1b1b130427d0bf0e53e1",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b529d00de7be8367ea22",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a68167d587cf1221881f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "df4f2dd5c8c09ea8c4ca",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1f00b6c64595bfb23505",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5f962e9edbfde431c36e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b93409307efa18a4be06",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "91a6b344dfd8d34982cf",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "722f07bbdfd846eaa512",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4ff8ac0db81d46aa04bd",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e6dd9b5da474c856b648",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "97880cd9a7948efc7797",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8dd5eda90818968e8abd",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "42f4a350d4addfd96585",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c893c257980f334ec174",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8a7868e60e3f85ac4880",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d54aceceb34fb3913c0e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "083979b39245f6b84649",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "202afc7e371bbd2b66fe",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "be69a41beafbe6004ca5",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "973a64f9c81c21680ea8",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "81ec7732a5ba4e45f6ac",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "46c2b52df042599fc20d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6aa679235c2737c02510",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "95ef50fefcbdf29eda52",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d1a5d0a8ca755ac45fbd",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "080c17e46cad8e700470",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "50080d45b4ef23ed53ac",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f6e32f80852217a2af79",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "201ad5418fde926147a8",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "436980eacca4f6b09511",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "fe31ef4804cf5c1ffab0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8821569f2bda1e7b211d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7262a0d7987e772a5245",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "28a5195c0e2aef46cbfa",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9b985c7b99f56407b099",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "35d500c8a7e654d35211",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2c7516e8f1b54ad383c0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b25fa7be5754fd25cfd5",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7938b57980d6ec5a54b1",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7b8b80d27b8550f6056c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "10f25a369309f53aad36",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5eb032dd8cd34c7eae5b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "70ebc037bd11eb643a7c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4048122aa75fa1648e1e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "3963e6c4994c59f5f890",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "aae7c1daf292e08675de",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "251c5bbc2a774ca8cdab",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "54e0052d9b53270506c2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "72fac79a30c97aac0652",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "cfe71591c57faf46f4d0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "86455d18b2ffa2424f58",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "153d5c5efac15481dd28",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1249650dd8ab7bc1053d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "630bba97b97a08ef6f4f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "dc7f921713a79e0448ed",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8397063b98c0d48fa129",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "441390a75baa50b77dcf",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "17025a319f8e7113fb54",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "346dcbff5bbf5f059079",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5d1731c0ca0e55000284",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ca130b5d5409fbc94172",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9947245b942c0600bea6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2581583e67f0b0ce4eaf",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8b3684e858dbbb456b79",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a1b423cbd975f1034196",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b8820dff29c1b4e093a2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c510e6264c1becc4d0e8",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "fe6b788288413b53de55",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c877f05ba86470b57dce",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "239728df5ae942869093",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2d05faeb485edebc1057",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "46c576741200155929a8",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d8d96e6d44b506d46e1c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "3e2f8023ace642d21172",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a7990f41d1c8ef6980fa",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "32ddc15837d524ac5a0a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "044a3a0c3efad3b7782a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "39314ee84b5ebd55f141",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ad6133fd98dac35f8e4f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8bdef9c6e9b73c18a8b8",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "942eb3792479c9fc98c4",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c7727795b9441562ca56",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ab728dce315b576bf185",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b8ce3b71ac8ab394ca33",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0eeae3e2e7a629646adf",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b444fd6015726113f78c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "41ee86766d648e87dd1f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "70f81fd17304b882f68d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8d73e60128c671ee5825",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5b0b048c8d16a14fe2ed",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "085ef5824f0f6f9d6959",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4d2070fcdb45487adce5",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "dce8e9fc8d41e5552f44",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ff102d663cd93b4b0bad",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0551333bd38c775442a5",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e83772310b2ac2a47412",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4d569cf99e14c7db83fe",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "bbe2e2794908c6139292",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b052a40d4f3f43d7ce71",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e7e8c008a79797cb609d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9da7dc507b2c2a30f927",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "03a7ff525cf100461909",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "45fe62a2372d9d121891",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5a9a7669b4c7c94c870b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2a55c3a015beb013bdf7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "fa6a2cc0310f25b44a0c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "07d0d0cb869902334e46",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "900d91d912e852c7e033",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "67281583e86a8c5cbaca",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2b64e9c476fffff9f0d1",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "cfb7c0829259bdb73e2c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a4658a1b026edb106e9d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "95139e99e4e552e33ae4",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e1870bf815b0822bf2db",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "644cccbdd613a41f9614",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4accc80dfaab095382d3",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e6ef311ffd58012b674d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "288af8d53084f0ee518d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d43513689b82ae5c17ee",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9ef0ec8a88e0a0cb0b23",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7a06ab580438dc2ee391",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "64bfb9e703eec2f0050b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "34039f5de4ab3fbaebff",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9e361429d2a3dedd4fe7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7c5f10b6cc449d698587",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0ef31fd6c9d5e4ce22f7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d60bffb1ebe2e8ab5ddc",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9b7e0464fe5eb9f52110",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7e7df077d51d590decba",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "820c82b463ab1e6469eb",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "fd1a0aee4434864bc960",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1f12875229c92045f972",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f46a3a7e1f1971a79c37",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1e48b75ee2c9c638fe89",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1f6fd32a59ad81645aaa",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "04a951c5515a6716442c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e6dd1f56eb4558434473",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7524f8da4eeeceba5f78",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4831ab8cc4a3ae995cbc",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "927c17ab9e5cf571c2f5",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b56182023ed3943162b9",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6e10d2bd6d32424b1ace",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2329327309ef1a47ad57",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5b2996e3fbb52eac366f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "dac85d24f488bce7386e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "cebd50020b9ce7fc5f7b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9cc36568b38d962d1d34",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "de2deb58ce9d22e7b094",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e18d5cc1c92df36ee61a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a0bea5066f020234ce4c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f2dacb2822dd4abdae38",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "560c20e72f35fd83239e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2fcf4290d1056e8e766a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "35e85dcb51d39eebe743",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "535b4b9126999ffc47ef",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ba5c06fb8e73c91e2eb4",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4a28908df1e9053f3f7b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ae63510275a060d9fc86",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c196e79b8e62147a5524",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ad49ec176db248e9955f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c8fa0d56d24a0e62fa49",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0766d895d47e6c1f1f91",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5c1eca8fed97a26519b3",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6ef6ec17f9b1c258dc6b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b74edf5fb43a3d511db2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "16cc8f080250c0025bc3",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b1e1696f8341b6e98d6b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2c028722f91f843ad61d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "426459cba122ba219cb0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "447a543c6c7c5dd8fe3e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0005ea4f6f06133e0e17",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6a6cc7f45532f9ff8d9a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a2e6f8b6df0ede746ff0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b2b1a8c7cf44489ce206",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "36c535d7faf39f5decb0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2666fb56b6a3ddbf78ad",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0323c3b8cd4de1244add",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "3eb6a68726a768b78f95",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "02ccb6568021421635e2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "cbc88fdf8c5bcf25d753",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "070b65bc3cc65879309e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "84f4dc4b61fc6902dd74",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f0f73b906d0849cceb7d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "3c02e798ab2c4577bad0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "24baa003b7cc286d4d9d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5753e93766712d77ceb4",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "421c1d3c606d4f65bf68",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1aee1aebaf8b7cd311ab",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0cf16ed0ba69222f2d32",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d108de5c8675613952cb",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "26ce0fa85613db734c9c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d26c6203888f377cbbb2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "bfad5e38cab32a80147c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ba390f5b3b173a99aad2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f3eb126a67235fe3e820",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "af752c2be9e4f2236270",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9570a182bd133200ff85",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "3e77c41ef061480d88bb",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7a484d6b5f3a4cf29b67",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "dfc83ef8b06e835328af",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b8040bbcd6aa2b02a292",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "efad2f5c35fd0f516493",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1321f199c530d1422843",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c8da703e8f1db9e76d22",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d72b20bdbee984e43499",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "85f3e1fba53e8f83ed6f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7f108c2035e58666a701",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "070814fae9d42e193b41",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1da7930fcd0f818188da",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f0be0dae35b9c2f8cab6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6f0c55aa5ee1e1cf2f6d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ba7623231f0532a5949b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "13b442a9384dbea6b2b1",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a59b2edbe865abedfc52",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5b0a24a7f3ee910eddbe",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "faf4b72b494f876f403d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2e1370c66b7bec29545f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "75d040e1c27c1bd73f70",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a245b2403ef2fe035ce7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "55633bc9fb144e680755",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "29b36dc6d2cb0251ea8b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f3644c356580f4688ee1",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "97690f4557fcbb1e9dd3",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "58cda521d9a5e55a8102",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2416137e6ae5caaa4f83",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "583a91532348535031e6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "695798422694e9c3bbfa",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f81d78869d373117999b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "04062560c1fcef3e0361",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c931320eb1c298103b85",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "317167c4cc99a7ed1372",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "bcdba624101d306fa138",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "36bfc5355372e555d158",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2128878ca8ad41989032",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7b5632a0fd50f1e689d0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7f9d53f1f886c11aaca3",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "075960829cfad561bfaa",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a7754a62fc749e65bf49",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "bb8f3ba69f60bb697bb1",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "dd22d17f4e6bfca26bc7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d1ee9e2f4b43879e5ec6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d97d8c58c48169c29fd7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "20f431baecfc019f3ca2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e0b9be37d9b28198bdef",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "229a47d28e04e715d98e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "06187b0a15e64831e30a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4b28cb1117ad1e6753ea",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "58ecda380aea56b02171",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2cd300d726e3ba0bc869",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "be8a41cfbcdfe046554f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8bd2a763460d2a1516e7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e049d9e8ac31fe0a2189",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2dbb449dd591fd817e72",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "cd97007c107d7dd9442b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f9eb6db7214fe1b632f6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "bebbafbea373c5b5fc55",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "57a3740692b1dec44d02",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c9a27626c7382fee92c4",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "cd00e657395db72f10ec",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "424a4427d6617caac2cd",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "850c61a1d0e25397796c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "3002ba6084f9ca3daa7d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "33626e4540a9902e213f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7837eebc04ebb3449258",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ef5b1168908d1016873d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1620ba3fe7b8f4edbe5f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "861896fee0c12b3e7640",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "33ea9cd8ac1f1d9eb28c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7c7f659a7da894bbeff0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c950e24ecaba61cfc715",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "013901be07ef22cbcb3b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4302a50a1ac768026450",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b9fa6c18298c1eefe71a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e55f27f1559408c23fac",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "cb0bfad43b6299642462",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "67b87d4b0f9ec44caab0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "09fcbf365bc949fa306d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0cb86b41b8dedcc4768a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e165c0cfa7e2eb40a1c9",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6a2aa431fe75a179ffd2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f2390564c5b393766940",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "be666d4da0577068cd70",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6bd04f26af893e9e2ff7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f66d42dd55f673bdcdbd",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9fd92c5d0808bd60f465",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f5ec4b0fb16f78dc8575",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b51ab6c2816c4d1ffcab",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d1752f1381712a2d4d0f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e00eea22168661ad90ea",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9cea1da2aec89a228a1d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "657f1da3a5ca9fae6fb8",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f135bc57c0fce0810a14",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6d3118adf02b4589d919",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "33e50212a41e7ff04411",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "66bbb608a9b8ee720146",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "54c1a92c1489e0af5a96",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2191c9aa05c1a3a4150e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "273bc3d4e7c6c0a05acf",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "896d6e497f6db4aaddb6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f67e0aa154504b069d1a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "93be872a7eacbeb115ea",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0fffa0b9ea7de66c23d8",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5440d4beba7ed165019c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0f9ca1990b4f17836f97",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "045a75dc8a0f2f30db8f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4ce2c058740740701e6c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "24eb1511bf8d45e81532",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f425f3cd96ba1552a4f8",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "cebd073b7a54a2b33e3c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0350f6f3f286e056f216",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8e808762d05585619240",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d359bbf765066a51de13",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1b670e11ac22e4bd20d2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "89f4e79c29691b234ba0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a38ca46b925254c79052",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "41e4e13155545f8e8a40",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0afc167be3dec4fabeb0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "47a8c0c2ba88c44ea206",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "84ea6168f8a103ede71a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "542a8991fd3023917487",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "acd3514bcde1f0b49347",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c4bdb2cd848975a869a0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e4d9dfa6839283d87318",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7c5db89a4a002c134c61",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ccff50439c8d2f1bb85b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d21c158c285c96429fa6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b1f1e0f0dccb23dec11b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "77a7a82ff8f047405815",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7e25f372a74dd2186402",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "446b3247dcf3e37b3bc8",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "935008553de96a913451",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a4740b15ae38dd9d012b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "3e77bbf2d1c7a80cd456",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ca55c75832b57b8ae9a3",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "32c5f50574635264d9fb",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "01570dd074942590f0c6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ba7957a90e9b9f57f27f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "46fed7427244191a6fbc",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6a608b51b2c95b149703",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b1408cddd5f5f1a48087",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a733619b3d8e62402154",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7e943b018615788765f3",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "05fb5058fb0e8f88924f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9916e1006556585af3d6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2ceed2347e24dcdb43e2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e0742c2f3d184f4b9da5",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "445a6c2973162a5b47b4",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0c1898288bb4d96819ea",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "136270f1df148159294a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a17c17b1c41291e842c2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2ed8ad24c37da59b2eed",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ad5a66440229cb87c7e7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "3025025c01dd3e99df28",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0b6f2f4e828f584420d7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7e86e2e435afad09140b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "26b8870fd693b7f1a1d5",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "beacb05398530c05a555",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5623e96b5e95d731529d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a4da6d5211edd53bb378",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7a706bf9c7b4dc3d10ed",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a45e9de3cd3d67febce7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "3eaff2e6d2487b1bc34a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "96bf72e3ec725744a5dd",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "00a3203d8b19c8f43f60",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ad838666a980898f0629",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "766bd2ab4ba6aee414a7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "593221f19cb03ba762ce",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "fbf01c7cc3aba808ab15",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7004f857726e4c17e8d8",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9ac9a7617a71c8094dbe",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "48b6c36782880ee3eb9a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "163e8c53def52d58f36e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9bf9ece5a90986f1f971",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "61662c00a66b7e6ee5c7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "38dbc16cca93cfadcba4",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f549e16c221951c7f03d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1e289d4f4d116fbe3d39",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1e8a0b337d548762fcdf",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9e6791d69ff0891241e9",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7ce38a91614091c801b6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "42289b27a679d2c814ed",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8c1878f1fa7eb43e5ecd",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f7ac714efaf2d24ff67c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "bf1422dd5895022c800c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "caad22e38bd26762378f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "eb65cf7b9516cc3f0d81",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a27ac6a23ca150de78f7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "123bb30032061699f2e3",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c185a1bb967a4d265f7d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d24ae75716e71c6aecd0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "470fa9d6abde10108410",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b855edd5426821e6bef4",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c7774f3fd067d7c577b3",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "87b7d5a85d180deed466",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6e6fcca32d71655dcd8a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4c044fb5c6960c18fc70",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "58ae87b11d232f3d41e6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "73d726b80442bd0117e2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "960b8906486a3c6b449f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "436712d320ff8951a70c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e8ea35e1f008d8bcc1fd",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9993ef9bec53b0166b48",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8dab90b660587c1b46e1",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e7b5c970c70b6dba69dc",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "bc4dc827dbcc2a873cee",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f515001e9ea595512a0a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b95cf3fed12d066e140a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9df92de1c37e733123cc",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "506ff476159c6c19708e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "40e19dbf19135ac6b606",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f14ff1773e7576ce4064",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "76b8cc31c2d6cfcf9192",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1037b55edfc6a68322c7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "726fce7d901c104a0076",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "76576d5d2ffaac48e7db",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "dec00ed477525bb4a943",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "003c426a6e6788c73bab",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2a50859dd5b7416dc820",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c350bba09a297cdd3b08",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f8c9e605d9a78001ea7f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "12c7c057a8358cf42f43",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7f0748a74c24405407d9",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "42684837e3325da5bcdd",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "90941e38cfbe7cb12394",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7c75efd62d6cefb58ccc",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "54d314106f2401c9a511",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "cfe2aa81d5b79d9b33b6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "666f2355140b4c5df15d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8d7b2c98d4a38bd9fa15",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "fcba23c87082b737ffac",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0090002547a39cc92bf3",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "116e364078b2a3c17fba",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "688084d2cc3c224546f1",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "3a94f041b95445e822c6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6688e1ec05a76d510c43",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2b68f36b963bafc7678c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7bea9a7f402b1f414a3e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b8ddc2f7fcf1ea9cc4f8",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "719e48e4186f71a19113",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "018b4ed78e666bad8a13",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c1183d4d81a4a654884e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "87d0db4746339a175b2e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "96970486b9070fbfed4d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "12aa70a0bfefc60c984b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "efd16a7c5f8716e21dc8",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f743876747739cdfa823",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c26e4398aa6212992460",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c2872bea6b031c5e7652",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6b59c85ddc1f7c1e97ba",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "cff09a64ee47040fc64c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c55ae9dd314dc7863ecc",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0cd2bcc2d5cc9ec76121",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5532173c3b4655fc8235",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "49741cff9c07b16fb1a1",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "bb11d73b9557c60b4eb4",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4a384d0ed5ffb934399c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0d1ac543a889be978ecb",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b1e9549d93f059f4756f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c5a88293f9cc3e568542",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "76e53e8bddbbc8e09c63",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "688be1018f1961a8d90f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d1ace5337cf3a3fd0add",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "144cff7f91bb3cb69f24",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "22981cfe8ba686e7e94b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e02ceb681d4bebf4526c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5893bfb330425a31ae1a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "596ab3169605648dad4e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "055ac8c89655fdc88958",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "3ae88c37e2366d13d87d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "63aeb3cc7a8c33d14a82",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d7ea5c93d28cc7977f00",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "db2f7a0df1162c43b956",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4e8bf80ddb579b48afa8",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "955af1731e1825e552fb",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b222bb7ec2919989ee45",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "24b92dd23c8965601795",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "3cdcf364de37e9aafa3c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ba9820c833f77f4ebf7f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "3a42cad71d207be8baf4",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "35029965b9ce6970327a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "151d35d3c90281aa67fc",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9bf67558e932c7c974a2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8dc7f09809b689f50068",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1683935a5a3cd89cad62",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b8aa3aa2b27cbd538f42",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e4e6437671dc8a3b7d3b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "3ef05bee7ef5043af003",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "84987dc16c68dafc0754",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "dcfc6b0ab686e7928486",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1e37ea66663cd1ef2707",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "92331b8e82ca19a33169",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6cee59c43af67840a1a0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "fd01fcd622ee47605161",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d842b7702bc604a49728",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e1a0924131b69fc5d975",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1a88758b2115c351e0a1",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "765e36e1d4ed6599ac55",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "dc4004989762f58698af",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c907a5d4fde51db17c06",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "41c48278729aa287fc32",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4da9bfa0f7b9c2396ba1",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ad104764cf1f34059e46",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ddf9c7c5cf49b721246b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "eca7c586972a59ffc429",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "842caec288b703cf4597",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8ff5a8626edcb49dff50",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9872f3738e8d9d13e5bc",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4162569d09aea82d1080",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "958584a305ddf3e82e4a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c73134f9332f4b2546b4",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "98ce5e1e4458c32956be",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "06e2e18204c9a61d498d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2b3d74479790fbd7beb3",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8d645fad332aafb7bef8",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "fa6503b06037036b35ae",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b09a3bd3dd3296119bd0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "94069f6dfa5362ae717f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "56c0a51a978bedfccd69",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "275eb3093705e66be536",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "23cae04a320c91b718bc",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "44e458afdeae4af5049a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8361e7a3338c461d3446",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "61156789c74792dc26f9",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "13e7b5c211ecee1298c3",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f75ed9b8b928b967d3d4",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9d006a7ff965cee2e4d2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a484d111e6ff8dbce2da",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d104760a2d966685d03e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f5a85139126ce1e267cc",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "71f5ddc27d2ab6d8ae09",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "dd34f940c45b6af57c01",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "55513c5deaf396ac464e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "db283fb1934e76481694",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "3ca13024fa8e22c9902c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "52b7d871db0604cc8dff",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "21fb6fe0b971d80333e8",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "26253506b7febcf159d0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "aaae02d4d440b33130ab",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e96c9d35d7f98d2bff01",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5b4f56db53c91a67d043",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e190deca0a1677c3d654",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d600da4b10774328b259",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "fd0056f819d13890c77b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "235e0c11ac60228848f2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "05894fe9406da982e388",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "668e5751a018fab921c9",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a97e99d5f853c9d5ee20",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9aa9ffa2318a8d867eec",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "08de03dfcf0c69aa33bd",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1c46fc4f37aebb10e03a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b69b4d8794fea33e44d9",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "dc2100bff79d348e2148",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "dac61ff53616254e17b0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "bb26e3b461e54c8b0d48",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "24d5a633f4bc06a2d17c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "29d16ae97f75ca583a95",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "26e0e0dc4a803180e093",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "81f5be9a5f5cffa55479",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a0b41d106f78317bffbb",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9ffda8dab41da9958cb5",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ea5449db8f2fe1512dc7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6e11beae2c31d8dfd2ea",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1097fde6da399c9c866f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d2ec7ffb7b7aaf1b7f6a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "359c03a592c0d923bb61",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "abdd5001c9ede8f3e048",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "59c6b0ce3b60f0d40516",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "84334ee948e14fbf2b2d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a0954fbbabcea75dcde7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7f4504367a92d7149e17",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "86380386808bfaacacfc",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "87922beca1da17b1b98b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "638a29715436f5299e96",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8291777415543f54f7c5",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c2361732bfd1c905e850",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "459c2125c073a240a958",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "06944589c31c480ae0ca",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7f18933e45ccb80567eb",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9f9e997810330cb94464",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9ef09c37612fd1d68e1a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "871eeeb98378d938a907",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "adeaf30205858519544e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0f31f9c1246faf1546f9",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "dabc35e30e4778c0fb14",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "488fb3c1cc697abbada3",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6a44e14aed1ee2c2ecc7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "81ec9ee366f40f4d5bda",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5c48acdc4623048a0c93",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "db973786fd08cc416dcf",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ac7fb5583f5329786101",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9418324988fb43490c36",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b6acdf1ecce0a032111c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e42e61086cf7b338aef2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c880b6fd077b93727d6a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "638eb0f4385ae4ac3736",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "08ae60895155a4aebadc",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "fbdabaa2d0b06f390f20",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "10cbb336770f7dd68aa1",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "eb20d772270597acb62a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "95affee16ad394591398",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8529d58a7a4975261238",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a56b41bf7dabb218f587",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "eb2f23227f8a52d59346",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "aaee785ded7dd5e86d19",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "740ddf0cfe8d36f78b6f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a1e2346e51b2f56a71a5",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4292a4a718cfcb2c0a87",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1aa0900f32d80dd2227f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ef8d2430125326cca9a6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4d63d2b3a7f909d43311",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2812372d6be4c2b1394c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "dfcd7fa516c1da4bb618",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9e27807650e6b695b0e5",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ab8a086f12387e91f474",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1d0f5c527bd0687fd89c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f1301048afeaed8c9f06",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c2119174b74a9c812da6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2fac282c4da4b18a7fdc",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b55dd20b299885c5dde7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "23bcd3be6a27eeeedf33",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b49a44b25fada609e5d6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8cd8ba7e3eeab2117477",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5008d13c9b4fb0b908bf",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a7e8205d2c618c7f1d39",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "14b70f0a8b85a47c7e1e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "cdf4e2f5aa44eddc3bec",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "446fbbcc105a8bda19ff",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "482c0be90611806a2f9c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0d5628b670ecf996dcd6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a550b0e190087925e4df",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "3d5e8ba21e417a63982f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0049d5fdf36712120124",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "21403335d36b0f1a9bd2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e780dc12347be2f63233",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0a52de6ad6742a9d7615",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "56f70cebe246db522c68",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1114c570ac71b76c4043",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7b63315d2e6ed0d02d46",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2b9273acce2c773ca370",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a54233827fd0b3f4c5f3",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4aa7e29e2fcedf4eec72",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "19c61f2038731e5e0aec",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a8de321f7978d86641e7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7b6826f69b72763cbb1a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "10c9c4901e0d0c0c5174",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e8c98b4a45086a3cad06",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ef101ea3559a4a11cba5",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5e82ecd5e760f64e81e7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b4a976dbd5afab2c31bd",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4ed8ee5f463d2a781b11",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "355187f65fc4c2407081",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "68f6a3b45949ca3cae32",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ed36475ae67b64c87f8c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c30a4b455ade4ddd036b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0a2b004377558298bc24",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4b14ec6c4e57b89e29f2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "98ced749a3c4a0666f48",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "aec76e46d3b68a9e7793",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2d111e4702bd9943e491",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "672055d410f876c2b13a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "98fccda6ea061a0292d8",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1345cac74d6180d23b5e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "bebc57c1ec9ae4be7093",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "03fec707b500ff1ed473",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1f255c14c4272e7de873",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "777c535af4c54ebe2912",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "bbbc2c4afd1451321368",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "83d7362d098432da96f0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1df2379715413f98fc1a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1693b8ac9a4e8bb12b0b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "14eee4bcef357c04c77c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "acaf8d0c088337fb7444",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "708c146e41061605e037",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "289a403e17d3de45c32e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4d6e9185243f8d80f02d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c0ec9ae14d932ff425ce",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "facc312001066ac312b6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0afcc92f5e53272889c6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "049c11ad0955e805174c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "68ff6cd09c4687bee97b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "fbe83f6ec1cc46b285e4",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ba500606d2f76b2cee0b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d353b37894ea175c0745",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6c4fd4e04374dc1b7c93",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "26561bd7b5892a6b7c4e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2ae9236880966759797b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "28b1494d86ad5301fcd9",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0b198c49d1172bb370c0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5463c18ed34825356824",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8e483c93d16277006519",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "424f8744946e39a1f3fc",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "cd2710c452a53b70fbb2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "aae7292b1ee992746c2f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "bfcb2f21ea78dd2ac591",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "958554114ea8d7a60ada",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "dfc2079d4603cf8b38ef",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "aa33a1849d4c7c4e1eac",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e64e8626eaecf0f18dfc",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d2aa4d83388cc8af0d01",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "bddd6e90433b34b64255",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "3f31e9b9e060f6f59197",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a98e6f52b2cdb0c7a36a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1ec62c818356fe6d3054",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5233630f41d82dff58e4",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e8bd34251a5994a6ba41",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "51da3651420ebe486938",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "bfdc8b01fa45af6ed19d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d3caf9a451f5dedfec14",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9086eb6deef57cb5aafd",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ba5232ddff32fa9b4ec0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2fbfe0532c5778f40532",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "0210996a9a67fe9719b3",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "aec8a2e5fde88fe40ad2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8f81ef9c9e3f290adec2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b9ee806f2993ca649705",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f3ce7987a0e88e04fbf8",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "823d98a566271ff79009",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f9cbf56d58cfdeaa2619",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "587c116078d61c3cb742",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e8d868404a8192db6186",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b66f10ce59ea272e6064",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7a4322fb0807c52433f9",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2d515e77051316eb6078",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "814b1090b583961408e8",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "49940e1ff5953a7976de",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "026929ce6da121443e3f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8b9893f4f1f5ab794e9c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8f43383edb3444a900e2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "68b59d4f46728407532b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "dfbfa58b0e10fede595c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "65aae3f4008cbf39e472",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9955489d5c5ad49d504b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "68c81852ee4d6fdad631",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "de70b19887f79949b0db",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "faba36d835dcdbb98167",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5c1ff3604bad2b4e11a4",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "946e07500ada0371e712",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "54d61fc81cbad7859792",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "18c3e0d340fc414ba1b3",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "275e08927ab185beac96",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "21d4401f35bff495a66a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f0134774221e1d73ddc0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "fb74e877601c567d7ec8",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b361dd57cfd727691789",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6e1f92fe9015268f0846",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a424e7b8f57acc67089f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "3a6aa9fb12f272358673",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "85efbeb831ca2f1ab9ea",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "35934d8fe35d4515a6c8",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "827fc322a7ade2b96845",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "56d6922da2a21953988d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "89c4c2e26ff7dd5a4ea1",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "363b56964ea1585cfe57",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8e641f8efb4d6b22e598",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "30af6988e87d09292b7e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "914777b6ea382a1b43cf",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "505edb6ad88a7c865150",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f7a2a7d28fdf1145739d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8388ff8c7b69f11e7045",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a1e7a143a753dafe9ccf",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "238943f8bee9757812a4",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5c4566780bf449ca29f2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a89a3a5668992bf5a6d8",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "04caf34f3acff5839ad4",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "125371772ff70ba60b7e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4aa517b939baec514d60",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6a3d16f27d94719eb68c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "95ce0f52ee529507ba9e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "338e41e73e1239568ac2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "663e082d094b1b24ddab",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "31286b5858d4197e5f60",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c9f5373c9cfdb68285d5",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "cdab9be595e59d9d7475",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "25735486762ca1b50300",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d7639b5dd64c30af1fca",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "96d73d7acd921ad77cd9",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f162ec5a43f2623c9979",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b9381bb99ddbbd3fe3aa",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e162561fd56c1233a038",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a8b91ac6352e7066c9f0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        }
+      ],
+      "answer_sources": {
+        "terminal_answer_tag": 1161,
+        "frozen_box_or_explicit_final": 157,
+        "empty_answer_tag": 1
+      }
+    },
+    "math500": {
+      "n": 500,
+      "recorded_correct": 248,
+      "corrected_correct": 265.0,
+      "changed_items": [
+        {
+          "item_id": "f87bb2c4e0190318631b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "677656c65d939de6a3c2",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6009f8e91d27fd29f60a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8c5a969a4bd35e8e122e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e13b6095195b18cf2a18",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "de497c9f3198436c5484",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "5205094e92ff87ce82fe",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d3c3762ea1aba7c1f23a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "65ab8dc3c5ff802f970b",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "7d086977d1628f00db95",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1b241bcece9e146cb5b1",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "21989cc8f6081d5a8677",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "e9f10d0b71093474261f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "012abb19feb25d6014d1",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ed88ce9f0dc8381f1362",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "debf45e6d2b2f9e6924a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "76d85a63102b5656ab6a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        }
+      ],
+      "answer_sources": {
+        "terminal_answer_tag": 474,
+        "frozen_box_or_explicit_final": 26
+      }
+    },
+    "olympiadbench": {
+      "n": 675,
+      "recorded_correct": 130,
+      "corrected_correct": 138.0,
+      "changed_items": [
+        {
+          "item_id": "a14247140ef6d355938c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "420f20795897e4303012",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6520280557850b9a8deb",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "09bbcb77efe0a59a8962",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "aefe93fcf842e069d89e",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "ef9d6f96cc68c674e556",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "72a565e1e8a284a9b0ab",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "c1ee5cca1bbea7d5ffa7",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        }
+      ],
+      "answer_sources": {
+        "terminal_answer_tag": 582,
+        "frozen_box_or_explicit_final": 93
+      }
+    },
+    "aime2024": {
+      "n": 30,
+      "recorded_correct": 1,
+      "corrected_correct": 1.0,
+      "changed_items": [],
+      "answer_sources": {
+        "terminal_answer_tag": 23,
+        "frozen_box_or_explicit_final": 7
+      }
+    }
+  }
+}

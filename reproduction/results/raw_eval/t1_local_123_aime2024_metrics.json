@@ -1,0 +1,124 @@
+{
+  "n_items": 30,
+  "error_count": 28,
+  "correct_count": 2,
+  "precision": 0.0667,
+  "recall": 0.0667,
+  "f1": 0.0667,
+  "pass@1": 0.0667,
+  "maj@1": 0.0667,
+  "avg_tokens": 935.1,
+  "dataset_fingerprint": "8f0b3cfc81d4266a6d3b141240866121a214ecb109648bd7dde621f94f442f51",
+  "accuracy": 0.0667,
+  "accuracy_pct": 6.67,
+  "correct": 2,
+  "error": 28,
+  "num_samples": 30,
+  "num_items": 30,
+  "samples_per_item": 1,
+  "any_correct_count": 2,
+  "any_correct_denominator": 30,
+  "pass_at_k": {
+    "1": 0.0667
+  },
+  "maj_at_k": {
+    "1": 0.0667
+  },
+  "bootstrap_n_resamples": 10000,
+  "bootstrap_seed": 0,
+  "accuracy_pct_ci95": [
+    0.0,
+    16.6667
+  ],
+  "accuracy_pct_wilson95": [
+    1.8477,
+    21.3235
+  ],
+  "mean_tokens_pass1": 935.1,
+  "mean_tokens_pass1_ci95": [
+    707.2325,
+    1175.105
+  ],
+  "interval_scope": "evaluation_items_not_training_variance",
+  "prompt_profile": "task_system",
+  "response_envelope": "prefilled_think",
+  "elapsed_sec": 182.1,
+  "backend": "transformers",
+  "label": "t1_local_123",
+  "num_samples_per_item": 1,
+  "k_values": [
+    1
+  ],
+  "use_chat_template": true,
+  "fold_system_into_user": false,
+  "force_think_prefix": false,
+  "system_control": "",
+  "empty_system_prompt": false,
+  "user_suffix": "",
+  "prompt_role_protocol": "system_user",
+  "sft_style": true,
+  "fewshot": false,
+  "model": "${WORKSPACE}/TopoPRM/rebuttal/results/t1_local_123/final",
+  "adapter": "",
+  "max_new_tokens": 2048,
+  "batch_size": 16,
+  "pass1_do_sample": true,
+  "temperature": 0.6,
+  "top_p": 0.95,
+  "top_k": 20,
+  "min_p": 0.0,
+  "repetition_penalty": 1.0,
+  "kv_cache_enabled": true,
+  "model_default_use_cache": false,
+  "eval_seed": 0,
+  "score_topology": false,
+  "pass1_decoding": "sampled",
+  "provenance_schema_version": 3,
+  "visible_token_counting": "retokenized_decoded_response_no_special_tokens",
+  "math_scoring_protocol": "last_nonempty_box_else_explicit_final_answer_math_verify_gold_first",
+  "provenance": {
+    "schema_version": 3,
+    "evaluator_sources": {
+      "scripts/bench_transformers.py": "a64f660f7eb610d6cc4547f132b313a278500a4034c74e4c9b4e02a7b26b0436",
+      "src/eval/unified_benchmark.py": "38aa29492db44beed9346b06f89197700971af8e147bb5d7eb7a6b7b5242dd06",
+      "src/eval/math_scoring.py": "4a7626e59617f92406af94ff9dbf473a2661655b3ea91f17d01749fcea473dca",
+      "src/reward/outcome_reward.py": "2bbc560350e8c5793e324f9309629992824a55eae55d8f057934d30f20b134e0"
+    },
+    "model_artifact": {
+      "files": [
+        {
+          "path": "config.json",
+          "bytes": 1983,
+          "sha256": "3dadf580685c487f235db253f34805fe6e228063f01ed72a44213be58dd9e847"
+        },
+        {
+          "path": "tokenizer_config.json",
+          "bytes": 1095,
+          "sha256": "4cf9d39d3e1c9ce0143dc9740951a63e83661298155648c99a0e1721734086f8"
+        },
+        {
+          "path": "generation_config.json",
+          "bytes": 163,
+          "sha256": "f3eaa40283c3d68eccb408a502250596c7c45c854c4ef367ad760b2868958a44"
+        }
+      ],
+      "weight_shards": [],
+      "manifest_sha256": "ea8acafa626329ce10e9bd295b161bca2f67bb01a57f3acbee0be030c5689db9"
+    },
+    "adapter_artifact": null,
+    "benchmark_source": {
+      "kind": "local_jsonl",
+      "path": "data/benchmarks/AIME2024/train.jsonl",
+      "rows": 30,
+      "bytes": 11886,
+      "sha256": "21d9f8b61f12d8764a5ba2a0bfd6c37439477af3f6fc00ce5e9d2b6e9fcd5076"
+    },
+    "prompt_profile": "task_system",
+    "response_envelope": "prefilled_think",
+    "response_envelope_evidence": {
+      "source": "generation_rendered_prompt_suffix",
+      "template_ends_with_think": true,
+      "forced_think_prefix": false
+    }
+  }
+}

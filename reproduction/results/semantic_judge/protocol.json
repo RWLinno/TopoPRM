@@ -1,0 +1,22 @@
+{
+  "model": "${WORKSPACE}/cache/Qwen3.6-27B",
+  "model_weight_manifest_sha256": "ccdb1a2aeaaa3b4dc6d3250285b89b33f33f45760eb51414bd4d08b142a8a0ec",
+  "model_config_sha256": "69db4eb7196bc8190813231b3018ca05d8c2e3abc7b1af19d55c157af44a9d9c",
+  "model_index_sha256": "a8ad2c26fb707ff8c245806315b03e3b4b74595528492423af5dae0ce39b4d9b",
+  "input": "${WORKSPACE}/TopoPRM/rebuttal/data/semantic_judge_inputs.jsonl",
+  "input_sha256": "c43c0e83b514e8edbb9d4bffaca038a687a6d8908b8130efa1b4ad6f797342fe",
+  "code_sha256": "e4238e7b40c194df57abdac78153efb401e07d526882a42cf93783cbe5e608db",
+  "adapter": null,
+  "adapter_sha256": null,
+  "image_tokens": 1536,
+  "batch_size": 2,
+  "temperature": 0,
+  "seed": 17,
+  "enable_thinking": false,
+  "runtime": {
+    "torch": "2.11.0+cu129",
+    "transformers": "5.16.0",
+    "peft": "0.20.0",
+    "tokenizers": "0.23.3"
+  }
+}

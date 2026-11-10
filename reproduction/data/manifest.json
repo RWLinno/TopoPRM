@@ -1,0 +1,69 @@
+{
+  "source": "${WORKSPACE}/cache/topoprm-data/train_public.jsonl",
+  "source_sha256": "394296f43bd0c4bc38712e39cb6b80d9af2a59d0c7c2432f507ff3bc6aaf173c",
+  "benchmark_status": [
+    {
+      "name": "GSM8K",
+      "status": "OK",
+      "count": 1319
+    },
+    {
+      "name": "MATH-500",
+      "status": "OK",
+      "count": 500
+    },
+    {
+      "name": "OlympiadBench",
+      "status": "OK",
+      "count": 675
+    },
+    {
+      "name": "AIME2024",
+      "status": "EXISTS",
+      "count": 30
+    }
+  ],
+  "benchmark_revisions": {
+    "openai/gsm8k": "740312add88f781978c0658806c59bc2815b9866",
+    "HuggingFaceH4/MATH-500": "6e4ed1a2a79af7d8630a6b768ec859cb5af4d3be",
+    "lmms-lab/OlympiadBench": "c24a1391397fcfe50afaea9210d2c29066494b69",
+    "AI-MO/aimo-validation-aime": "13f9e12f613e720c2a2b2f345dd04b998a29494d"
+  },
+  "rows": 19466,
+  "sources": {
+    "math": 11994,
+    "gsm8k": 7472
+  },
+  "excluded": [
+    {
+      "id": "math_1165",
+      "reason": "missing_training_answer"
+    },
+    {
+      "id": "math_8125",
+      "reason": "missing_training_answer"
+    },
+    {
+      "id": "math_8576",
+      "reason": "duplicate"
+    },
+    {
+      "id": "math_10859",
+      "reason": "duplicate"
+    },
+    {
+      "id": "math_11583",
+      "reason": "duplicate"
+    },
+    {
+      "id": "math_11794",
+      "reason": "duplicate"
+    }
+  ],
+  "screening": "case-folded whitespace-normalized exact question exclusion; not a semantic near-duplicate certificate",
+  "files": {
+    "sft.jsonl": "d6bccb88e4fc9c7253b5a8e2d2b74d86342a5b5455dd692ff45238a336862e77",
+    "train.jsonl": "d9a1d52041c93ea5b93fe36c5d0d4989e0670f4545a77c0555004222cc3892e8",
+    "tgd_prompts.jsonl": "4383a2340eb6151dd03bb0586562212f31eb2d7a04d1de4944e3f780d6e5bfcc"
+  }
+}

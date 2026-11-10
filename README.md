@@ -1,5 +1,9 @@
 # TopoPRM
 
+## Supplementary controlled experiments
+
+The [reproduction package](reproduction/README.md) contains the executed code, frozen inputs, per-item outputs and exact commands for Tables R1–R4. Run `python reproduction/reproduce_tables.py` to verify the file manifest and rebuild the tables. The checkpoint identities are listed separately from the historical manuscript models.
+
 **Rewarding the Graph Behind the Chain**
 
 *Topology-Aware Process Supervision for RL and Reasoning Distillation*

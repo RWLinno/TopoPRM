@@ -1,0 +1,9 @@
+{
+  "observed_utc": "2026-11-10T20:15:42.734490+00:00",
+  "source": "Read-only remote dist-info inventory of isolated topo_site; score_topo dispatcher selects topo_env",
+  "transformers": "5.5.4",
+  "trl": "0.28.0",
+  "peft": "0.18.1",
+  "datasets": "5.0.0",
+  "math-verify": "0.8.0"
+}

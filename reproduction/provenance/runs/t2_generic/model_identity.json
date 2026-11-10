@@ -1,0 +1,83 @@
+{
+  "job": "t2_generic",
+  "completed_utc": "2026-11-08T20:22:39.822456+00:00",
+  "model": "${WORKSPACE}/TopoPRM/rebuttal/results/t2_generic/final",
+  "files": [
+    {
+      "path": "${WORKSPACE}/TopoPRM/rebuttal/results/t2_generic/final/chat_template.jinja",
+      "bytes": 7756,
+      "mtime_ns": 1794167639386153000,
+      "sha256": "a4aee8afcf2e0711942cf848899be66016f8d14a889ff9ede07bca099c28f715"
+    },
+    {
+      "path": "${WORKSPACE}/TopoPRM/rebuttal/results/t2_generic/final/config.json",
+      "bytes": 1983,
+      "mtime_ns": 1794167625295500538,
+      "sha256": "3dadf580685c487f235db253f34805fe6e228063f01ed72a44213be58dd9e847"
+    },
+    {
+      "path": "${WORKSPACE}/TopoPRM/rebuttal/results/t2_generic/final/generation_config.json",
+      "bytes": 141,
+      "mtime_ns": 1794167625299044116,
+      "sha256": "17254672147cd6a864ea6e8c32420318df03baafa134c4c2b0b08748aafb50e7"
+    },
+    {
+      "path": "${WORKSPACE}/TopoPRM/rebuttal/results/t2_generic/final/model.safetensors",
+      "bytes": 17907663008,
+      "mtime_ns": 1794167638709285387,
+      "sha256": "dec8352bc5363f29813dff83f4321f5aebcfc02096e6c117dbcae1b01a62f2ae"
+    },
+    {
+      "path": "${WORKSPACE}/TopoPRM/rebuttal/results/t2_generic/final/tokenizer.json",
+      "bytes": 19989325,
+      "mtime_ns": 1794167639580137679,
+      "sha256": "06b9509352d2af50381ab2247e083b80d32d5c0aba91c272ca9ff729b6a0e523"
+    },
+    {
+      "path": "${WORKSPACE}/TopoPRM/rebuttal/results/t2_generic/final/tokenizer_config.json",
+      "bytes": 1199,
+      "mtime_ns": 1794167639387673014,
+      "sha256": "b425b8acc31dcf39410f6bef3c2b27dc2ecd4d32a597242d284b675213b89696"
+    }
+  ],
+  "training_input": {
+    "path": "${WORKSPACE}/TopoPRM/rebuttal/data/tgd_prompts.jsonl",
+    "bytes": 1797466,
+    "mtime_ns": 1794038764027616139,
+    "sha256": "4383a2340eb6151dd03bb0586562212f31eb2d7a04d1de4944e3f780d6e5bfcc"
+  },
+  "job_state_sha256": "299043a84a40fa4a9b8479c5ca02a865cca84f0fb5e99484cc983ad215f8c695",
+  "preflight_sha256": "c0614205a08fc9c752fd3832fcc66d6b3e05d979e10fa9c4c6cefc7fea5abfcf",
+  "command": [
+    "${WORKSPACE}/rebuttal/runtime/topo_env/bin/python",
+    "-m",
+    "src.distill.student_train",
+    "--student_model",
+    "${WORKSPACE}/TopoPRM/rebuttal/results/t1_ace_42/final",
+    "--teacher_model",
+    "${WORKSPACE}/TopoPRM/rebuttal/results/shared_sft/final",
+    "--prompts",
+    "${WORKSPACE}/TopoPRM/rebuttal/data/tgd_prompts.jsonl",
+    "--output_dir",
+    "${WORKSPACE}/TopoPRM/rebuttal/results/t2_generic",
+    "--revision_strategy",
+    "generic",
+    "--selection",
+    "topology",
+    "--max_prompts",
+    "512",
+    "--num_train_epochs",
+    "1",
+    "--gradient_accumulation_steps",
+    "8",
+    "--token_budget",
+    "1024",
+    "--max_length",
+    "8192",
+    "--learning_rate",
+    "2e-05",
+    "--seed",
+    "42"
+  ],
+  "script_sha256": "478154c4c78c259ca9614436262913ab3094ed49face5661ffe485805bf957d9"
+}

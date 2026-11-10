@@ -1,0 +1,23 @@
+{
+  "reward": "topo_hierarchical",
+  "model": "${WORKSPACE}/cache/Qwen3.5-9B-text",
+  "sft_adapter": "${WORKSPACE}/TopoPRM/rebuttal/results/shared_sft/adapter",
+  "data": "${WORKSPACE}/TopoPRM/rebuttal/data/train.jsonl",
+  "output_dir": "${WORKSPACE}/TopoPRM/rebuttal/results/t1_scae_123",
+  "max_steps": 200,
+  "num_train_epochs": 1.0,
+  "num_generations": 2,
+  "max_completion_len": 2048,
+  "per_device_train_batch_size": 1,
+  "gradient_accumulation_steps": 4,
+  "advantage_mode": "scae",
+  "graph_intervention": "none",
+  "intervention_seed": 123,
+  "structural_ablation": "none",
+  "generation_batch_size": 4,
+  "clip_coeff_lower": -1.0,
+  "clip_coeff_upper": 1.0,
+  "max_prompt_length": 4096,
+  "report_to": "none",
+  "seed": 123
+}

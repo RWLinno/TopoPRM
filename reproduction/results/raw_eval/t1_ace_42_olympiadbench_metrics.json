@@ -1,0 +1,124 @@
+{
+  "n_items": 675,
+  "error_count": 551,
+  "correct_count": 124,
+  "precision": 0.1837,
+  "recall": 0.1837,
+  "f1": 0.1837,
+  "pass@1": 0.1837,
+  "maj@1": 0.1837,
+  "avg_tokens": 598.0,
+  "dataset_fingerprint": "b9cb230f500748062c60e9873a3a6ab6dd1babcd6deef441bfa97c41d36b3c70",
+  "accuracy": 0.1837,
+  "accuracy_pct": 18.37,
+  "correct": 124,
+  "error": 551,
+  "num_samples": 675,
+  "num_items": 675,
+  "samples_per_item": 1,
+  "any_correct_count": 124,
+  "any_correct_denominator": 675,
+  "pass_at_k": {
+    "1": 0.1837
+  },
+  "maj_at_k": {
+    "1": 0.1837
+  },
+  "bootstrap_n_resamples": 10000,
+  "bootstrap_seed": 0,
+  "accuracy_pct_ci95": [
+    15.5556,
+    21.4815
+  ],
+  "accuracy_pct_wilson95": [
+    15.6308,
+    21.4679
+  ],
+  "mean_tokens_pass1": 598.0,
+  "mean_tokens_pass1_ci95": [
+    554.1166,
+    643.6985
+  ],
+  "interval_scope": "evaluation_items_not_training_variance",
+  "prompt_profile": "task_system",
+  "response_envelope": "prefilled_think",
+  "elapsed_sec": 3356.0,
+  "backend": "transformers",
+  "label": "t1_ace_42",
+  "num_samples_per_item": 1,
+  "k_values": [
+    1
+  ],
+  "use_chat_template": true,
+  "fold_system_into_user": false,
+  "force_think_prefix": false,
+  "system_control": "",
+  "empty_system_prompt": false,
+  "user_suffix": "",
+  "prompt_role_protocol": "system_user",
+  "sft_style": true,
+  "fewshot": false,
+  "model": "${WORKSPACE}/TopoPRM/rebuttal/results/t1_ace_42/final",
+  "adapter": "",
+  "max_new_tokens": 2048,
+  "batch_size": 16,
+  "pass1_do_sample": true,
+  "temperature": 0.6,
+  "top_p": 0.95,
+  "top_k": 20,
+  "min_p": 0.0,
+  "repetition_penalty": 1.0,
+  "kv_cache_enabled": true,
+  "model_default_use_cache": false,
+  "eval_seed": 0,
+  "score_topology": false,
+  "pass1_decoding": "sampled",
+  "provenance_schema_version": 3,
+  "visible_token_counting": "retokenized_decoded_response_no_special_tokens",
+  "math_scoring_protocol": "last_nonempty_box_else_explicit_final_answer_math_verify_gold_first",
+  "provenance": {
+    "schema_version": 3,
+    "evaluator_sources": {
+      "scripts/bench_transformers.py": "a64f660f7eb610d6cc4547f132b313a278500a4034c74e4c9b4e02a7b26b0436",
+      "src/eval/unified_benchmark.py": "38aa29492db44beed9346b06f89197700971af8e147bb5d7eb7a6b7b5242dd06",
+      "src/eval/math_scoring.py": "4a7626e59617f92406af94ff9dbf473a2661655b3ea91f17d01749fcea473dca",
+      "src/reward/outcome_reward.py": "2bbc560350e8c5793e324f9309629992824a55eae55d8f057934d30f20b134e0"
+    },
+    "model_artifact": {
+      "files": [
+        {
+          "path": "config.json",
+          "bytes": 1983,
+          "sha256": "3dadf580685c487f235db253f34805fe6e228063f01ed72a44213be58dd9e847"
+        },
+        {
+          "path": "tokenizer_config.json",
+          "bytes": 1095,
+          "sha256": "4cf9d39d3e1c9ce0143dc9740951a63e83661298155648c99a0e1721734086f8"
+        },
+        {
+          "path": "generation_config.json",
+          "bytes": 163,
+          "sha256": "f3eaa40283c3d68eccb408a502250596c7c45c854c4ef367ad760b2868958a44"
+        }
+      ],
+      "weight_shards": [],
+      "manifest_sha256": "ea8acafa626329ce10e9bd295b161bca2f67bb01a57f3acbee0be030c5689db9"
+    },
+    "adapter_artifact": null,
+    "benchmark_source": {
+      "kind": "local_jsonl",
+      "path": "data/benchmarks/OlympiadBench/test_en_oe_to_math.jsonl",
+      "rows": 675,
+      "bytes": 305102,
+      "sha256": "aea4d5deddb9f9e91696c74699e040a0aac00126ccdbe7c69774485bc96e7ad8"
+    },
+    "prompt_profile": "task_system",
+    "response_envelope": "prefilled_think",
+    "response_envelope_evidence": {
+      "source": "generation_rendered_prompt_suffix",
+      "template_ends_with_think": true,
+      "forced_think_prefix": false
+    }
+  }
+}

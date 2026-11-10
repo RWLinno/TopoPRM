@@ -1,0 +1,10 @@
+{
+  "new_controlled_initialization": true,
+  "rows": 19466,
+  "overlength_excluded": 0,
+  "model": "${WORKSPACE}/cache/Qwen3.5-9B-text",
+  "steps": 128,
+  "seed": 42,
+  "effective_batch": 8,
+  "data": "${WORKSPACE}/TopoPRM/rebuttal/data/sft.jsonl"
+}

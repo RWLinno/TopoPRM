@@ -1,0 +1,4 @@
+{
+  "topo_runtime_binding.json": "{\n  \"source_sites\": [\n    \"${SHARED_ENV}\",\n    \"${SHARED_ENV}\"\n  ],\n  \"override_site\": \"${WORKSPACE}/rebuttal/runtime/topo_site\",\n  \"environment\": \"${WORKSPACE}/rebuttal/runtime/topo_env\",\n  \"symlinks\": 0,\n  \"optional_backends_excluded\": [\n    \"vllm\",\n    \"swift\",\n    \"wandb\",\n    \"weave\"\n  ],\n  \"source_environment_modified\": false\n}\n",
+  "trl_import_compatibility.json": "{\n  \"file\": \"${WORKSPACE}/rebuttal/runtime/topo_site/trl/import_utils.py\",\n  \"sha256\": \"e481d7ea8ad0ec2e11d62daecd651560876f76dd9c7e35a6c8989a825f37b24e\",\n  \"change\": \"bool/tuple adaptation of package-availability helper only\"\n}\n"
+}

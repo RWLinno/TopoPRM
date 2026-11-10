@@ -1,0 +1,12 @@
+{
+  "attempted": 512,
+  "accepted": 324,
+  "updates": 64,
+  "acceptance_rate": 0.6328125,
+  "rejections": {
+    "incorrect_answer": 150,
+    "continuity_degraded": 35,
+    "invalid_format": 2,
+    "topology_degraded": 1
+  }
+}

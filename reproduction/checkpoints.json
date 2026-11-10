@@ -1,0 +1,91 @@
+{
+  "status": "release_pending",
+  "files": [
+    {
+      "run": "shared_sft",
+      "path": "shared_sft/model.safetensors",
+      "bytes": 17907663008,
+      "sha256": "119ab630ed190a1db4c7fbaae8b7433083f55bb7979d25bd978080519b1b4ad0"
+    },
+    {
+      "run": "t1_ace_123",
+      "path": "t1_ace_123/model.safetensors",
+      "bytes": 17907663008,
+      "sha256": "49359bf3e06e370efcd64e3cb1876880c59f5f3a4445c973f9ac83decb544c28"
+    },
+    {
+      "run": "t1_ace_42",
+      "path": "t1_ace_42/model.safetensors",
+      "bytes": 17907663008,
+      "sha256": "542334057521091aedeb1e06428228c64713c38db98309a3a39d5741f260cff3"
+    },
+    {
+      "run": "t1_clip_123",
+      "path": "t1_clip_123/model.safetensors",
+      "bytes": 17907663008,
+      "sha256": "a3b5aa2a2a8b468b63ee3785aef3e5aeb3afa28d05ecd582bbde19e578ed8834"
+    },
+    {
+      "run": "t1_clip_42",
+      "path": "t1_clip_42/model.safetensors",
+      "bytes": 17907663008,
+      "sha256": "a144de0713a2eb3b9b9ec813664d43013023fa0704b31023be855739953ba3e5"
+    },
+    {
+      "run": "t1_local_123",
+      "path": "t1_local_123/model.safetensors",
+      "bytes": 17907663008,
+      "sha256": "c304e8ff3811526a8e8aafa3df2b51994b95b2124e2053dd739bf610ee4d5987"
+    },
+    {
+      "run": "t1_local_42",
+      "path": "t1_local_42/model.safetensors",
+      "bytes": 17907663008,
+      "sha256": "20d9886f9adf47b5bddc56ebf826ebcc3d950f7b26a25b027c0c3674f98c99e7"
+    },
+    {
+      "run": "t1_random_123",
+      "path": "t1_random_123/model.safetensors",
+      "bytes": 17907663008,
+      "sha256": "9aea249feaf715e950fe119e0fe3fc54fa8316715cfafe26562877ceefea0517"
+    },
+    {
+      "run": "t1_random_42",
+      "path": "t1_random_42/model.safetensors",
+      "bytes": 17907663008,
+      "sha256": "d40745078e1a5d7cefa582259c89eef3d49084a5b7efee91de8b751c29d3befe"
+    },
+    {
+      "run": "t1_scae_123",
+      "path": "t1_scae_123/model.safetensors",
+      "bytes": 17907663008,
+      "sha256": "ac7615e02cac9a07f68b99ba4f27960b80d69e1251324a9f915898b4595b325c"
+    },
+    {
+      "run": "t1_scae_42",
+      "path": "t1_scae_42/model.safetensors",
+      "bytes": 17907663008,
+      "sha256": "b97f7a0c1e63f0886a2bec5f4cae744f987d6adda7f40b13eee5f52e019ca0b0"
+    },
+    {
+      "run": "t2_continuity",
+      "path": "t2_continuity/model.safetensors",
+      "bytes": 17907663008,
+      "sha256": "3a7aea2244018a394d7714138e5700a659100c36c0ad06ea40cc324a68a5e5f2"
+    },
+    {
+      "run": "t2_generic",
+      "path": "t2_generic/model.safetensors",
+      "bytes": 17907663008,
+      "sha256": "dec8352bc5363f29813dff83f4321f5aebcfc02096e6c117dbcae1b01a62f2ae"
+    },
+    {
+      "run": "t2_topology",
+      "path": "t2_topology/model.safetensors",
+      "bytes": 17907663008,
+      "sha256": "31c27f5520a0117a398bf4e534289061fae62ac2298b0048e6e31ef2d83e8880"
+    }
+  ],
+  "total_bytes": 250707282112,
+  "note": "These are the exact newly controlled experiment checkpoints, including shared SFT; public Full seed-123 is a different experiment."
+}

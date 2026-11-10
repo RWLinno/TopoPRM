@@ -1,0 +1,64 @@
+{
+  "label": "t1_local_42",
+  "answer_contract": "final-answer-contract-v3-20261108",
+  "bindings": {
+    "${WORKSPACE}/TopoPRM/rebuttal/data/benchmark_manifest.json": "7a2f11250642b519ddd9a258e9024d7e92845b4ebef7f9446beb0a4f4cdb8b7c",
+    "${WORKSPACE}/TopoPRM/src/eval/math_scoring.py": "4a7626e59617f92406af94ff9dbf473a2661655b3ea91f17d01749fcea473dca",
+    "${WORKSPACE}/rebuttal/scoring/topo_final_answer.py": "5b942fff7cb4f79c3f73f823177dff45b3370fbf4fb7246e09bcaae13c923648",
+    "${WORKSPACE}/TopoPRM/rebuttal/results/eval/t1_local_42_gsm8k_details.jsonl": "c20a1fb09738f6a9bc1c30bb159dd6779bed11727dc732fa9830e7aab6c24205",
+    "${WORKSPACE}/TopoPRM/rebuttal/results/eval/t1_local_42_gsm8k_metrics.json": "b1e6973d984ebeea2de109aec0c43f02b5657c4f88b7bab314dd3d2d0edf7d3a",
+    "${WORKSPACE}/TopoPRM/rebuttal/results/eval/t1_local_42_math500_details.jsonl": "000c1c0f3dec74f4f4c783027480d756f7ddc9eaa1d743d514717d96700f46cb",
+    "${WORKSPACE}/TopoPRM/rebuttal/results/eval/t1_local_42_math500_metrics.json": "90806b43168ac72b392181c97537f835d474283424c72b180698e62036fbcb8b",
+    "${WORKSPACE}/TopoPRM/rebuttal/results/eval/t1_local_42_olympiadbench_details.jsonl": "25063cb7cc600a1a9723eaf58280614eee749703700d4df536b8463d5dd3a8a9",
+    "${WORKSPACE}/TopoPRM/rebuttal/results/eval/t1_local_42_olympiadbench_metrics.json": "aaa3b5214a761b74209b0970c731f3e4e4ed79ac746847f1db68c1bdc08f218e",
+    "${WORKSPACE}/TopoPRM/rebuttal/results/eval/t1_local_42_aime2024_details.jsonl": "bf033ee42f0a906ba9e89a68738977a88e94e4909e056a7bd196ea81c426b2a8",
+    "${WORKSPACE}/TopoPRM/rebuttal/results/eval/t1_local_42_aime2024_metrics.json": "6a7a352c5b6c2b1b6b3459ffc77e80e2687df0b7f66e42b9f90d3f6a58128279"
+  },
+  "scoring_sha256": "74ce00fb060bbeb0cb88320f7400741cebc13058d79a7cda33b7b699de8ebb44",
+  "benchmarks": {
+    "aime2024": {
+      "n": 30,
+      "means": {
+        "credit": 0.03333333333333333,
+        "generated_tokens": 823.6666666666666,
+        "recorded_credit": 0.03333333333333333,
+        "truncated": 0.16666666666666666,
+        "visible_tokens": 822.8
+      }
+    },
+    "gsm8k": {
+      "n": 1319,
+      "means": {
+        "credit": 0.8400303260045489,
+        "generated_tokens": 129.51781652767247,
+        "recorded_credit": 0.19408642911296436,
+        "truncated": 0.0,
+        "visible_tokens": 128.51326762699014
+      }
+    },
+    "math500": {
+      "n": 500,
+      "means": {
+        "credit": 0.558,
+        "generated_tokens": 280.654,
+        "recorded_credit": 0.534,
+        "truncated": 0.034,
+        "visible_tokens": 279.682
+      }
+    },
+    "olympiadbench": {
+      "n": 675,
+      "means": {
+        "credit": 0.21037037037037037,
+        "generated_tokens": 616.6637037037037,
+        "recorded_credit": 0.20592592592592593,
+        "truncated": 0.1111111111111111,
+        "visible_tokens": 615.7674074074074
+      }
+    }
+  },
+  "macro_accuracy": 0.41043350742706314,
+  "macro_accuracy_without_aime": 0.5361335654583065,
+  "aime_correct": 1.0,
+  "truncation_available": true
+}

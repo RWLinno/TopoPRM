@@ -1,0 +1,156 @@
+{
+  "version": "final-answer-contract-v3-20261108",
+  "source_predictions_unchanged": true,
+  "benchmarks": {
+    "gsm8k": {
+      "n": 1319,
+      "recorded_correct": 1117,
+      "corrected_correct": 1129.0,
+      "changed_items": [
+        {
+          "item_id": "ab5c250a8e3a4f2b314f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "6ff923f599f555a05c83",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f6e32f80852217a2af79",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "2c028722f91f843ad61d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "f0be0dae35b9c2f8cab6",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1620ba3fe7b8f4edbe5f",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "9bd67a613db28c93be6d",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "248731abaae2111a91b0",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "d359bbf765066a51de13",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "8361e7a3338c461d3446",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "4292a4a718cfcb2c0a87",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "446fbbcc105a8bda19ff",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        }
+      ],
+      "answer_sources": {
+        "terminal_answer_tag": 962,
+        "frozen_box_or_explicit_final": 357
+      }
+    },
+    "math500": {
+      "n": 500,
+      "recorded_correct": 296,
+      "corrected_correct": 296.0,
+      "changed_items": [],
+      "answer_sources": {
+        "terminal_answer_tag": 238,
+        "frozen_box_or_explicit_final": 262
+      }
+    },
+    "olympiadbench": {
+      "n": 675,
+      "recorded_correct": 145,
+      "corrected_correct": 151.0,
+      "changed_items": [
+        {
+          "item_id": "a5bd702bcaf2df691e00",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1f3c73e92ebe58e23084",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "1e827498ee976cbbd21a",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "b8e21602484b88a354ac",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "a14247140ef6d355938c",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        },
+        {
+          "item_id": "48b7b980ec2c9786a225",
+          "recorded_correct": false,
+          "verified_correct": true,
+          "answer_source": "terminal_answer_tag"
+        }
+      ],
+      "answer_sources": {
+        "frozen_box_or_explicit_final": 304,
+        "terminal_answer_tag": 371
+      }
+    },
+    "aime2024": {
+      "n": 30,
+      "recorded_correct": 1,
+      "corrected_correct": 1.0,
+      "changed_items": [],
+      "answer_sources": {
+        "terminal_answer_tag": 11,
+        "frozen_box_or_explicit_final": 19
+      }
+    }
+  }
+}

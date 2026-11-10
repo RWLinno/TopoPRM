@@ -1,0 +1,68 @@
+{
+  "job": "topo_shared_sft",
+  "completed_utc": "2026-11-08T13:34:32.321830+00:00",
+  "model": "${WORKSPACE}/TopoPRM/rebuttal/results/shared_sft/final",
+  "files": [
+    {
+      "path": "${WORKSPACE}/TopoPRM/rebuttal/results/shared_sft/final/chat_template.jinja",
+      "bytes": 7756,
+      "mtime_ns": 1794113913300259000,
+      "sha256": "a4aee8afcf2e0711942cf848899be66016f8d14a889ff9ede07bca099c28f715"
+    },
+    {
+      "path": "${WORKSPACE}/TopoPRM/rebuttal/results/shared_sft/final/config.json",
+      "bytes": 1983,
+      "mtime_ns": 1794113899328553523,
+      "sha256": "6cc63f3a75ab10ca337761072cd9b00c4d52bc339cfb57ce3310e60320e3019f"
+    },
+    {
+      "path": "${WORKSPACE}/TopoPRM/rebuttal/results/shared_sft/final/generation_config.json",
+      "bytes": 163,
+      "mtime_ns": 1794113899330515862,
+      "sha256": "97dbb44d1bed08b68b94186f9eca06cc8fd34fbce99ca6d7516913a9fe79d6b2"
+    },
+    {
+      "path": "${WORKSPACE}/TopoPRM/rebuttal/results/shared_sft/final/model.safetensors",
+      "bytes": 17907663008,
+      "mtime_ns": 1794113912612701373,
+      "sha256": "119ab630ed190a1db4c7fbaae8b7433083f55bb7979d25bd978080519b1b4ad0"
+    },
+    {
+      "path": "${WORKSPACE}/TopoPRM/rebuttal/results/shared_sft/final/tokenizer.json",
+      "bytes": 19989325,
+      "mtime_ns": 1794113913540790576,
+      "sha256": "06b9509352d2af50381ab2247e083b80d32d5c0aba91c272ca9ff729b6a0e523"
+    },
+    {
+      "path": "${WORKSPACE}/TopoPRM/rebuttal/results/shared_sft/final/tokenizer_config.json",
+      "bytes": 1092,
+      "mtime_ns": 1794113913302089434,
+      "sha256": "18194a3c821bc504d46c64b2a9a3a9bb709aa0d87629d54a6bf69e24c9baf9e7"
+    },
+    {
+      "path": "${WORKSPACE}/TopoPRM/rebuttal/results/shared_sft/adapter/adapter_model.safetensors",
+      "bytes": 692521584,
+      "mtime_ns": 1794113898358599295,
+      "sha256": "5a01fb2051a127671052a3355b5d2f5ef483fd15512e2ae59f37c733ccf98a19"
+    }
+  ],
+  "training_input": {
+    "path": "${WORKSPACE}/TopoPRM/rebuttal/data/sft.jsonl",
+    "bytes": 18950658,
+    "mtime_ns": 1794038763994283812,
+    "sha256": "d6bccb88e4fc9c7253b5a8e2d2b74d86342a5b5455dd692ff45238a336862e77"
+  },
+  "job_state_sha256": "74f860259b9b377da6554f51a66cbddd5b841233d1d7f7f89a3322d7551c3bbc",
+  "preflight_sha256": "147538acdc02f63a6b04a962e990123d6848a9d8112a49dda40803c4a0c57c01",
+  "command": [
+    "${WORKSPACE}/rebuttal/runtime/topo_env/bin/python",
+    "scripts/train_shared_sft.py",
+    "--model",
+    "${WORKSPACE}/cache/Qwen3.5-9B-text",
+    "--data",
+    "${WORKSPACE}/TopoPRM/rebuttal/data/sft.jsonl",
+    "--output",
+    "${WORKSPACE}/TopoPRM/rebuttal/results/shared_sft"
+  ],
+  "script_sha256": "478154c4c78c259ca9614436262913ab3094ed49face5661ffe485805bf957d9"
+}

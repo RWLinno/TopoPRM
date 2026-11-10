@@ -93,4 +93,4 @@ The historical ablation launchers also support `without_ace`, `outcome_only`, `o
 
 Run `python scripts/bench_transformers.py --help` for benchmark and decoding options. Set `--num_samples_per_item` and `--k_values` explicitly. Evaluation exports the number of items, samples per item, and correctness counts. Generation failures stop evaluation instead of being counted as wrong answers.
 
-This anonymous branch contains the implementation and compact launchers. Training configurations, logs, datasets, and model weights are excluded from Git. Model artifacts are maintained separately from this anonymous source snapshot.
+This anonymous branch contains the implementation and compact launchers. The supplementary reproduction directory includes frozen training inputs, run configurations, per-item outputs and scoring commands; model weights are published separately. Model artifacts are maintained separately from this anonymous source snapshot.

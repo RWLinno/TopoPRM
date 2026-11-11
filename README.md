@@ -2,7 +2,7 @@
 
 ## Supplementary controlled experiments
 
-The [reproduction package](reproduction/README.md) contains the executed code, frozen inputs, per-item outputs and exact commands for Tables R1–R4. Run `python reproduction/reproduce_tables.py` to verify the file manifest and rebuild the tables. The checkpoint identities are listed separately from the historical manuscript models.
+The [reproduction package](reproduction/README.md) contains the executed code, frozen inputs, per-item outputs and exact commands for Tables R1–R4. Run `python reproduction/reproduce_tables.py` to verify the file manifest and rebuild the tables. The checkpoint identities are listed separately from the historical manuscript models. All fourteen [controlled experiment checkpoints](https://huggingface.co/rwlinno/topoprm-ckpts/tree/main/rebuttal-controlled-20261110) and the shared SFT adapter are publicly available.
 
 **Rewarding the Graph Behind the Chain**
 

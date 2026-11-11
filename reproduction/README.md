@@ -1,6 +1,6 @@
 # TopoPRM supplementary experiments
 
-This anonymous release candidate contains the executed scientific code, frozen training and evaluation inputs, raw outputs, exact run configurations and a CPU reconstruction of Tables R1–R4. The 13 evaluated models belong to the new controlled experiment suite; the shared SFT is a fourteenth checkpoint. Historical manuscript scores and previously released Full models are separate experiments.
+This release contains the executed scientific code, frozen training and evaluation inputs, raw outputs, exact run configurations and a CPU reconstruction of Tables R1–R4. The 13 evaluated models belong to the new controlled experiment suite; the shared SFT is a fourteenth checkpoint. Historical manuscript scores and previously released Full models are separate experiments.
 
 ## Reproduce the tables
 
@@ -27,6 +27,6 @@ The runner leaves device selection to the invoking environment. Run one selected
 
 ## Checkpoint release
 
-`checkpoints.json` identifies all fourteen merged checkpoints by SHA256. Their weights are not embedded in this small code/data archive. They remain pending release; no existing checkpoint is presented as an interchangeable substitute. When provided, place the chosen model directory under `/path/to/work/results/<run>/final` to execute its recorded evaluation command. The shared SFT adapter is needed to rerun Stage-II training from the original base.
+`checkpoints.json` identifies all fourteen merged checkpoints by SHA256. Their weights are not embedded in this small code/data archive. All fourteen merged checkpoints are publicly released and verified against these hashes. The accompanying model release retains the same run names; its download paths and verified revisions are recorded in `checkpoints.json`. Place the chosen model directory under `/path/to/work/results/<run>/final` to execute its recorded evaluation command. The released shared SFT adapter is needed to rerun Stage-II training from the original projected base; place its files at `/path/to/work/results/shared_sft/adapter`. Its portable configuration replaces only the former machine-specific base path; the adapter tensors are unchanged.
 
 Private paths, host names and personal repository references have been removed from this copy. Raw dataset rows, model answers, rollout records and per-item decisions are unchanged. Scientific source hashes and the release file manifest document the retained identities.
